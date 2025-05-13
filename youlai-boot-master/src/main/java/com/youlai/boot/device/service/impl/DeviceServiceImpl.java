@@ -1,0 +1,108 @@
+package com.youlai.boot.device.service.impl;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.youlai.boot.device.mapper.DeviceMapper;
+import com.youlai.boot.device.service.DeviceService;
+import com.youlai.boot.device.model.entity.Device;
+import com.youlai.boot.device.model.form.DeviceForm;
+import com.youlai.boot.device.model.query.DeviceQuery;
+import com.youlai.boot.device.model.vo.DeviceVO;
+import com.youlai.boot.device.converter.DeviceConverter;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import cn.hutool.core.lang.Assert;
+import cn.hutool.core.util.StrUtil;
+
+/**
+ * 设备管理服务实现类
+ *
+ * @author way
+ * @since 2025-05-08 15:16
+ */
+@Service
+@RequiredArgsConstructor
+public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> implements DeviceService {
+    private final DeviceMapper deviceMapper;
+    private final DeviceConverter deviceConverter;
+
+    /**
+     * 获取设备管理分页列表
+     *
+     * @param queryParams 查询参数
+     * @return {@link IPage<DeviceVO>} 设备管理分页列表
+     */
+    @Override
+    public IPage<DeviceVO> getDevicePage(DeviceQuery queryParams) {
+        Page<DeviceVO> pageVO = this.baseMapper.getDevicePage(
+                new Page<>(queryParams.getPageNum(), queryParams.getPageSize()),
+                queryParams
+        );
+        return pageVO;
+    }
+
+    /**
+     * 获取设备管理表单数据
+     *
+     * @param id 设备管理ID
+     * @return 设备管理表单数据
+     */
+    @Override
+    public DeviceForm getDeviceFormData(Long id) {
+        Device entity = this.getById(id);
+        return deviceConverter.toForm(entity);
+    }
+
+    /**
+     * 新增设备管理
+     *
+     * @param formData 设备管理表单对象
+     * @return 是否新增成功
+     */
+    @Override
+    public boolean saveDevice(DeviceForm formData) {
+        Device entity = deviceConverter.toEntity(formData);
+        return this.save(entity);
+    }
+
+    /**
+     * 更新设备管理
+     *
+     * @param id   设备管理ID
+     * @param formData 设备管理表单对象
+     * @return 是否修改成功
+     */
+    @Override
+    public boolean updateDevice(Long id, DeviceForm formData) {
+        Device entity = deviceConverter.toEntity(formData);
+        return this.updateById(entity);
+    }
+
+    /**
+     * 删除设备管理
+     *
+     * @param ids 设备管理ID，多个以英文逗号(,)分割
+     * @return 是否删除成功
+     */
+    @Override
+    public boolean deleteDevices(String ids) {
+        Assert.isTrue(StrUtil.isNotBlank(ids), "删除的设备管理数据为空");
+        // 逻辑删除
+        List<Long> idList = Arrays.stream(ids.split(","))
+                .map(Long::parseLong)
+                .toList();
+        return this.removeByIds(idList);
+    }
+
+    @Override
+    public List<Device> getDeviceList() {
+        return this.deviceMapper.selectList(null);
+    }
+
+}

@@ -1,0 +1,3 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  com.youlai.boot.config.mqtt.MqttConfig, \
+  com.youlai.boot.config.mqtt.MqttProducer

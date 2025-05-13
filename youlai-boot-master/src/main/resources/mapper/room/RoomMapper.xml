@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.youlai.boot.room.mapper.RoomMapper">
+
+    <!-- 获取房间管理分页列表 -->
+    <select id="getRoomPage" resultType="com.youlai.boot.room.model.vo.RoomVO">
+        SELECT
+                id,
+                floor_id,
+                building_id,
+                classroom_code,
+                remark
+        FROM
+            room
+        <where>
+            <if test="queryParams.classroomCode != null and queryParams.classroomCode != ''">
+                AND classroom_code LIKE CONCAT('%', #{queryParams.classroomCode}, '%')
+            </if>
+        </where>
+    </select>
+
+</mapper>

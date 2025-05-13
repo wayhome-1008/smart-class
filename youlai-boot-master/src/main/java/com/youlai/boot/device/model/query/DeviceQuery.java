@@ -1,0 +1,31 @@
+package com.youlai.boot.device.model.query;
+
+import com.youlai.boot.common.base.BasePageQuery;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Getter;
+import lombok.Setter;
+import java.time.LocalDateTime;
+import java.util.List;
+
+/**
+ * 设备管理分页查询对象
+ *
+ * @author way
+ * @since 2025-05-08 15:16
+ */
+@Schema(description ="设备管理查询对象")
+@Getter
+@Setter
+public class DeviceQuery extends BasePageQuery {
+
+    @Schema(description = "设备名称")
+    private String deviceName;
+    @Schema(description = "设备编号")
+    private String deviceCode;
+    @Schema(description = "教室")
+    private Long deviceRoom;
+    @Schema(description = "网关")
+    private String deviceMac;
+    @Schema(description = "设备类型")
+    private Long deviceTypeItemId;
+}

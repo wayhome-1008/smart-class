@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.youlai.boot.device.mapper.DeviceMapper">
+
+    <!-- 获取设备管理分页列表 -->
+    <select id="getDevicePage" resultType="com.youlai.boot.device.model.vo.DeviceVO">
+        SELECT
+        d.id,
+        d.device_name,
+        d.device_code,
+        d.device_room,
+        d.device_mac,
+        d.device_type_item_id,
+        d.status,
+        d.remark,
+        dti.label,
+        r.classroom_code AS roomName
+        FROM
+            device d
+        LEFT JOIN sys_dict_item dti ON d.device_type_item_id = dti.id
+        LEFT JOIN room r ON d.device_room = r.id
+        <where>
+            <if test="queryParams.deviceName != null and queryParams.deviceName != ''">
+                AND device_name LIKE CONCAT('%', #{queryParams.deviceName}, '%')
+            </if>
+            <if test="queryParams.deviceCode != null and queryParams.deviceCode != ''">
+                AND device_code LIKE CONCAT('%', #{queryParams.deviceCode}, '%')
+            </if>
+            <if test="queryParams.deviceRoom != null">
+                AND device_room = #{queryParams.deviceRoom}
+            </if>
+            <if test="queryParams.deviceMac != null and queryParams.deviceMac != ''">
+                AND device_mac = #{queryParams.deviceMac}
+            </if>
+            <if test="queryParams.deviceTypeItemId != null">
+                AND device_type_item_id = #{queryParams.deviceTypeItemId}
+            </if>
+        </where>
+    </select>
+
+</mapper>

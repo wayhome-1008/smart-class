@@ -1,0 +1,61 @@
+package com.youlai.boot.device.service;
+
+import com.youlai.boot.device.model.entity.Device;
+import com.youlai.boot.device.model.form.DeviceForm;
+import com.youlai.boot.device.model.query.DeviceQuery;
+import com.youlai.boot.device.model.vo.DeviceVO;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.service.IService;
+
+import java.util.List;
+
+/**
+ * 设备管理服务类
+ *
+ * @author way
+ * @since 2025-05-08 15:16
+ */
+public interface DeviceService extends IService<Device> {
+
+    /**
+     *设备管理分页列表
+     *
+     * @return {@link IPage<DeviceVO>} 设备管理分页列表
+     */
+    IPage<DeviceVO> getDevicePage(DeviceQuery queryParams);
+
+    /**
+     * 获取设备管理表单数据
+     *
+     * @param id 设备管理ID
+     * @return 设备管理表单数据
+     */
+     DeviceForm getDeviceFormData(Long id);
+
+    /**
+     * 新增设备管理
+     *
+     * @param formData 设备管理表单对象
+     * @return 是否新增成功
+     */
+    boolean saveDevice(DeviceForm formData);
+
+    /**
+     * 修改设备管理
+     *
+     * @param id   设备管理ID
+     * @param formData 设备管理表单对象
+     * @return 是否修改成功
+     */
+    boolean updateDevice(Long id, DeviceForm formData);
+
+    /**
+     * 删除设备管理
+     *
+     * @param ids 设备管理ID，多个以英文逗号(,)分割
+     * @return 是否删除成功
+     */
+    boolean deleteDevices(String ids);
+
+    List<Device> getDeviceList();
+}
