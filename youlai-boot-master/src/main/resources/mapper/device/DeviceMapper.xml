@@ -11,13 +11,16 @@
         d.device_room,
         d.device_mac,
         d.device_type_item_id,
+        d.communication_mode_item_id,
         d.status,
         d.remark,
-        dti.label,
+        dti.label AS deviceTypeItemName,
+        cmi.label AS communicationModeItemName,
         r.classroom_code AS roomName
         FROM
             device d
         LEFT JOIN sys_dict_item dti ON d.device_type_item_id = dti.id
+        LEFT JOIN sys_dict_item cmi ON d.communication_mode_item_id = cmi.id
         LEFT JOIN room r ON d.device_room = r.id
         <where>
             <if test="queryParams.deviceName != null and queryParams.deviceName != ''">

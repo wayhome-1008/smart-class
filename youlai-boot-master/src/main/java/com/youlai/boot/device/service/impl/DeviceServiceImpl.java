@@ -1,5 +1,9 @@
 package com.youlai.boot.device.service.impl;
 
+import com.youlai.boot.system.mapper.DictItemMapper;
+import com.youlai.boot.system.mapper.DictMapper;
+import com.youlai.boot.system.model.entity.Dict;
+import com.youlai.boot.system.model.entity.DictItem;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -31,6 +35,7 @@ import cn.hutool.core.util.StrUtil;
 public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> implements DeviceService {
     private final DeviceMapper deviceMapper;
     private final DeviceConverter deviceConverter;
+    private final DictItemMapper dictItemMapper;
 
     /**
      * 获取设备管理分页列表
@@ -56,6 +61,16 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     @Override
     public DeviceForm getDeviceFormData(Long id) {
         Device entity = this.getById(id);
+        //同时查询设备类型名称和通讯方式名称
+        List<DictItem> dictEntry = dictItemMapper.selectBatchIds(Arrays.asList(entity.getDeviceTypeItemId(), entity.getCommunicationModeItemId()));
+        for (DictItem dictItem : dictEntry) {
+            if (dictItem.getDictCode().equals("deviceType")) {
+                entity.setDeviceTypeItemName(dictItem.getLabel());
+            }
+            if (dictItem.getDictCode().equals("communication_mode")) {
+                entity.setCommunicationModeItemName(dictItem.getLabel());
+            }
+        }
         return deviceConverter.toForm(entity);
     }
 

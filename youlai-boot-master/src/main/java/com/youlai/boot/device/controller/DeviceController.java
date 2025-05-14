@@ -2,6 +2,7 @@ package com.youlai.boot.device.controller;
 
 import com.youlai.boot.device.service.DeviceService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.youlai.boot.device.model.form.DeviceForm;
@@ -28,6 +29,7 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/api/v1/device")
 @RequiredArgsConstructor
+@Transactional
 public class DeviceController  {
 
     private final DeviceService deviceService;
@@ -45,6 +47,7 @@ public class DeviceController  {
     @PreAuthorize("@ss.hasPerm('device:device:add')")
     public Result<Void> saveDevice(@RequestBody @Valid DeviceForm formData ) {
         boolean result = deviceService.saveDevice(formData);
+        //存储成功后需要发送mqtt请求添加设备进入网关
         return Result.judge(result);
     }
 

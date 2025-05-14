@@ -1,5 +1,6 @@
 package com.youlai.boot.device.model.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import lombok.Getter;
 import lombok.Setter;
 import java.time.LocalDateTime;
@@ -16,8 +17,6 @@ import com.youlai.boot.common.base.BaseEntity;
 @Setter
 @TableName("device")
 public class Device extends BaseEntity {
-
-    private static final long serialVersionUID = 1L;
 
     /**
      * 设备名称
@@ -39,6 +38,14 @@ public class Device extends BaseEntity {
      * 设备类型
      */
     private Long deviceTypeItemId;
+    @TableField(exist = false)
+    private String deviceTypeItemName;
+    /**
+     * 通讯方式
+     */
+    private Long communicationModeItemId;
+    @TableField(exist = false)
+    private String communicationModeItemName;
     /**
      * 状态
      */

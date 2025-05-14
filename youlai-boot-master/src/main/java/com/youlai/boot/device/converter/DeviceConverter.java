@@ -4,6 +4,8 @@ import org.mapstruct.Mapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.DeviceForm;
+import org.mapstruct.Mapping;
+import org.mapstruct.Mappings;
 
 /**
  * 设备管理对象转换器
@@ -13,7 +15,6 @@ import com.youlai.boot.device.model.form.DeviceForm;
  */
 @Mapper(componentModel = "spring")
 public interface DeviceConverter{
-
     DeviceForm toForm(Device entity);
 
     Device toEntity(DeviceForm formData);

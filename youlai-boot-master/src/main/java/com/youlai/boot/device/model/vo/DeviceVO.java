@@ -33,12 +33,16 @@ public class DeviceVO implements Serializable {
     private String deviceMac;
     @Schema(description = "设备类型")
     private Long deviceTypeItemId;
+    @Schema(description = "设备类型名称")
+    private String deviceTypeItemName;
+    @Schema(description = "通讯方式")
+    private Long communicationModeItemId;
+    @Schema(description = "通讯方式名称")
+    private String communicationModeItemName;
     @Schema(description = "状态")
     private Integer status;
     @Schema(description = "备注信息")
     private String remark;
-    //根据设备存储的字典id查询出名称
-    private String label;
-    //房间名称
+    @Schema(description = "房间名称")
     private String roomName;
 }

@@ -21,8 +21,6 @@ import static com.youlai.boot.config.mqtt.TopicConfig.TOPIC_LIST;
 @Component
 @Slf4j
 public class MqttCallback implements MqttCallbackExtended {
-    //    @Autowired
-//    private MqttService mqttService;
     @Autowired
     private MsgHandlerFactory factory;
     @Autowired
