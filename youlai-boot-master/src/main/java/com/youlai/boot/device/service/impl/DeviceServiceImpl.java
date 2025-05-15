@@ -66,9 +66,11 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
         for (DictItem dictItem : dictEntry) {
             if (dictItem.getDictCode().equals("deviceType")) {
                 entity.setDeviceTypeItemName(dictItem.getLabel());
+                entity.setDeviceTypeItemId(Long.valueOf(dictItem.getValue()));
             }
             if (dictItem.getDictCode().equals("communication_mode")) {
                 entity.setCommunicationModeItemName(dictItem.getLabel());
+                entity.setCommunicationModeItemId(Long.valueOf(dictItem.getValue()));
             }
         }
         return deviceConverter.toForm(entity);

@@ -45,7 +45,8 @@ public class DeviceForm implements Serializable {
     private Long communicationModeItemId;
     @Schema(description = "通讯方式名称")
     private String communicationModeItemName;
-
+    @Schema(description = "设备序号")
+    private String deviceNo;
     @Schema(description = "状态")
     private Integer status;
 

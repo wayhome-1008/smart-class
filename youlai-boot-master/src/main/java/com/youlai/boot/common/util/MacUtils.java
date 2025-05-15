@@ -1,0 +1,53 @@
+package com.youlai.boot.common.util;
+
+/**
+ *@Author: way
+ *@CreateTime: 2025-04-25  17:36
+ *@Description: TODO
+ */
+public class MacUtils {
+    /**
+     * 将字符串按每两位添加冒号的格式转换（如 "9454c5ee8180" -> "94:54:c5:ee:81:80"）
+     * @param source 原始字符串（需为偶数长度的非空字符串）
+     * @return 格式化后的字符串
+     * @throws IllegalArgumentException 参数不合法时抛出
+     */
+    public static String parseMACAddress(String source) {
+        // 参数校验
+        if (source == null || source.isEmpty()) {
+            throw new IllegalArgumentException("输入字符串不能为 null 或空");
+        }
+        if (source.length() % 2 != 0) {
+            throw new IllegalArgumentException("输入字符串长度必须为偶数（当前长度：" + source.length() + "）");
+        }
+
+        // 构建结果
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < source.length(); i += 2) {
+            // 截取两位字符
+            String part = source.substring(i, i + 2);
+            result.append(part);
+            // 非最后一段时添加冒号
+            if (i != source.length() - 2) {
+                result.append(":");
+            }
+        }
+        return result.toString();
+    }
+
+    // 截取原字符串的 /zbgw/9454c5ee8180 部分，留下剩余部分
+    public static String removeZbgwMacPart(String input) {
+        try {
+            int index = input.indexOf("/zbgw/");
+            if (index != -1) {
+                int nextSlashIndex = input.indexOf("/", index + "/zbgw/".length());
+                if (nextSlashIndex != -1) {
+                    return input.substring(nextSlashIndex);
+                }
+            }
+            return input;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+}

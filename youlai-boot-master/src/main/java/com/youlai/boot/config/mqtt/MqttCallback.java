@@ -1,6 +1,6 @@
 package com.youlai.boot.config.mqtt;
 
-import com.youlai.boot.common.util.StrUtils;
+import com.youlai.boot.common.util.MacUtils;
 import com.youlai.boot.device.factory.MsgHandlerFactory;
 import com.youlai.boot.device.handler.service.MsgHandler;
 import com.youlai.boot.device.model.entity.Device;
@@ -39,7 +39,7 @@ public class MqttCallback implements MqttCallbackExtended {
     public void messageArrived(String topic, MqttMessage message) throws MqttException {
         //返回消息统一在这里
         log.info("【同一消息接收器:接收到主题{}的消息{}】", topic, message.toString());
-        String finalTopic = StrUtils.removeZbgwMacPart(topic);
+        String finalTopic = MacUtils.removeZbgwMacPart(topic);
         if (StringUtils.isNotEmpty(finalTopic)) {
             HandlerType type = null;
             switch (finalTopic) {

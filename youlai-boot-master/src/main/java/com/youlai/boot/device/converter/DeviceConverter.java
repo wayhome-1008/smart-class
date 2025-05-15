@@ -17,5 +17,8 @@ import org.mapstruct.Mappings;
 public interface DeviceConverter{
     DeviceForm toForm(Device entity);
 
+    @Mappings({
+            @Mapping(target = "deviceNo", source = "deviceNo"),
+    })
     Device toEntity(DeviceForm formData);
 }

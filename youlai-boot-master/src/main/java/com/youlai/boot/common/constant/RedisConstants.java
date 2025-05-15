@@ -62,6 +62,7 @@ public interface RedisConstants {
      */
     interface MqttDevice {
         String DEVICE = "mqtt:device";                 // mqtt设备返回信息
+        String GateWay= "mqtt:gateway";
     }
 
 }

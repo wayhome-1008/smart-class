@@ -68,7 +68,6 @@ public class DictItemServiceImpl extends ServiceImpl<DictItemMapper, DictItem> i
     }
 
 
-
     /**
      * 获取字典项表单
      *
@@ -76,7 +75,7 @@ public class DictItemServiceImpl extends ServiceImpl<DictItemMapper, DictItem> i
      * @return 字典项表单
      */
     @Override
-    public DictItemForm getDictItemForm( Long itemId) {
+    public DictItemForm getDictItemForm(Long itemId) {
         DictItem entity = this.getById(itemId);
         return dictDataConverter.toForm(entity);
     }
@@ -114,6 +113,11 @@ public class DictItemServiceImpl extends ServiceImpl<DictItemMapper, DictItem> i
     public void deleteDictItemByIds(String ids) {
         List<Long> idList = Arrays.stream(ids.split(",")).map(Long::parseLong).toList();
         this.removeByIds(idList);
+    }
+
+    @Override
+    public List<DictItem> listByDictCode(String dictCode) {
+        return this.list(new LambdaQueryWrapper<DictItem>().eq(DictItem::getDictCode, dictCode));
     }
 
 }

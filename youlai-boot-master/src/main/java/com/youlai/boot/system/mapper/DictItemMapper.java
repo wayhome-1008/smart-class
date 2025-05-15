@@ -7,6 +7,8 @@ import com.youlai.boot.system.model.query.DictItemPageQuery;
 import com.youlai.boot.system.model.vo.DictItemPageVO;
 import org.apache.ibatis.annotations.Mapper;
 
+import java.util.List;
+
 /**
  * 字典项映射层
  *

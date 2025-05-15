@@ -65,4 +65,5 @@ public interface DictItemService extends IService<DictItem> {
      */
     void deleteDictItemByIds(String ids);
 
+    List<DictItem> listByDictCode(String dictCode);
 }

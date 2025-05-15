@@ -45,4 +45,6 @@ public class DeviceVO implements Serializable {
     private String remark;
     @Schema(description = "房间名称")
     private String roomName;
+    @Schema(description = "设备序号")
+    private String deviceNo;
 }

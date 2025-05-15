@@ -30,4 +30,6 @@ public class DeviceQuery extends BasePageQuery {
     private Long deviceTypeItemId;
     @Schema(description = "通讯方式")
     private Long communicationModeItemId;
+    @Schema(description = "设备序号")
+    private String deviceNo;
 }
