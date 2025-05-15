@@ -14,6 +14,7 @@
         d.communication_mode_item_id,
         d.status,
         d.remark,
+        d.device_no,
         dti.label AS deviceTypeItemName,
         cmi.label AS communicationModeItemName,
         r.classroom_code AS roomName
@@ -23,6 +24,7 @@
         LEFT JOIN sys_dict_item cmi ON d.communication_mode_item_id = cmi.id
         LEFT JOIN room r ON d.device_room = r.id
         <where>
+            AND d.is_deleted = 0
             <if test="queryParams.deviceName != null and queryParams.deviceName != ''">
                 AND device_name LIKE CONCAT('%', #{queryParams.deviceName}, '%')
             </if>

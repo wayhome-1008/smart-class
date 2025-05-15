@@ -1,6 +1,7 @@
 package com.youlai.boot.device.model.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import lombok.Getter;
 import lombok.Setter;
 import java.time.LocalDateTime;
@@ -46,6 +47,8 @@ public class Device extends BaseEntity {
     private Long communicationModeItemId;
     @TableField(exist = false)
     private String communicationModeItemName;
+
+    private String deviceNo;
     /**
      * 状态
      */
@@ -65,5 +68,6 @@ public class Device extends BaseEntity {
     /**
      * 逻辑删除标识(0-未删除 1-已删除)
      */
+    @TableLogic
     private Integer isDeleted;
 }

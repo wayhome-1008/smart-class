@@ -1,5 +1,5 @@
 server:
-  port: 8989
+  port: 19876
 spring:
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
@@ -60,16 +60,16 @@ mqtt:
     #默认同样主题仅保留最新一条消息
     defaultRetained: true
     #默认主题
-    defaultTopic: "java"
+    defaultTopic: "wei"
   #接收订阅消息
   consumer:
     #接收订阅消息主题(集合可以同时订阅多个消费者主题)
     consumerTopics:
   client:
-    username: "java"
-    password: "Javatest123"
+    username: "wei"
+    password: "weihang1008"
     serverUri: "tcp://192.168.80.185:1883"
-    clientId: "java"
+    clientId: "wei"
     keepAliveInterval: 60
     connectionTimeout: 30
   server-url: http://192.168.80.185:9344/

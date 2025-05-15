@@ -47,7 +47,7 @@ public class DeviceController  {
     @PreAuthorize("@ss.hasPerm('device:device:add')")
     public Result<Void> saveDevice(@RequestBody @Valid DeviceForm formData ) {
         boolean result = deviceService.saveDevice(formData);
-        //存储成功后需要发送mqtt请求添加设备进入网关
+        //不同设备类型需要做不同处理
         return Result.judge(result);
     }
 
