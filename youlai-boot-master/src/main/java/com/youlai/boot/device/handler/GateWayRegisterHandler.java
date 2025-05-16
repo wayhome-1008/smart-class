@@ -28,29 +28,37 @@ import static com.youlai.boot.device.handler.SubUpdateHandler.deviceList;
 @RequiredArgsConstructor
 public class GateWayRegisterHandler implements MsgHandler {
     private final RedisTemplate<String, Object> redisTemplate;
+
     @Override
     public void process(String topic, String jsonMsg, MqttClient mqttClient) {
         log.info("接收到网关注册消息：主题{},内容{}", topic, jsonMsg);
         //网关请求注册
         JSONObject recordMap = JSON.parseObject(jsonMsg, JSONObject.class);
         String macAddress = MacUtils.parseMACAddress(recordMap.getJSONObject("params").getString("wifimac"));
-        //从redis获取
-//        JSONObject jsonObjectCache = (JSONObject) redisTemplate.opsForHash().get(RedisConstants.MqttDevice.GateWay, macAddress);
-//        if (ObjectUtils.isEmpty(jsonObjectCache)) {
-            redisTemplate.opsForHash().put(RedisConstants.MqttDevice.GateWay,macAddress, recordMap);
-//         }
-        //当设备列表存在则返回rsp
-        Device device1 = deviceList.stream().filter(device -> recordMap.getJSONObject("params").getString("wifimac").equals(device.getDeviceMac())).findFirst().orElse(null);
+        //如果mac在deviceList存在
+        Device deviceEntity = deviceList.stream().filter(device -> macAddress.equals(device.getDeviceMac())).findFirst().orElse(null);
+        if (ObjectUtils.isNotEmpty(deviceEntity)) {
+            sendRegister(mqttClient, recordMap);
+            //將緩存中該數據刪除
+            redisTemplate.opsForHash().delete(RedisConstants.MqttDevice.GateWay, macAddress);
+            return;
+        } else {
+            //从redis获取
+//            JSONObject jsonObjectCache = (JSONObject) redisTemplate.opsForHash().get(RedisConstants.MqttDevice.GateWay, macAddress);
+            redisTemplate.opsForHash().put(RedisConstants.MqttDevice.GateWay, macAddress, recordMap);
+        }
+//        sendRegister(mqttClient, recordMap);
+    }
+
+    private static void sendRegister(MqttClient mqttClient, JSONObject recordMap) {
         HashMap<String, Object> hashMap = new HashMap<>();
         hashMap.put("sequence", recordMap.get("sequence"));
         hashMap.put("error", 0);
-        log.info("发送消息:{}", hashMap);
         try {
-            mqttClient.publish("/zbgw/"+recordMap.getJSONObject("params").getString("wifimac")+"/register_rsp", JSON.toJSONString(hashMap).getBytes(), 2, false);
+            mqttClient.publish("/zbgw/" + recordMap.getJSONObject("params").getString("wifimac") + "/register_rsp", JSON.toJSONString(hashMap).getBytes(), 2, false);
         } catch (Exception e) {
             log.error("发送消息失败", e);
         }
-        //
     }
 
     @Override

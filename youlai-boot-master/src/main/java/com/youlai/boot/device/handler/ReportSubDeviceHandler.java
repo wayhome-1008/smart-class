@@ -2,8 +2,11 @@ package com.youlai.boot.device.handler;
 
 import com.alibaba.fastjson.JSON;
 import com.youlai.boot.device.handler.service.MsgHandler;
-import com.youlai.boot.device.model.form.ReportSubDevice;
-import com.youlai.boot.device.model.form.ReportSubDeviceRsp;
+import com.youlai.boot.device.model.dto.reportSubDevice.ReportSubDevice;
+import com.youlai.boot.device.model.dto.reportSubDevice.SubDevice;
+import com.youlai.boot.device.model.dto.reportSubDevice.rsp.ReportSubDeviceRsp;
+import com.youlai.boot.device.model.dto.reportSubDevice.rsp.ReportSubDeviceRspParams;
+import com.youlai.boot.device.model.dto.reportSubDevice.rsp.Results;
 import com.youlai.boot.device.topic.HandlerType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,22 +33,21 @@ public class ReportSubDeviceHandler implements MsgHandler {
             log.info("[接收到网关请求添加子设备消息:{}]", jsonMsg);
             //网关上线后上报子设备
             ReportSubDevice reportSubDevice = JSON.parseObject(jsonMsg, ReportSubDevice.class);
-            List<ReportSubDevice.SubDevices> reportSubDevices = reportSubDevice.getParams().getSubDevices();
+            List<SubDevice> reportSubDevices = reportSubDevice.getParams().getSubDevices();
             //返回
             ReportSubDeviceRsp reportSubDeviceRsp = new ReportSubDeviceRsp();
             reportSubDeviceRsp.setError(0);
             reportSubDeviceRsp.setSequence(reportSubDevice.getSequence());
-            ReportSubDeviceRsp.Params params = new ReportSubDeviceRsp.Params();
-            List<ReportSubDeviceRsp.Results> resultsList =new ArrayList<>();
-            for (ReportSubDevice.SubDevices subDevice : reportSubDevices) {
-                ReportSubDeviceRsp.Results results = new ReportSubDeviceRsp.Results();
+            ReportSubDeviceRspParams params = new ReportSubDeviceRspParams();
+            List<Results> resultsList = new ArrayList<>();
+            for (SubDevice subDevice : reportSubDevices) {
+                Results results = new Results();
                 results.setDeviceId(subDevice.getDeviceId());
                 results.setError(0);
                 resultsList.add(results);
             }
             params.setResults(resultsList);
             reportSubDeviceRsp.setParams(params);
-//            log.info("发送消息:{}", reportSubDeviceRsp);
             mqttClient.publish(topic + "_rsp", JSON.toJSONString(reportSubDeviceRsp).getBytes(), 2, false);
         } catch (Exception e) {
             log.error("发送消息失败", e);

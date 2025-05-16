@@ -5,11 +5,8 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.device.handler.service.MsgHandler;
-import com.youlai.boot.device.model.dto.Plug;
-import com.youlai.boot.device.model.dto.Sensor;
-import com.youlai.boot.device.model.dto.SensorParams;
+import com.youlai.boot.device.model.dto.*;
 
-import com.youlai.boot.device.model.dto.Switch;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.SubUpdateSensorRsp;
 import com.youlai.boot.device.service.DeviceService;
@@ -62,11 +59,12 @@ public class SubUpdateHandler implements MsgHandler {
                         processPlug(topic, mqttClient, deviceId, jsonMsg, sequence);
                     }
                     //随意贴
-                    if (device1.getDeviceTypeItemId() == 19){
-
+                    if (device1.getDeviceTypeItemId() == 19) {
+                        processFreePosting(topic, mqttClient, deviceId, jsonMsg, sequence);
                     }
                     //人体存在传感器(微波)
                     if (device1.getDeviceTypeItemId() == 20) {
+                        processHumanRadarSensor(topic, mqttClient, deviceId, jsonMsg, sequence);
                     }
                 }
             }
@@ -75,6 +73,45 @@ public class SubUpdateHandler implements MsgHandler {
             log.error("发送消息失败", e);
         }
     }
+
+    private void processHumanRadarSensor(String topic, MqttClient mqttClient, String deviceId, String deviceInfo, int sequence) throws MqttException {
+        log.info("接收到人体存在传感器信息：{}", deviceInfo);
+        HumanRadarSensor humanRadarSensor = JSONObject.parseObject(deviceInfo, HumanRadarSensor.class);
+        HumanRadarSensor humanRadarSensorCache = (HumanRadarSensor) redisTemplate.opsForHash().get(RedisConstants.MqttDevice.DEVICE, deviceId);
+        if (ObjectUtil.isEmpty(humanRadarSensorCache)) {
+            redisTemplate.opsForHash().put(RedisConstants.MqttDevice.DEVICE, deviceId, humanRadarSensor);
+        } else {
+            if (humanRadarSensor.getParams().getOccupancy() != null) {
+                humanRadarSensorCache.getParams().setOccupancy(humanRadarSensor.getParams().getOccupancy());
+            } else if (humanRadarSensor.getParams().getOccupiedDelay() != null) {
+                humanRadarSensorCache.getParams().setOccupiedDelay(humanRadarSensor.getParams().getOccupiedDelay());
+            } else if (humanRadarSensor.getParams().getUnoccupiedDelay() != null) {
+                humanRadarSensorCache.getParams().setUnoccupiedDelay(humanRadarSensor.getParams().getUnoccupiedDelay());
+            } else if (humanRadarSensor.getParams().getOccupiedThreshold() != null) {
+                humanRadarSensorCache.getParams().setOccupiedThreshold(humanRadarSensor.getParams().getOccupiedThreshold());
+            }
+        }
+        humanRadarSensor.setParams(humanRadarSensorCache.getParams());
+        redisTemplate.opsForHash().put(RedisConstants.MqttDevice.DEVICE, deviceId, humanRadarSensor);
+        SubUpdateSensorRsp subUpdateSensorRsp = new SubUpdateSensorRsp();
+        subUpdateSensorRsp.setError(0);
+        subUpdateSensorRsp.setSequence(sequence);
+        subUpdateSensorRsp.setDeviceId(deviceId);
+        mqttClient.publish(topic + "_rsp", JSON.toJSONString(subUpdateSensorRsp).getBytes(), 2, false);
+    }
+
+    private void processFreePosting(String topic, MqttClient mqttClient, String deviceId, String deviceInfo, int sequence) throws MqttException {
+        log.info("接收到隨意貼信息:{}", deviceInfo);
+        FreePosting freePosting = JSONObject.parseObject(deviceInfo, FreePosting.class);
+//        FreePosting freePostingCache = (FreePosting) redisTemplate.opsForHash().get(RedisConstants.MqttDevice.DEVICE, deviceId);
+        redisTemplate.opsForHash().put(RedisConstants.MqttDevice.DEVICE, deviceId, freePosting);
+        SubUpdateSensorRsp subUpdateSensorRsp = new SubUpdateSensorRsp();
+        subUpdateSensorRsp.setError(0);
+        subUpdateSensorRsp.setSequence(sequence);
+        subUpdateSensorRsp.setDeviceId(deviceId);
+        mqttClient.publish(topic + "_rsp", JSON.toJSONString(subUpdateSensorRsp).getBytes(), 2, false);
+    }
+
     //                    if (device1.getDeviceTypeItemId() == 18) {
 //                        log.info("设备ID：{}", deviceId);
 //                        JSONObject params = deviceInfo.getJSONObject("params");
@@ -101,7 +138,7 @@ public class SubUpdateHandler implements MsgHandler {
     private void processPlug(String topic, MqttClient mqttClient, String deviceId, String deviceInfo, int sequence) throws MqttException {
         log.info("接收到插座信息：{}", deviceInfo);
         Plug plug = JSONObject.parseObject(deviceInfo, Plug.class);
-        Plug plugCache = (Plug) redisTemplate.opsForHash().get(RedisConstants.MqttDevice.DEVICE , deviceId);
+        Plug plugCache = (Plug) redisTemplate.opsForHash().get(RedisConstants.MqttDevice.DEVICE, deviceId);
         if (ObjectUtil.isEmpty(plugCache)) {
             redisTemplate.opsForHash().put(RedisConstants.MqttDevice.DEVICE, deviceId, plug);
         } else {
@@ -149,8 +186,10 @@ public class SubUpdateHandler implements MsgHandler {
         log.info("接收到传感器信息{}", deviceInfo);
         Sensor sensor = JSONObject.parseObject(deviceInfo, Sensor.class);
         Sensor sensorCache = (Sensor) redisTemplate.opsForHash().get(RedisConstants.MqttDevice.DEVICE, deviceId);
-        if (ObjectUtil.isEmpty(sensorCache))
+        if (ObjectUtil.isEmpty(sensorCache)){
             redisTemplate.opsForHash().put(RedisConstants.MqttDevice.DEVICE, deviceId, sensor);
+            //存儲到
+        }
         else {
             //mqtt返回数据
             SensorParams newParams = sensor.getParams();

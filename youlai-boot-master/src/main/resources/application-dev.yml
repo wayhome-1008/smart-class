@@ -117,6 +117,7 @@ security:
     - /v3/api-docs/**
     - /webjars/**
     - /favicon.ico
+    - /api/v1/device/deviceInfo
 
 # 文件存储配置
 oss:

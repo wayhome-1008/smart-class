@@ -1,8 +1,12 @@
 package com.youlai.boot.device.controller;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.common.result.PageResult;
 import com.youlai.boot.common.result.Result;
+import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.DeviceForm;
 import com.youlai.boot.device.model.query.DeviceQuery;
 import com.youlai.boot.device.model.vo.DeviceVO;
@@ -15,10 +19,17 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.ObjectUtils;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static com.youlai.boot.device.handler.SubUpdateHandler.deviceList;
 
 /**
  * 设备管理前端控制层
@@ -35,6 +46,7 @@ public class DeviceController {
 
     private final DeviceService deviceService;
     private final DictItemService dictItemService;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Operation(summary = "设备管理分页列表")
     @GetMapping("/page")
@@ -94,5 +106,19 @@ public class DeviceController {
     ) {
         boolean result = deviceService.deleteDevices(ids);
         return Result.judge(result);
+    }
+
+    //一些redis接口 先現實吧 後續再更新
+    @GetMapping("/deviceInfo")
+    public Result<List<JSONObject>> deviceInfo(){
+        List<JSONObject> wheels =new ArrayList<>();
+        for (Device device : deviceList) {
+            Object object = redisTemplate.opsForHash().get(RedisConstants.MqttDevice.DEVICE, device.getDeviceCode());
+            if (ObjectUtils.isNotEmpty(object)) {
+                wheels.add(JSONObject.parseObject(JSON.toJSONString(object)));
+            }
+
+        }
+        return Result.success(wheels);
     }
 }
