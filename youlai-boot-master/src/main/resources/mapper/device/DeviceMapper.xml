@@ -13,14 +13,14 @@
         d.status,
         d.remark,
         d.device_no,
-        dti.label AS deviceTypeItemName,
-        dti.value AS deviceTypeItemId,
+        d.device_type_id AS deviceTypeId,
+        dt.device_type,
         cmi.label AS communicationModeItemName,
         cmi.value AS communicationModeItemId,
         r.classroom_code AS roomName
         FROM
             device d
-        LEFT JOIN sys_dict_item dti ON d.device_type_item_id = dti.id
+        LEFT JOIN device_type dt ON d.device_type_id = dt.id
         LEFT JOIN sys_dict_item cmi ON d.communication_mode_item_id = cmi.id
         LEFT JOIN room r ON d.device_room = r.id
         <where>
@@ -36,9 +36,6 @@
             </if>
             <if test="queryParams.deviceMac != null and queryParams.deviceMac != ''">
                 AND device_mac = #{queryParams.deviceMac}
-            </if>
-            <if test="queryParams.deviceTypeItemId != null">
-                AND device_type_item_id = #{queryParams.deviceTypeItemId}
             </if>
         </where>
     </select>

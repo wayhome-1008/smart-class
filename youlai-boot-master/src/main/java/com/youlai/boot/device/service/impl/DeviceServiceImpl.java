@@ -62,12 +62,8 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     public DeviceForm getDeviceFormData(Long id) {
         Device entity = this.getById(id);
         //同时查询设备类型名称和通讯方式名称
-        List<DictItem> dictEntry = dictItemMapper.selectBatchIds(Arrays.asList(entity.getDeviceTypeItemId(), entity.getCommunicationModeItemId()));
+        List<DictItem> dictEntry = dictItemMapper.selectBatchIds(Arrays.asList(entity.getCommunicationModeItemId()));
         for (DictItem dictItem : dictEntry) {
-            if (dictItem.getDictCode().equals("deviceType")) {
-                entity.setDeviceTypeItemName(dictItem.getLabel());
-                entity.setDeviceTypeItemId(Long.valueOf(dictItem.getValue()));
-            }
             if (dictItem.getDictCode().equals("communication_mode")) {
                 entity.setCommunicationModeItemName(dictItem.getLabel());
                 entity.setCommunicationModeItemId(Long.valueOf(dictItem.getValue()));

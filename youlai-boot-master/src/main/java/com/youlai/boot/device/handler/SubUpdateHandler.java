@@ -51,19 +51,19 @@ public class SubUpdateHandler implements MsgHandler {
                 Device device1 = deviceList.stream().filter(device -> deviceId.equals(device.getDeviceCode())).findFirst().orElse(null);
                 if (ObjectUtil.isNotEmpty(device1)) {
                     //传感器
-                    if (device1.getDeviceTypeItemId() == 15 || device1.getDeviceTypeItemId() == 18) {
+                    if (device1.getDeviceTypeId() == 2 || device1.getDeviceTypeId() == 5) {
                         processSensor(topic, mqttClient, deviceId, jsonMsg, sequence);
                     }
                     //计量插座
-                    if (device1.getDeviceTypeItemId() == 14) {
+                    if (device1.getDeviceTypeId() == 4) {
                         processPlug(topic, mqttClient, deviceId, jsonMsg, sequence);
                     }
                     //随意贴
-                    if (device1.getDeviceTypeItemId() == 19) {
+                    if (device1.getDeviceTypeId() == 3) {
                         processFreePosting(topic, mqttClient, deviceId, jsonMsg, sequence);
                     }
                     //人体存在传感器(微波)
-                    if (device1.getDeviceTypeItemId() == 20) {
+                    if (device1.getDeviceTypeId() == 6) {
                         processHumanRadarSensor(topic, mqttClient, deviceId, jsonMsg, sequence);
                     }
                 }

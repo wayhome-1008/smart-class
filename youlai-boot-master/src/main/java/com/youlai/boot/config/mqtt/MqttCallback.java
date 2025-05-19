@@ -120,7 +120,7 @@ public class MqttCallback implements MqttCallbackExtended {
             try {
                 //根据设备MAC转换为topic
                 for (Device device : deviceList) {
-                    if (device.getDeviceTypeItemId() == 17){
+                    if (device.getDeviceTypeId() == 1){
                         String deviceMac = device.getDeviceMac();
                         deviceMac = deviceMac.replace(":", "");
                         for (String consumerTopic : TOPIC_LIST) {

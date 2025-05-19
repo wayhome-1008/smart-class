@@ -38,9 +38,9 @@ public class Device extends BaseEntity {
     /**
      * 设备类型
      */
-    private Long deviceTypeItemId;
+    private Long deviceTypeId;
     @TableField(exist = false)
-    private String deviceTypeItemName;
+    private String deviceType;
     /**
      * 通讯方式
      */

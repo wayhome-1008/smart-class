@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.youlai.boot.deviceType.mapper.DeviceTypeMapper">
+
+    <!-- 获取设备类型字典(自维护)分页列表 -->
+    <select id="getDeviceTypePage" resultType="com.youlai.boot.deviceType.model.vo.DeviceTypeVO">
+        SELECT
+                id,
+                device_type,
+                create_time
+        FROM
+            device_type
+        <where>
+            <if test="queryParams.deviceType != null">
+                AND device_type LIKE CONCAT('%', #{queryParams.deviceType}, '%')
+            </if>
+        </where>
+    </select>
+
+</mapper>

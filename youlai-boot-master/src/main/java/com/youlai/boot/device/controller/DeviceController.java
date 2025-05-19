@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.common.result.PageResult;
 import com.youlai.boot.common.result.Result;
+import com.youlai.boot.common.util.MacUtils;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.DeviceForm;
 import com.youlai.boot.device.model.query.DeviceQuery;
@@ -68,13 +69,21 @@ public class DeviceController {
             switch (dictItem.getLabel()) {
                 case "网关":
                     gateWay(formData);
+                    break;
+                case "光照传感器":
+                    sensor(formData);
             }
         }
         return Result.judge(result);
     }
 
+    private void sensor(DeviceForm formData) {
+        //1.
+    }
+
     private void gateWay(DeviceForm formData) {
-        //1.发送
+        //根據mac查詢redis中是否存在
+        Object object = redisTemplate.opsForHash().get(RedisConstants.MqttDevice.DEVICE, MacUtils.parseMACAddress(formData.getDeviceMac()));
     }
 
     @Operation(summary = "获取设备管理表单数据")
@@ -117,7 +126,6 @@ public class DeviceController {
             if (ObjectUtils.isNotEmpty(object)) {
                 wheels.add(JSONObject.parseObject(JSON.toJSONString(object)));
             }
-
         }
         return Result.success(wheels);
     }
