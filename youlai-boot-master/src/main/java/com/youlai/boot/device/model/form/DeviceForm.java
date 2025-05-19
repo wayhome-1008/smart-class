@@ -38,9 +38,9 @@ public class DeviceForm implements Serializable {
     private String deviceMac;
 
     @Schema(description = "设备类型")
-    private Long deviceTypeItemId;
+    private Long deviceTypeId;
     @Schema(description = "设备类型名称")
-    private String deviceTypeItemName;
+    private String deviceType;
     @Schema(description = "通讯方式")
     private Long communicationModeItemId;
     @Schema(description = "通讯方式名称")
