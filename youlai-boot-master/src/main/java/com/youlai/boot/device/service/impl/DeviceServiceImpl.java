@@ -122,7 +122,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
 
     @Override
     public List<Device> getDeviceList() {
-        return this.deviceMapper.selectList(null);
+        return this.deviceMapper.selectList(new LambdaQueryWrapper<Device>().eq(Device::getIsDeleted, 0));
     }
 
     @Override

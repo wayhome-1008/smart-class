@@ -56,7 +56,7 @@ public class AddSubDeviceHandler implements MsgHandler {
                 log.info("发送消息:{}", addSubDeviceRsp);
                 mqttClient.publish(topic + "_rsp", JSON.toJSONString(addSubDeviceRsp).getBytes(), 2, false);
                 //同时把mac地址去掉：后存储在设备中
-                device.setDeviceNo(subDevice.getMac());
+                device.setDeviceCode(subDevice.getMac());
                 deviceService.updateById(device);
                 log.info("添加设备成功");
             }
