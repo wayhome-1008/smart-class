@@ -7,6 +7,22 @@ package com.youlai.boot.common.util;
  */
 public class MacUtils {
     /**
+     * 将带有冒号的字符串去除冒号（如 "94:54:c5:ee:81:80" -> "9454c5ee8180"）
+     * @param source 带冒号的原始字符串
+     * @return 去除冒号后的字符串
+     * @throws IllegalArgumentException 参数不合法时抛出
+     */
+    public static String reParseMACAddress(String source) {
+        // 参数校验
+        if (source == null || source.isEmpty()) {
+            throw new IllegalArgumentException("输入字符串不能为 null 或空");
+        }
+
+        // 替换掉所有的冒号
+        return source.replace(":", "");
+    }
+
+    /**
      * 将字符串按每两位添加冒号的格式转换（如 "9454c5ee8180" -> "94:54:c5:ee:81:80"）
      * @param source 原始字符串（需为偶数长度的非空字符串）
      * @return 格式化后的字符串

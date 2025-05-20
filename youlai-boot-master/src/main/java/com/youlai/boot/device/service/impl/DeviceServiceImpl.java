@@ -1,5 +1,6 @@
 package com.youlai.boot.device.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.youlai.boot.deviceType.mapper.DeviceTypeMapper;
 import com.youlai.boot.deviceType.model.entity.DeviceType;
 import com.youlai.boot.system.mapper.DictItemMapper;
@@ -122,6 +123,16 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     @Override
     public List<Device> getDeviceList() {
         return this.deviceMapper.selectList(null);
+    }
+
+    @Override
+    public boolean isExistDeviceMac(String deviceMac) {
+        return deviceMapper.selectCount(new LambdaQueryWrapper<Device>().eq(Device::getDeviceMac, deviceMac)) > 0;
+    }
+
+    @Override
+    public Device getByMac(String macAddress) {
+        return this.deviceMapper.selectOne(new LambdaQueryWrapper<Device>().eq(Device::getDeviceMac, macAddress).eq(Device::getIsDeleted, 0));
     }
 
 }
