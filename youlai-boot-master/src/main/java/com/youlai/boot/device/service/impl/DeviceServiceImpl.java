@@ -1,13 +1,18 @@
 package com.youlai.boot.device.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.youlai.boot.common.constant.RedisConstants;
+import com.youlai.boot.device.model.dto.event.DeviceEventParams;
+import com.youlai.boot.device.model.dto.event.SubDevicesEvent;
 import com.youlai.boot.deviceType.mapper.DeviceTypeMapper;
 import com.youlai.boot.deviceType.model.entity.DeviceType;
 import com.youlai.boot.system.mapper.DictItemMapper;
 import com.youlai.boot.system.mapper.DictMapper;
 import com.youlai.boot.system.model.entity.Dict;
 import com.youlai.boot.system.model.entity.DictItem;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -22,6 +27,7 @@ import com.youlai.boot.device.converter.DeviceConverter;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import cn.hutool.core.lang.Assert;
@@ -40,6 +46,21 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     private final DeviceConverter deviceConverter;
     private final DictItemMapper dictItemMapper;
     private final DeviceTypeMapper deviceTypeMapper;
+    private final RedisTemplate<String, Object> redisTemplate;
+    @PostConstruct
+    public void init(){
+        //初始化数据库设备列表到redis
+        refreshCache();
+    }
+
+    private void refreshCache() {
+       redisTemplate.delete(RedisConstants.Device.DEVICE);
+       List<Device> list = this.list();
+       if (list != null) {
+           Map<String, Device> map = list.stream().collect(Collectors.toMap(Device::getDeviceCode, device -> device));
+           redisTemplate.opsForHash().putAll(RedisConstants.Device.DEVICE, map);
+       }
+    }
 
     /**
      * 获取设备管理分页列表
@@ -133,6 +154,16 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     @Override
     public Device getByMac(String macAddress) {
         return this.deviceMapper.selectOne(new LambdaQueryWrapper<Device>().eq(Device::getDeviceMac, macAddress).eq(Device::getIsDeleted, 0));
+    }
+
+    @Override
+    public void updateDeviceStatusByCode(DeviceEventParams params) {
+        List<SubDevicesEvent> subDevices = params.getSubDevices();
+        for (SubDevicesEvent subDevice : subDevices) {
+            Device deviceUpdate = new Device();
+            deviceUpdate.setStatus(subDevice.getOnline() ? 1 : 0);
+            this.deviceMapper.update(deviceUpdate, new LambdaQueryWrapper<Device>().eq(Device::getDeviceCode, subDevice.getDeviceId()));
+        }
     }
 
 }

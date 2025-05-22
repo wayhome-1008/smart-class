@@ -24,6 +24,7 @@ import com.youlai.boot.system.service.DictItemService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.annotation.PostConstruct;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
@@ -88,6 +89,7 @@ public class DeviceController {
                 break;
             case "计量插座":
                 processPlug(formData);
+                break;
         }
         return Result.judge(result);
     }
@@ -193,9 +195,12 @@ public class DeviceController {
             if (device.getDeviceTypeId()==1) {
                 continue;
             }
-            Object object = redisTemplate.opsForHash().get(RedisConstants.MqttDevice.DEVICE, device.getDeviceCode());
-            if (ObjectUtils.isNotEmpty(object)) {
-                wheels.add(JSONObject.parseObject(JSON.toJSONString(object)));
+            //目前只取温湿度的
+            if (device.getDeviceTypeId()==2){
+                Object object = redisTemplate.opsForHash().get(RedisConstants.MqttDevice.DEVICE, device.getDeviceCode());
+                if (ObjectUtils.isNotEmpty(object)) {
+                    wheels.add(JSONObject.parseObject(JSON.toJSONString(object)));
+                }
             }
         }
         return Result.success(wheels);

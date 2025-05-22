@@ -1,5 +1,6 @@
 package com.youlai.boot.device.service;
 
+import com.youlai.boot.device.model.dto.event.DeviceEventParams;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.DeviceForm;
 import com.youlai.boot.device.model.query.DeviceQuery;
@@ -62,4 +63,6 @@ public interface DeviceService extends IService<Device> {
     boolean isExistDeviceMac(String deviceMac);
 
     Device getByMac(String macAddress);
+
+    void updateDeviceStatusByCode(DeviceEventParams params);
 }
