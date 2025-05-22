@@ -2,9 +2,13 @@ package com.youlai.boot.device.model.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableLogic;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.youlai.boot.config.handler.JsonTypeHandler;
 import lombok.Getter;
 import lombok.Setter;
+
 import java.time.LocalDateTime;
+
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.youlai.boot.common.base.BaseEntity;
 
@@ -16,7 +20,7 @@ import com.youlai.boot.common.base.BaseEntity;
  */
 @Getter
 @Setter
-@TableName("device")
+@TableName(value = "device", autoResultMap = true)// autoResultMap 启用自动结果映射
 public class Device extends BaseEntity {
 
     /**
@@ -39,6 +43,16 @@ public class Device extends BaseEntity {
      * 设备类型
      */
     private Long deviceTypeId;
+    /**
+     * 设备数据信息
+     */
+    // 指定数据库字段为JSON类型，并使用TypeHandler处理序列化
+    @TableField(
+            value = "device_info",
+            typeHandler = JsonTypeHandler.class  // 自定义TypeHandler
+    )
+    private JsonNode deviceInfo;  // 存储JSON数据
+
     @TableField(exist = false)
     private String deviceType;
     /**

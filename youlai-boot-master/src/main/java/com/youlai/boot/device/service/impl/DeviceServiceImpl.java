@@ -47,19 +47,20 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     private final DictItemMapper dictItemMapper;
     private final DeviceTypeMapper deviceTypeMapper;
     private final RedisTemplate<String, Object> redisTemplate;
+
     @PostConstruct
-    public void init(){
+    public void init() {
         //初始化数据库设备列表到redis
         refreshCache();
     }
 
     private void refreshCache() {
-       redisTemplate.delete(RedisConstants.Device.DEVICE);
-       List<Device> list = this.list();
-       if (list != null) {
-           Map<String, Device> map = list.stream().collect(Collectors.toMap(Device::getDeviceCode, device -> device));
-           redisTemplate.opsForHash().putAll(RedisConstants.Device.DEVICE, map);
-       }
+        redisTemplate.delete(RedisConstants.Device.DEVICE);
+        List<Device> list = this.list();
+        if (list != null) {
+            Map<String, Device> map = list.stream().collect(Collectors.toMap(Device::getDeviceCode, device -> device));
+            redisTemplate.opsForHash().putAll(RedisConstants.Device.DEVICE, map);
+        }
     }
 
     /**
@@ -164,6 +165,11 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
             deviceUpdate.setStatus(subDevice.getOnline() ? 1 : 0);
             this.deviceMapper.update(deviceUpdate, new LambdaQueryWrapper<Device>().eq(Device::getDeviceCode, subDevice.getDeviceId()));
         }
+    }
+
+    @Override
+    public Device getByCode(String code) {
+        return this.deviceMapper.selectOne(new LambdaQueryWrapper<Device>().eq(Device::getDeviceCode, code));
     }
 
 }

@@ -65,4 +65,6 @@ public interface DeviceService extends IService<Device> {
     Device getByMac(String macAddress);
 
     void updateDeviceStatusByCode(DeviceEventParams params);
+
+    Device getByCode(String code);
 }

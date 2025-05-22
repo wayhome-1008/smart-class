@@ -122,7 +122,7 @@ public class DeviceController {
 
     private void gateWay(DeviceForm formData) {
         //根據mac查詢redis中是否存在
-        Object object = redisTemplate.opsForHash().get(RedisConstants.MqttDevice.DEVICE, MacUtils.parseMACAddress(formData.getDeviceMac()));
+//        Object object = redisTemplate.opsForHash().get(RedisConstants.MqttDevice.DEVICE, MacUtils.parseMACAddress(formData.getDeviceMac()));
     }
 
     @Operation(summary = "获取设备管理表单数据")
@@ -188,18 +188,18 @@ public class DeviceController {
 
     //一些redis接口 先現實吧 後續再更新
     @GetMapping("/deviceInfo")
-    public Result<List<JSONObject>> deviceInfo() {
-        List<JSONObject> wheels = new ArrayList<>();
+    public Result<List<Device>> deviceInfo() {
+        List<Device> wheels = new ArrayList<>();
         for (Device device : deviceList) {
             //去掉网关的
-            if (device.getDeviceTypeId()==1) {
+            if (device.getDeviceTypeId() == 1) {
                 continue;
             }
             //目前只取温湿度的
-            if (device.getDeviceTypeId()==2){
-                Object object = redisTemplate.opsForHash().get(RedisConstants.MqttDevice.DEVICE, device.getDeviceCode());
+            if (device.getDeviceTypeId() == 2) {
+                Device object = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, device.getDeviceCode());
                 if (ObjectUtils.isNotEmpty(object)) {
-                    wheels.add(JSONObject.parseObject(JSON.toJSONString(object)));
+                    wheels.add(object);
                 }
             }
         }
