@@ -2,12 +2,11 @@ package com.youlai.boot.device.controller;
 
 import cn.hutool.core.util.RandomUtil;
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.common.result.PageResult;
 import com.youlai.boot.common.result.Result;
-import com.youlai.boot.common.util.MacUtils;
+import com.youlai.boot.config.mqtt.MqttCallback;
 import com.youlai.boot.config.mqtt.MqttProducer;
 import com.youlai.boot.device.model.dto.GateWayManage;
 import com.youlai.boot.device.model.dto.GateWayManageParams;
@@ -18,13 +17,9 @@ import com.youlai.boot.device.model.vo.DeviceVO;
 import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.deviceType.mapper.DeviceTypeMapper;
 import com.youlai.boot.deviceType.model.entity.DeviceType;
-import com.youlai.boot.system.mapper.DictItemMapper;
-import com.youlai.boot.system.model.entity.DictItem;
-import com.youlai.boot.system.service.DictItemService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.annotation.PostConstruct;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -41,7 +36,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import static com.youlai.boot.common.util.MacUtils.reParseMACAddress;
-import static com.youlai.boot.device.handler.SubUpdateHandler.deviceList;
+import static com.youlai.boot.device.handler.zigbee.SubUpdateHandler.deviceList;
 
 /**
  * 设备管理前端控制层
@@ -61,6 +56,7 @@ public class DeviceController {
     private final DeviceTypeMapper deviceTypeMapper;
     private final RedisTemplate<String, Object> redisTemplate;
     private final MqttProducer mqttProducer;
+    private final MqttCallback mqttCallback;
 
     @Operation(summary = "设备管理分页列表")
     @GetMapping("/page")
@@ -80,11 +76,13 @@ public class DeviceController {
             return Result.failed("设备已存在");
         }
         boolean result = deviceService.saveDevice(formData);
-        if (formData.getCommunicationModeItemId().equals(4)){
+        if (formData.getCommunicationModeItemId()==4) {
             //说明该设备纯mqtt通信 code则非mac地址 而是唯一标识 tasmota_F6DF24
             log.info("走到这里来");
+            //实际这里会是deviceCode 但是我公网私服没写好呢  先这样
+            mqttCallback.subscribeTopic("tele/" + formData.getDeviceMac() + "/SENSOR");
         }
-        if (formData.getCommunicationModeItemId().equals(1)){
+        if (formData.getCommunicationModeItemId()==1) {
             //仅zigbee协议做以下处理
             //不同设备类型需要做不同处
             DeviceType deviceType = deviceTypeMapper.selectById(formData.getDeviceTypeId());

@@ -24,5 +24,8 @@ public enum HandlerType {
     //11 子设备属性获取: 子设备上报属性
     SUB_GET_RSP,
     //12 子设备属性获取: 子设备上报属性
-    SUB_THINGS_RSP;
+    SUB_THINGS_RSP,
+
+    //MQTT直连设备
+    SENSOR; //温湿度传感器
 }

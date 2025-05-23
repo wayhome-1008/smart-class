@@ -1,15 +1,12 @@
-package com.youlai.boot.device.handler;
+package com.youlai.boot.device.handler.zigbee;
 
 import cn.hutool.core.util.ObjectUtil;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.device.handler.service.MsgHandler;
-import com.youlai.boot.device.model.dto.*;
 
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.SubUpdateSensorRsp;
@@ -18,7 +15,6 @@ import com.youlai.boot.device.topic.HandlerType;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.ObjectUtils;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.data.redis.core.RedisTemplate;

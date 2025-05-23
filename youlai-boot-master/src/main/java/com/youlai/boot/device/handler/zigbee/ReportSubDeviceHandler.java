@@ -1,4 +1,4 @@
-package com.youlai.boot.device.handler;
+package com.youlai.boot.device.handler.zigbee;
 
 import com.alibaba.fastjson.JSON;
 import com.youlai.boot.device.handler.service.MsgHandler;

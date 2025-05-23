@@ -1,4 +1,4 @@
-package com.youlai.boot.device.handler;
+package com.youlai.boot.device.handler.zigbee;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 
-import static com.youlai.boot.device.handler.SubUpdateHandler.deviceList;
+import static com.youlai.boot.device.handler.zigbee.SubUpdateHandler.deviceList;
 
 /**
  *@Author: way

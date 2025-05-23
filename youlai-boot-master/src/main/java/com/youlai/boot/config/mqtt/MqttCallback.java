@@ -39,7 +39,15 @@ public class MqttCallback implements MqttCallbackExtended {
     public void messageArrived(String topic, MqttMessage message) throws MqttException {
         //返回消息统一在这里
         log.info("【接收到主题{}的消息{}】", topic, message.toString());
-        String finalTopic = MacUtils.removeZbgwMacPart(topic);
+        String finalTopic = "";
+        //zbgw
+        if (topic.startsWith("/zbgw")) {
+            finalTopic = MacUtils.removeZbgwMacPart(topic);
+        }
+        //tele
+        if (topic.startsWith("tele")) {
+            finalTopic="/SENSOR";
+        }
         if (StringUtils.isNotEmpty(finalTopic)) {
             HandlerType type = null;
             switch (finalTopic) {
@@ -79,6 +87,9 @@ public class MqttCallback implements MqttCallbackExtended {
                 case "/ota_rsp":
                     type = HandlerType.OTA_RSP;
                     break;
+                case "SENSOR":
+                    type = HandlerType.SENSOR;
+                    break;
                 default:
                     break;
             }
@@ -107,6 +118,15 @@ public class MqttCallback implements MqttCallbackExtended {
 //        log.info("消息成功发布:{}", iMqttDeliveryToken.isComplete());
     }
 
+    public void subscribeTopic(String topic) {
+        try {
+            mqttClient.subscribe(topic, 2);
+            log.info("动态订阅主题: {}", topic);
+        } catch (MqttException e) {
+            log.error("动态订阅主题失败", e);
+        }
+    }
+
     /**
      * @description: 读取配置文件并自动订阅topic
      * @author: way
@@ -120,7 +140,7 @@ public class MqttCallback implements MqttCallbackExtended {
             try {
                 //根据设备MAC转换为topic
                 for (Device device : deviceList) {
-                    if (device.getDeviceTypeId() == 1){
+                    if (device.getDeviceTypeId() == 1) {
                         String deviceMac = device.getDeviceMac();
                         deviceMac = deviceMac.replace(":", "");
                         for (String consumerTopic : TOPIC_LIST) {

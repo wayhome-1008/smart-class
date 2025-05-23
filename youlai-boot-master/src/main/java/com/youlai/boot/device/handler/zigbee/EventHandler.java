@@ -1,8 +1,7 @@
-package com.youlai.boot.device.handler;
+package com.youlai.boot.device.handler.zigbee;
 
 import com.alibaba.fastjson.JSON;
 import com.youlai.boot.device.handler.service.MsgHandler;
-import com.youlai.boot.device.mapper.DeviceMapper;
 import com.youlai.boot.device.model.dto.event.DeviceEvent;
 import com.youlai.boot.device.model.dto.event.SubDevicesEvent;
 import com.youlai.boot.device.model.dto.event.rsp.DeviceEventResult;
