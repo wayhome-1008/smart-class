@@ -1,4 +1,4 @@
-package com.youlai.boot.dashBoard;
+package com.youlai.boot.dashBoard.controller;
 
 
 import com.youlai.boot.common.constant.RedisConstants;

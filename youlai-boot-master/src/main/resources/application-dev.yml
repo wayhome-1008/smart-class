@@ -117,7 +117,6 @@ security:
     - /v3/api-docs/**
     - /webjars/**
     - /favicon.ico
-#    - /api/v1/device/deviceInfo
 
 # 文件存储配置
 oss:
@@ -175,13 +174,13 @@ springdoc:
   api-docs:
     path: /v3/api-docs
   group-configs:
-    - group: '系统管理'
+    - group: 'dashboard'
       paths-to-match: "/**"
       packages-to-scan:
-        - com.zjtc.boot.system.controller
-        - com.zjtc.boot.shared.auth.controller
-        - com.zjtc.boot.shared.file.controller
-        - com.zjtc.boot.shared.codegen.controller
+        - com.youlai.boot.dashBoard.controller
+        - com.youlai.boot.shared.auth.controller
+        - com.youlai.boot.shared.file.controller
+        - com.youlai.boot.shared.codegen.controller
   default-flat-param-object: true
 
 # knife4j 接口文档配置

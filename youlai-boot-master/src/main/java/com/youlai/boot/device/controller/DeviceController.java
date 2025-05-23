@@ -27,6 +27,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.PostConstruct;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -48,6 +49,7 @@ import static com.youlai.boot.device.handler.SubUpdateHandler.deviceList;
  * @author way
  * @since 2025-05-08 15:16
  */
+@Slf4j
 @Tag(name = "设备管理接口")
 @RestController
 @RequestMapping("/api/v1/device")
@@ -78,19 +80,27 @@ public class DeviceController {
             return Result.failed("设备已存在");
         }
         boolean result = deviceService.saveDevice(formData);
-        //不同设备类型需要做不同处
-        DeviceType deviceType = deviceTypeMapper.selectById(formData.getDeviceTypeId());
-        switch (deviceType.getDeviceType()) {
-            case "网关":
-                gateWay(formData);
-                break;
-            case "光照传感器":
-                sensor(formData);
-                break;
-            case "计量插座":
-                processPlug(formData);
-                break;
+        if (formData.getCommunicationModeItemId().equals(4)){
+            //说明该设备纯mqtt通信 code则非mac地址 而是唯一标识 tasmota_F6DF24
+            log.info("走到这里来");
         }
+        if (formData.getCommunicationModeItemId().equals(1)){
+            //仅zigbee协议做以下处理
+            //不同设备类型需要做不同处
+            DeviceType deviceType = deviceTypeMapper.selectById(formData.getDeviceTypeId());
+            switch (deviceType.getDeviceType()) {
+                case "网关":
+                    gateWay(formData);
+                    break;
+                case "光照传感器":
+                    sensor(formData);
+                    break;
+                case "计量插座":
+                    processPlug(formData);
+                    break;
+            }
+        }
+
         return Result.judge(result);
     }
 

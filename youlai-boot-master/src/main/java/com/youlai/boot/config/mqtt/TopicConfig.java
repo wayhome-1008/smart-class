@@ -47,5 +47,12 @@ public class TopicConfig {
 
     //⑫ 网关回应服务器读取子设备请求
     public final static String SUB_GET_RSP = "/sub/get_rsp";
+
+    //tasmota设备
+//    public final static String INFO="/tele/"
     public static List<String> TOPIC_LIST = List.of(REPORT_SUB_DEVICE, SUB_UPDATE2, REGISTER, ADD_SUB_DEVICE, EVENT, SUB_UPDATE, SUB_CONTROL_RSP, SUB_ATTRIBUTE_RSP, OTA_RSP, SUB_THINGS_RSP, MANAGE_RSP, REQUEST, SUB_GET_RSP);
+
+
+
+
 }
