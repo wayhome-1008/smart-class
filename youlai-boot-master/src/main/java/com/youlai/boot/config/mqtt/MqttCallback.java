@@ -38,7 +38,7 @@ public class MqttCallback implements MqttCallbackExtended {
     @Override
     public void messageArrived(String topic, MqttMessage message) throws MqttException {
         //返回消息统一在这里
-        log.info("【同一消息接收器:接收到主题{}的消息{}】", topic, message.toString());
+        log.info("【接收到主题{}的消息{}】", topic, message.toString());
         String finalTopic = MacUtils.removeZbgwMacPart(topic);
         if (StringUtils.isNotEmpty(finalTopic)) {
             HandlerType type = null;
