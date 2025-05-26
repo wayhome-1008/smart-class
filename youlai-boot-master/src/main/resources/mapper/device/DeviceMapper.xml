@@ -21,7 +21,8 @@
         FROM
             device d
         LEFT JOIN device_type dt ON d.device_type_id = dt.id
-        LEFT JOIN sys_dict_item cmi ON d.communication_mode_item_id = cmi.id
+        LEFT JOIN sys_dict_item cmi ON d.communication_mode_item_id = cmi.value
+        AND cmi.dict_code = 'communication_mode'
         LEFT JOIN room r ON d.device_room = r.id
         <where>
             AND d.is_deleted = 0

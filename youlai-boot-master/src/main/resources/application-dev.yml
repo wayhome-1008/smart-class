@@ -181,6 +181,7 @@ springdoc:
         - com.youlai.boot.shared.auth.controller
         - com.youlai.boot.shared.file.controller
         - com.youlai.boot.shared.codegen.controller
+        - com.youlai.boot.device.controller
   default-flat-param-object: true
 
 # knife4j 接口文档配置
