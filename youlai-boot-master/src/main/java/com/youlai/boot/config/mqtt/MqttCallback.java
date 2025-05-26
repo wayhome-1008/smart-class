@@ -1,5 +1,6 @@
 package com.youlai.boot.config.mqtt;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.youlai.boot.common.util.MacUtils;
 import com.youlai.boot.device.factory.MsgHandlerFactory;
 import com.youlai.boot.device.handler.service.MsgHandler;
@@ -87,7 +88,7 @@ public class MqttCallback implements MqttCallbackExtended {
                 case "/ota_rsp":
                     type = HandlerType.OTA_RSP;
                     break;
-                case "SENSOR":
+                case "/SENSOR":
                     type = HandlerType.SENSOR;
                     break;
                 default:
@@ -97,7 +98,11 @@ public class MqttCallback implements MqttCallbackExtended {
             if (handler != null) {
                 //注册消息处理
                 String parseMessage = new String(message.getPayload());
-                handler.process(topic, parseMessage, mqttClient);
+                try {
+                    handler.process(topic, parseMessage, mqttClient);
+                } catch (JsonProcessingException e) {
+                    throw new RuntimeException(e);
+                }
             }
             //        mqttService.processMessage(mac, StrUtils.removeFirstTwoParts(topic), message, mqttClient);
             //处理成功后确认消息
@@ -147,6 +152,11 @@ public class MqttCallback implements MqttCallbackExtended {
                             mqttClient.subscribe(BASE_TOPIC + deviceMac + consumerTopic, 2);
                             log.info("订阅主题:{}", BASE_TOPIC + deviceMac + consumerTopic);
                         }
+                        //独立mqtt通信设备
+                    }else if (device.getCommunicationModeItemId()==4){
+                        mqttClient.subscribe("tele/" + device.getDeviceCode()+ "/SENSOR", 2);
+                        mqttClient.subscribe("tele/" + device.getDeviceCode()+ "/INFO3", 2);
+                        mqttClient.subscribe("tele/" + device.getDeviceCode()+ "/STATE", 2);
                     }
                 }
             } catch (MqttException e) {

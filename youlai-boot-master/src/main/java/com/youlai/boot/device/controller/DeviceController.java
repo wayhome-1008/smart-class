@@ -76,13 +76,13 @@ public class DeviceController {
             return Result.failed("设备已存在");
         }
         boolean result = deviceService.saveDevice(formData);
-        if (formData.getCommunicationModeItemId()==4) {
+        if (formData.getCommunicationModeItemId() == 4) {
             //说明该设备纯mqtt通信 code则非mac地址 而是唯一标识 tasmota_F6DF24
             log.info("走到这里来");
             //实际这里会是deviceCode 但是我公网私服没写好呢  先这样
             mqttCallback.subscribeTopic("tele/" + formData.getDeviceMac() + "/SENSOR");
         }
-        if (formData.getCommunicationModeItemId()==1) {
+        if (formData.getCommunicationModeItemId() == 1) {
             //仅zigbee协议做以下处理
             //不同设备类型需要做不同处
             DeviceType deviceType = deviceTypeMapper.selectById(formData.getDeviceTypeId());

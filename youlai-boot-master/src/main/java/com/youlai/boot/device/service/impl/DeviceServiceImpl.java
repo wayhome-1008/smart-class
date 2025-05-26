@@ -10,8 +10,10 @@ import com.youlai.boot.system.mapper.DictItemMapper;
 import com.youlai.boot.system.mapper.DictMapper;
 import com.youlai.boot.system.model.entity.Dict;
 import com.youlai.boot.system.model.entity.DictItem;
+import com.youlai.boot.system.service.DictItemService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -44,7 +46,7 @@ import cn.hutool.core.util.StrUtil;
 public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> implements DeviceService {
     private final DeviceMapper deviceMapper;
     private final DeviceConverter deviceConverter;
-    private final DictItemMapper dictItemMapper;
+    private final DictItemService dictItemService;
     private final DeviceTypeMapper deviceTypeMapper;
     private final RedisTemplate<String, Object> redisTemplate;
 
@@ -91,11 +93,10 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
         DeviceType deviceType = deviceTypeMapper.selectById(entity.getDeviceTypeId());
         entity.setDeviceType(deviceType.getDeviceType());
         //同时查询设备类型名称和通讯方式名称
-        List<DictItem> dictEntry = dictItemMapper.selectBatchIds(Arrays.asList(entity.getCommunicationModeItemId()));
+        List<DictItem> dictEntry = dictItemService.listByDictCode("communication_mode");
         for (DictItem dictItem : dictEntry) {
-            if (dictItem.getDictCode().equals("communication_mode")) {
+            if (NumberUtils.toLong(dictItem.getValue()) == entity.getCommunicationModeItemId()) {
                 entity.setCommunicationModeItemName(dictItem.getLabel());
-                entity.setCommunicationModeItemId(Long.valueOf(dictItem.getValue()));
             }
         }
         return deviceConverter.toForm(entity);
