@@ -66,4 +66,26 @@ public class MacUtils {
             return null;
         }
     }
+
+    /**
+     * 从类似 "tele/aaaa/bbbb" 的路径格式中提取第二段路径（索引为1）
+     * @param path 输入的路径字符串
+     * @return 提取的第二段路径值，如果无法提取则返回空字符串
+     */
+    public static String getCodeByTopic(String path) {
+        if (path == null || path.isEmpty()) {
+            return "";
+        }
+
+        // 使用斜杠分割字符串
+        String[] parts = path.split("/");
+
+        // 检查数组长度是否足够
+        if (parts.length < 2) {
+            return "";
+        }
+
+        // 返回第二段路径（索引为1）
+        return parts[1];
+    }
 }
