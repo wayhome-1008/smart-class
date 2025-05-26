@@ -75,6 +75,8 @@ public class DeviceController {
         if (isExist) {
             return Result.failed("设备已存在");
         }
+        //http请求
+
         boolean result = deviceService.saveDevice(formData);
         if (formData.getCommunicationModeItemId() == 4) {
             //说明该设备纯mqtt通信 code则非mac地址 而是唯一标识 tasmota_F6DF24

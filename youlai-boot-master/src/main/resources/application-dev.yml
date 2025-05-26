@@ -1,5 +1,7 @@
 server:
   port: 19776
+auth-properties:
+  deviceAuthUrl:  http://192.168.80.216:9344/device/{code}/auth
 spring:
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource

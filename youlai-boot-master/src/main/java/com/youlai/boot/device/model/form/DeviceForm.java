@@ -2,6 +2,10 @@ package com.youlai.boot.device.model.form;
 
 import java.io.Serial;
 import java.io.Serializable;
+
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.youlai.boot.config.handler.JsonTypeHandler;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
@@ -53,5 +57,9 @@ public class DeviceForm implements Serializable {
     @Schema(description = "备注信息")
     private String remark;
 
-
+    @TableField(
+            value = "device_info",
+            typeHandler = JsonTypeHandler.class  // 自定义TypeHandler
+    )
+    private JsonNode deviceInfo;  // 存储JSON数据
 }

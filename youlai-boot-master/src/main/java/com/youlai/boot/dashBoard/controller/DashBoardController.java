@@ -6,6 +6,7 @@ import com.youlai.boot.common.result.Result;
 import com.youlai.boot.dashBoard.model.vo.DashCount;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.service.DeviceService;
+import com.youlai.boot.room.model.entity.Room;
 import com.youlai.boot.room.service.RoomService;
 import com.youlai.boot.system.service.LogService;
 import com.youlai.boot.system.service.UserService;
@@ -56,6 +57,9 @@ public class DashBoardController {
         Device deviceCache = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, code);
         if (ObjectUtils.isNotEmpty(deviceCache)) return Result.success(deviceCache);
         Device device = deviceService.getByCode(code);
+        //根据roomId查询
+        Room room = roomService.getById(device.getDeviceRoom());
+        device.setRoomName(room.getClassroomCode());
         if (ObjectUtils.isNotEmpty(device)) return Result.success(device);
         return Result.failed();
     }

@@ -35,6 +35,9 @@ public class Device extends BaseEntity {
      * 教室
      */
     private Long deviceRoom;
+
+    @TableField(exist = false)
+    private String roomName;
     /**
      * 网关
      */

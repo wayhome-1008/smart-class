@@ -15,6 +15,7 @@ import org.mapstruct.Mappings;
  */
 @Mapper(componentModel = "spring")
 public interface DeviceConverter{
+
     DeviceForm toForm(Device entity);
 
     @Mappings({
