@@ -6,3 +6,7 @@
 # Datasource local storage ignored files
 /dataSources/
 /dataSources.local.xml
+/misc.xml
+/smartclass.iml
+/ApifoxUploaderProjectSetting.xml
+/git_toolbox_prj.xml
