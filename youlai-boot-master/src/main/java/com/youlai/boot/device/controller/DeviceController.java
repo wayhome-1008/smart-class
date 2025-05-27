@@ -2,17 +2,14 @@ package com.youlai.boot.device.controller;
 
 import cn.hutool.core.util.RandomUtil;
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.common.exception.BusinessException;
 import com.youlai.boot.common.model.Option;
 import com.youlai.boot.common.result.PageResult;
 import com.youlai.boot.common.result.Result;
-import com.youlai.boot.common.util.RestUtils;
 import com.youlai.boot.config.mqtt.MqttCallback;
 import com.youlai.boot.config.mqtt.MqttProducer;
-import com.youlai.boot.config.property.DeviceAuthProperties;
 import com.youlai.boot.device.model.dto.GateWayManage;
 import com.youlai.boot.device.model.dto.GateWayManageParams;
 import com.youlai.boot.device.model.entity.Device;
@@ -20,8 +17,6 @@ import com.youlai.boot.device.model.form.DeviceForm;
 import com.youlai.boot.device.model.query.DeviceQuery;
 import com.youlai.boot.device.model.vo.DeviceVO;
 import com.youlai.boot.device.service.DeviceService;
-import com.youlai.boot.deviceType.mapper.DeviceTypeMapper;
-import com.youlai.boot.deviceType.model.entity.DeviceType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -31,8 +26,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -46,7 +39,6 @@ import java.util.List;
 import static com.youlai.boot.common.util.MacUtils.reParseMACAddress;
 import static com.youlai.boot.config.mqtt.TopicConfig.BASE_TOPIC;
 import static com.youlai.boot.config.mqtt.TopicConfig.TOPIC_LIST;
-import static com.youlai.boot.device.handler.zigbee.SubUpdateHandler.deviceList;
 
 /**
  * 设备管理前端控制层
@@ -63,11 +55,9 @@ import static com.youlai.boot.device.handler.zigbee.SubUpdateHandler.deviceList;
 public class DeviceController {
 
     private final DeviceService deviceService;
-    private final DeviceTypeMapper deviceTypeMapper;
     private final RedisTemplate<String, Object> redisTemplate;
     private final MqttProducer mqttProducer;
     private final MqttCallback mqttCallback;
-    private final DeviceAuthProperties deviceAuthProperties;
 
     @Operation(summary = "设备管理分页列表")
     @GetMapping("/page")
@@ -124,7 +114,8 @@ public class DeviceController {
     }
 
     private void wifiDevice(@Valid DeviceForm formData) {
-
+        //todo
+        log.info(formData.toString());
     }
 
     private void mqttDevice(@Valid DeviceForm formData) {
@@ -275,23 +266,4 @@ public class DeviceController {
         mqttProducer.send("/zbgw/" + gateway.getDeviceCode() + "/manage", 2, false, JSON.toJSONString(rootMap));
     }
 
-    //一些redis接口 先現實吧 後續再更新
-    @GetMapping("/deviceInfo")
-    public Result<List<Device>> deviceInfo() {
-        List<Device> wheels = new ArrayList<>();
-        for (Device device : deviceList) {
-            //去掉网关的
-            if (device.getDeviceTypeId() == 1) {
-                continue;
-            }
-            //目前只取温湿度的
-            if (device.getDeviceTypeId() == 2) {
-                Device object = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, device.getDeviceCode());
-                if (ObjectUtils.isNotEmpty(object)) {
-                    wheels.add(object);
-                }
-            }
-        }
-        return Result.success(wheels);
-    }
 }

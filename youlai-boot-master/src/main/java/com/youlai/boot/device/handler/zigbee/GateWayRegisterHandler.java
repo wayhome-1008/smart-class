@@ -6,6 +6,7 @@ import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.common.util.MacUtils;
 import com.youlai.boot.device.handler.service.MsgHandler;
 import com.youlai.boot.device.model.entity.Device;
+import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.device.topic.HandlerType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,8 +16,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
-
-import static com.youlai.boot.device.handler.zigbee.SubUpdateHandler.deviceList;
 
 /**
  *@Author: way
@@ -28,6 +27,7 @@ import static com.youlai.boot.device.handler.zigbee.SubUpdateHandler.deviceList;
 @RequiredArgsConstructor
 public class GateWayRegisterHandler implements MsgHandler {
     private final RedisTemplate<String, Object> redisTemplate;
+    private final DeviceService deviceService;
 
     @Override
     public void process(String topic, String jsonMsg, MqttClient mqttClient) {
@@ -39,7 +39,7 @@ public class GateWayRegisterHandler implements MsgHandler {
         //查缓存是否存在
         Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, originalMac);
         if (ObjectUtils.isEmpty(device)) {
-            device = deviceList.stream().filter(d -> macAddress.equals(d.getDeviceMac())).findFirst().orElse(null);
+            device = deviceService.getByMac(macAddress);
         }
         //此时不空则注册 否则说明网关在发请求注册 但是设备还不存在
         if (ObjectUtils.isNotEmpty(device)) {

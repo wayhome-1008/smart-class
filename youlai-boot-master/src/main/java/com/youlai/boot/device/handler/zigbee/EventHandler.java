@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttException;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -28,6 +29,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class EventHandler implements MsgHandler {
     private final DeviceService deviceService;
+
     @Override
     public void process(String topic, String jsonMsg, MqttClient mqttClient) throws MqttException {
         //目前仅对子设备在线离线做处理
@@ -39,6 +41,14 @@ public class EventHandler implements MsgHandler {
         DeviceStatusEventRsp deviceStatusEventRsp = new DeviceStatusEventRsp();
         deviceStatusEventRsp.setSequence(deviceEvent.getSequence());
         deviceStatusEventRsp.setError(0);
+        DeviceEventResult deviceEventResult = getDeviceEventResult(deviceEvent);
+        deviceStatusEventRsp.setResult(deviceEventResult);
+        //发送事件相应
+        mqttClient.publish(topic + "_rsp", JSON.toJSONString(deviceStatusEventRsp).getBytes(), 2, false);
+    }
+
+    @NotNull
+    private static DeviceEventResult getDeviceEventResult(DeviceEvent deviceEvent) {
         DeviceEventResult deviceEventResult = new DeviceEventResult();
         List<SubDevicesEvent> subDevices = deviceEvent.getParams().getSubDevices();
         List<SubDevicesResult> subDevicesResults = new ArrayList<>();
@@ -49,13 +59,11 @@ public class EventHandler implements MsgHandler {
             subDevicesResults.add(subDevicesResult);
         }
         deviceEventResult.setSubDevices(subDevicesResults);
-        deviceStatusEventRsp.setResult(deviceEventResult);
-        //发送事件相应
-        mqttClient.publish(topic + "_rsp", JSON.toJSONString(deviceStatusEventRsp).getBytes(), 2, false);
+        return deviceEventResult;
     }
 
     @Override
     public HandlerType getType() {
-        return  HandlerType.EVENT;
+        return HandlerType.EVENT;
     }
 }

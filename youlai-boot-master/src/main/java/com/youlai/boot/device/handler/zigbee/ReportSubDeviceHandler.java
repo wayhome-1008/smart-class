@@ -11,6 +11,7 @@ import com.youlai.boot.device.topic.HandlerType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.paho.client.mqttv3.MqttClient;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -34,24 +35,29 @@ public class ReportSubDeviceHandler implements MsgHandler {
             //网关上线后上报子设备
             ReportSubDevice reportSubDevice = JSON.parseObject(jsonMsg, ReportSubDevice.class);
             List<SubDevice> reportSubDevices = reportSubDevice.getParams().getSubDevices();
-            //返回
-            ReportSubDeviceRsp reportSubDeviceRsp = new ReportSubDeviceRsp();
-            reportSubDeviceRsp.setError(0);
-            reportSubDeviceRsp.setSequence(reportSubDevice.getSequence());
-            ReportSubDeviceRspParams params = new ReportSubDeviceRspParams();
-            List<Results> resultsList = new ArrayList<>();
-            for (SubDevice subDevice : reportSubDevices) {
-                Results results = new Results();
-                results.setDeviceId(subDevice.getDeviceId());
-                results.setError(0);
-                resultsList.add(results);
-            }
-            params.setResults(resultsList);
-            reportSubDeviceRsp.setParams(params);
+            ReportSubDeviceRsp reportSubDeviceRsp = getReportSubDeviceRsp(reportSubDevice, reportSubDevices);
             mqttClient.publish(topic + "_rsp", JSON.toJSONString(reportSubDeviceRsp).getBytes(), 2, false);
         } catch (Exception e) {
             log.error("发送消息失败", e);
         }
+    }
+
+    @NotNull
+    private static ReportSubDeviceRsp getReportSubDeviceRsp(ReportSubDevice reportSubDevice, List<SubDevice> reportSubDevices) {
+        ReportSubDeviceRsp reportSubDeviceRsp = new ReportSubDeviceRsp();
+        reportSubDeviceRsp.setError(0);
+        reportSubDeviceRsp.setSequence(reportSubDevice.getSequence());
+        ReportSubDeviceRspParams params = new ReportSubDeviceRspParams();
+        List<Results> resultsList = new ArrayList<>();
+        for (SubDevice subDevice : reportSubDevices) {
+            Results results = new Results();
+            results.setDeviceId(subDevice.getDeviceId());
+            results.setError(0);
+            resultsList.add(results);
+        }
+        params.setResults(resultsList);
+        reportSubDeviceRsp.setParams(params);
+        return reportSubDeviceRsp;
     }
 
     @Override
