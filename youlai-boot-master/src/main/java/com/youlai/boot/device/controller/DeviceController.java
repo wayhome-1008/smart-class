@@ -2,12 +2,17 @@ package com.youlai.boot.device.controller;
 
 import cn.hutool.core.util.RandomUtil;
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.youlai.boot.common.constant.RedisConstants;
+import com.youlai.boot.common.exception.BusinessException;
+import com.youlai.boot.common.model.Option;
 import com.youlai.boot.common.result.PageResult;
 import com.youlai.boot.common.result.Result;
+import com.youlai.boot.common.util.RestUtils;
 import com.youlai.boot.config.mqtt.MqttCallback;
 import com.youlai.boot.config.mqtt.MqttProducer;
+import com.youlai.boot.config.property.DeviceAuthProperties;
 import com.youlai.boot.device.model.dto.GateWayManage;
 import com.youlai.boot.device.model.dto.GateWayManageParams;
 import com.youlai.boot.device.model.entity.Device;
@@ -26,16 +31,21 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
 import static com.youlai.boot.common.util.MacUtils.reParseMACAddress;
+import static com.youlai.boot.config.mqtt.TopicConfig.BASE_TOPIC;
+import static com.youlai.boot.config.mqtt.TopicConfig.TOPIC_LIST;
 import static com.youlai.boot.device.handler.zigbee.SubUpdateHandler.deviceList;
 
 /**
@@ -57,6 +67,7 @@ public class DeviceController {
     private final RedisTemplate<String, Object> redisTemplate;
     private final MqttProducer mqttProducer;
     private final MqttCallback mqttCallback;
+    private final DeviceAuthProperties deviceAuthProperties;
 
     @Operation(summary = "设备管理分页列表")
     @GetMapping("/page")
@@ -64,6 +75,13 @@ public class DeviceController {
     public PageResult<DeviceVO> getDevicePage(DeviceQuery queryParams) {
         IPage<DeviceVO> result = deviceService.getDevicePage(queryParams);
         return PageResult.success(result);
+    }
+
+    @Operation(summary = "网关设备下拉列表")
+    @GetMapping("/options")
+    public Result<List<Option<Long>>> listGatewayOptions() {
+        List<Option<Long>> list = deviceService.listGatewayOptions();
+        return Result.success(list);
     }
 
     @Operation(summary = "新增设备管理")
@@ -75,36 +93,66 @@ public class DeviceController {
         if (isExist) {
             return Result.failed("设备已存在");
         }
-        //http请求
-
-        boolean result = deviceService.saveDevice(formData);
-        if (formData.getCommunicationModeItemId() == 4) {
-            //说明该设备纯mqtt通信 code则非mac地址 而是唯一标识 tasmota_F6DF24
-            log.info("走到这里来");
-            //实际这里会是deviceCode 但是我公网私服没写好呢  先这样
-            mqttCallback.subscribeTopic("tele/" + formData.getDeviceMac() + "/SENSOR");
+        boolean result = false;
+        //目前switch应该分ZigBee网关 ZigBee网关子设备 MQTT独立设备 WIFI独立设备
+        //所以先根据通讯方式做不同处理
+        switch (formData.getCommunicationModeItemId().intValue()) {
+            case 1:
+                //ZigBee网关子设备
+                zigBeeDevice(formData);
+                result = deviceService.saveDevice(formData);
+                break;
+            case 2:
+                //WIFI独立设备
+                wifiDevice(formData);
+                result = deviceService.saveDevice(formData);
+                break;
+            case 3:
+                //ZigBee网关
+                zigBeeGateWay(formData);
+                result = deviceService.saveDevice(formData);
+                break;
+            case 4:
+                //MQTT独立设备
+                mqttDevice(formData);
+                result = deviceService.saveDevice(formData);
+                break;
+            default:
+                break;
         }
-        if (formData.getCommunicationModeItemId() == 1) {
-            //仅zigbee协议做以下处理
-            //不同设备类型需要做不同处
-            DeviceType deviceType = deviceTypeMapper.selectById(formData.getDeviceTypeId());
-            switch (deviceType.getDeviceType()) {
-                case "网关":
-                    gateWay(formData);
-                    break;
-                case "光照传感器":
-                    sensor(formData);
-                    break;
-                case "计量插座":
-                    processPlug(formData);
-                    break;
-            }
-        }
-
         return Result.judge(result);
     }
 
-    private void processPlug(DeviceForm formData) throws MqttException {
+    private void wifiDevice(@Valid DeviceForm formData) {
+
+    }
+
+    private void mqttDevice(@Valid DeviceForm formData) {
+        mqttCallback.subscribeTopic("tele/" + formData.getDeviceMac() + "/SENSOR");
+    }
+
+    private void zigBeeDevice(@Valid DeviceForm formData) throws MqttException {
+        //只要是zigBee网关子设备 第一步发送mqtt 然后存库 topic从绑定的网关开始
+        Device gateway = deviceService.getById(formData.getDeviceGatewayId());
+        if (ObjectUtils.isEmpty(gateway)) {
+            throw new BusinessException("网关不存在");
+        }
+        gatewayDeviceAddMqtt(gateway.getDeviceCode());
+    }
+
+    private void zigBeeGateWay(@Valid DeviceForm formData) {
+        //zigBee网关(需要去缓存根据mac查询是否存在)
+        Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, formData.getDeviceCode());
+        if (ObjectUtils.isEmpty(device)) {
+            redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, formData.getDeviceCode(), formData);
+        }
+        //实时订阅
+        for (String consumerTopic : TOPIC_LIST) {
+            mqttCallback.subscribeTopic(BASE_TOPIC + formData.getDeviceCode() + consumerTopic);
+        }
+    }
+
+    private void gatewayDeviceAddMqtt(String macTopic) throws MqttException {
         //1.构造消息
         GateWayManageParams params = new GateWayManageParams();
         params.setPermitjoin(true);
@@ -114,25 +162,7 @@ public class DeviceController {
         gateWayManage.setCmd("addsubdevice");
         gateWayManage.setParams(params);
         //2.发送请求网关添加子设备
-        mqttProducer.send("/zbgw/9454c5ee8180/manage", 2, false, JSON.toJSONString(gateWayManage));
-    }
-
-    private void sensor(DeviceForm formData) throws MqttException {
-        //1.构造消息
-        GateWayManageParams params = new GateWayManageParams();
-        params.setPermitjoin(true);
-        params.setAdddevtime(60);
-        GateWayManage gateWayManage = new GateWayManage();
-        gateWayManage.setSequence(RandomUtil.randomNumbers(3));
-        gateWayManage.setCmd("addsubdevice");
-        gateWayManage.setParams(params);
-        //2.发送请求网关添加子设备
-        mqttProducer.send("/zbgw/9454c5ee8180/manage", 2, false, JSON.toJSONString(gateWayManage));
-    }
-
-    private void gateWay(DeviceForm formData) {
-        //根據mac查詢redis中是否存在
-//        Object object = redisTemplate.opsForHash().get(RedisConstants.MqttDevice.DEVICE, MacUtils.parseMACAddress(formData.getDeviceMac()));
+        mqttProducer.send("/zbgw/" + macTopic + "/manage", 2, false, JSON.toJSONString(gateWayManage));
     }
 
     @Operation(summary = "获取设备管理表单数据")
@@ -162,38 +192,79 @@ public class DeviceController {
     public Result<Void> deleteDevices(
             @Parameter(description = "设备管理ID，多个以英文逗号(,)分割") @PathVariable String ids
     ) throws MqttException {
-        Device byId = deviceService.getById(ids);
-        boolean result = deviceService.deleteDevices(ids);
+        List<Long> idList = Arrays.stream(ids.split(","))
+                .map(Long::parseLong)
+                .toList();
+        boolean result = false;
+        List<Device> devices = deviceService.listByIds(idList);
+        for (Device device : devices) {
+            switch (device.getCommunicationModeItemId().intValue()) {
+                case 1:
+                    //ZigBee网关子设备
+                    zigBeeDeviceDel(device);
+                    result = deviceService.removeById(device.getId());
+                    break;
+                case 2:
+                    //WIFI独立设备
+                    wifiDeviceDel(device);
+                    result = deviceService.removeById(device.getId());
+                    break;
+                case 3:
+                    //ZigBee网关
+                    zigBeeGateWayDelDel(device);
+                    result = deviceService.removeById(device.getId());
+                    break;
+                case 4:
+                    //MQTT独立设备
+                    mqttDeviceDel(device);
+                    result = deviceService.removeById(device.getId());
+                    break;
+                default:
+                    break;
+            }
+            gatewayDeviceDelMqtt(device);
+        }
+
+        return Result.judge(result);
+    }
+
+    private void mqttDeviceDel(Device device) {
+
+    }
+
+    private void zigBeeGateWayDelDel(Device device) {
+
+    }
+
+    private void wifiDeviceDel(Device device) {
+
+    }
+
+    private void zigBeeDeviceDel(Device device) {
+
+    }
+
+    private void gatewayDeviceDelMqtt(Device device) throws MqttException {
         //1.构造消息
         // 构建最外层HashMap
         HashMap<String, Object> rootMap = new HashMap<>();
-
         // 设置sequence字段（Integer类型）
         rootMap.put("sequence", 123);
-
         // 设置cmd字段（String类型）
         rootMap.put("cmd", "delsubdevice");
-
         // 构建params内层HashMap
         HashMap<String, Object> paramsMap = new HashMap<>();
-
         // 构建devices数组（List<HashMap>类型）
         List<HashMap<String, String>> devicesList = new ArrayList<>();
-
         // 添加设备项（单个设备的HashMap）
         HashMap<String, String> deviceItem = new HashMap<>();
-        deviceItem.put("deviceId", reParseMACAddress(byId.getDeviceMac()));
+        deviceItem.put("deviceId", reParseMACAddress(device.getDeviceMac()));
         devicesList.add(deviceItem);  // 可添加多个设备项
-
         // 将devices数组放入paramsMap
         paramsMap.put("devices", devicesList);
-
         // 将paramsMap放入最外层rootMap
         rootMap.put("params", paramsMap);
-
-        //2.发送请求网关添加子设备
         mqttProducer.send("/zbgw/9454c5ee8180/manage", 2, false, JSON.toJSONString(rootMap));
-        return Result.judge(result);
     }
 
     //一些redis接口 先現實吧 後續再更新

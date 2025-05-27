@@ -34,20 +34,24 @@ public class GateWayRegisterHandler implements MsgHandler {
         log.info("接收到网关注册消息：主题{},内容{}", topic, jsonMsg);
         //网关请求注册
         JSONObject recordMap = JSON.parseObject(jsonMsg, JSONObject.class);
-        String macAddress = MacUtils.parseMACAddress(recordMap.getJSONObject("params").getString("wifimac"));
-        //如果mac在deviceList存在
-        Device deviceEntity = deviceList.stream().filter(device -> macAddress.equals(device.getDeviceMac())).findFirst().orElse(null);
-        if (ObjectUtils.isNotEmpty(deviceEntity)) {
-            sendRegister(mqttClient, recordMap);
-            //將緩存中該數據刪除
-            redisTemplate.opsForHash().delete(RedisConstants.MqttDevice.GateWay, macAddress);
-            return;
-        } else {
-            //从redis获取
-//            JSONObject jsonObjectCache = (JSONObject) redisTemplate.opsForHash().get(RedisConstants.MqttDevice.GateWay, macAddress);
-            redisTemplate.opsForHash().put(RedisConstants.MqttDevice.GateWay, macAddress, recordMap);
+        String originalMac = recordMap.getJSONObject("params").getString("wifimac");
+        String macAddress = MacUtils.parseMACAddress(originalMac);
+        //查缓存是否存在
+        Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, originalMac);
+        if (ObjectUtils.isEmpty(device)) {
+            device = deviceList.stream().filter(d -> macAddress.equals(d.getDeviceMac())).findFirst().orElse(null);
         }
-//        sendRegister(mqttClient, recordMap);
+        //此时不空则注册 否则说明网关在发请求注册 但是设备还不存在
+        if (ObjectUtils.isNotEmpty(device)) {
+            sendRegister(mqttClient, recordMap);
+        } else {
+            //存缓存
+            Device deviceCache = new Device();
+            deviceCache.setDeviceMac(macAddress);
+            deviceCache.setDeviceCode(originalMac);
+            deviceCache.setStatus(0);
+            redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, originalMac, deviceCache);
+        }
     }
 
     private static void sendRegister(MqttClient mqttClient, JSONObject recordMap) {

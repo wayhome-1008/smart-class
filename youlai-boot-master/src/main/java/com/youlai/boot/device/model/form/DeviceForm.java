@@ -9,7 +9,9 @@ import com.youlai.boot.config.handler.JsonTypeHandler;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
+
 import java.time.LocalDateTime;
+
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 /**
@@ -41,6 +43,7 @@ public class DeviceForm implements Serializable {
 
     private String deviceMac;
 
+    private Long deviceGatewayId;
     @Schema(description = "设备类型")
     private Long deviceTypeId;
     @Schema(description = "设备类型名称")

@@ -1,11 +1,14 @@
 package com.youlai.boot.device.converter;
 
+import com.youlai.boot.common.model.Option;
 import org.mapstruct.Mapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.DeviceForm;
 import org.mapstruct.Mapping;
 import org.mapstruct.Mappings;
+
+import java.util.List;
 
 /**
  * 设备管理对象转换器
@@ -14,7 +17,7 @@ import org.mapstruct.Mappings;
  * @since 2025-05-08 15:16
  */
 @Mapper(componentModel = "spring")
-public interface DeviceConverter{
+public interface DeviceConverter {
 
     DeviceForm toForm(Device entity);
 
@@ -22,4 +25,11 @@ public interface DeviceConverter{
             @Mapping(target = "deviceNo", source = "deviceNo"),
     })
     Device toEntity(DeviceForm formData);
+    @Mappings({
+            @Mapping(target = "value", source = "id"),
+            @Mapping(target = "label", source = "deviceName")
+    })
+    Option<Long> toOption(Device entity);
+
+    List<Option<Long>> toOptions(List<Device> list);
 }

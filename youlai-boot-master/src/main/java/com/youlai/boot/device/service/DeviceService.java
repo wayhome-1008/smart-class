@@ -1,5 +1,6 @@
 package com.youlai.boot.device.service;
 
+import com.youlai.boot.common.model.Option;
 import com.youlai.boot.device.model.dto.event.DeviceEventParams;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.DeviceForm;
@@ -67,4 +68,6 @@ public interface DeviceService extends IService<Device> {
     void updateDeviceStatusByCode(DeviceEventParams params);
 
     Device getByCode(String code);
+
+    List<Option<Long>> listGatewayOptions();
 }

@@ -2,6 +2,7 @@ package com.youlai.boot.device.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.youlai.boot.common.constant.RedisConstants;
+import com.youlai.boot.common.model.Option;
 import com.youlai.boot.device.model.dto.event.DeviceEventParams;
 import com.youlai.boot.device.model.dto.event.SubDevicesEvent;
 import com.youlai.boot.deviceType.mapper.DeviceTypeMapper;
@@ -173,6 +174,12 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     @Override
     public Device getByCode(String code) {
         return this.deviceMapper.selectOne(new LambdaQueryWrapper<Device>().eq(Device::getDeviceCode, code));
+    }
+
+    @Override
+    public List<Option<Long>> listGatewayOptions() {
+        List<Device> list = this.list(new LambdaQueryWrapper<Device>().eq(Device::getStatus, 1).eq(Device::getDeviceTypeId, 1));
+        return deviceConverter.toOptions(list);
     }
 
 }

@@ -43,6 +43,10 @@ public class Device extends BaseEntity {
      */
     private String deviceMac;
     /**
+     * 网关子设备绑定网关主键id
+     */
+    private Long deviceGatewayId;
+    /**
      * 设备类型
      */
     private Long deviceTypeId;
