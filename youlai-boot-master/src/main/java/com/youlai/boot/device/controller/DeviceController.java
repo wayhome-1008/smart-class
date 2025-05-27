@@ -114,7 +114,6 @@ public class DeviceController {
     }
 
     private void wifiDevice(@Valid DeviceForm formData) {
-        //todo
         log.info(formData.toString());
     }
 
