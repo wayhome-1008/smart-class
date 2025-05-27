@@ -74,7 +74,11 @@ public class SubUpdateHandler implements MsgHandler {
             log.error("发送消息失败", e);
         }
     }
-
+    /**
+     * @description: 随意贴
+     * @author: way
+     * @date: 2025/5/27 17:36
+     **/
     private void processThreeWaySwitch(String topic, MqttClient mqttClient, Device device, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
         if (ObjectUtil.isNotEmpty(device)) {
             JsonNode jsonNode = stringToJsonNode(jsonMsg);
