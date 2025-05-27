@@ -229,22 +229,30 @@ public class DeviceController {
     }
 
     private void mqttDeviceDel(Device device) {
-
+        //删缓存
+        redisTemplate.opsForHash().delete(RedisConstants.Device.DEVICE, device.getDeviceCode());
     }
 
     private void zigBeeGateWayDelDel(Device device) {
-
+        //删缓存
+        redisTemplate.opsForHash().delete(RedisConstants.Device.DEVICE, device.getDeviceCode());
     }
 
     private void wifiDeviceDel(Device device) {
-
+        //删缓存
+        redisTemplate.opsForHash().delete(RedisConstants.Device.DEVICE, device.getDeviceCode());
     }
 
-    private void zigBeeDeviceDel(Device device) {
-
+    private void zigBeeDeviceDel(Device device) throws MqttException {
+        //删缓存
+        redisTemplate.opsForHash().delete(RedisConstants.Device.DEVICE, device.getDeviceCode());
+        //实时订阅
+        gatewayDeviceDelMqtt(device);
     }
 
     private void gatewayDeviceDelMqtt(Device device) throws MqttException {
+        //查询网关
+        Device gateway = deviceService.getById(device.getDeviceGatewayId());
         //1.构造消息
         // 构建最外层HashMap
         HashMap<String, Object> rootMap = new HashMap<>();
@@ -264,7 +272,7 @@ public class DeviceController {
         paramsMap.put("devices", devicesList);
         // 将paramsMap放入最外层rootMap
         rootMap.put("params", paramsMap);
-        mqttProducer.send("/zbgw/9454c5ee8180/manage", 2, false, JSON.toJSONString(rootMap));
+        mqttProducer.send("/zbgw/" + gateway.getDeviceCode() + "/manage", 2, false, JSON.toJSONString(rootMap));
     }
 
     //一些redis接口 先現實吧 後續再更新

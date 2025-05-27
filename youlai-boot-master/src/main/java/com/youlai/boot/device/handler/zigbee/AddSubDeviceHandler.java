@@ -46,6 +46,11 @@ public class AddSubDeviceHandler implements MsgHandler {
             addSubDeviceRsp.setSequence(addSubDevice.getSequence());
             List<AddSubDeviceRsp.Results> results1 = new ArrayList<>();
             for (AddSubDevice.SubDevices subDevice : subDevices) {
+                //注册网关会请求添加协调器 此时直接返回成功
+                if (subDevice.getUiid() == 1800) {
+                    addSubDeviceRspMqtt(topic, mqttClient, subDevice, results1, params, addSubDeviceRsp);
+                    log.info("添加网关协调器成功");
+                }
                 //先从缓存获取
                 Device deviceCache = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, subDevice.getMac());
                 if (ObjectUtils.isNotEmpty(deviceCache)) {
@@ -55,7 +60,7 @@ public class AddSubDeviceHandler implements MsgHandler {
                     redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCache.getDeviceCode(), deviceCache);
                     deviceService.updateById(deviceCache);
                     addSubDeviceRspMqtt(topic, mqttClient, subDevice, results1, params, addSubDeviceRsp);
-                    log.info("添加设备成功");
+                    log.info("添加网关子设备成功");
                 } else {
                     //数据库中存在才可以发送
                     Device device = deviceService.getByMac(MacUtils.parseMACAddress(subDevice.getMac()));
