@@ -1,6 +1,5 @@
 package com.youlai.boot.device.handler.mqtt;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.device.handler.service.MsgHandler;
@@ -11,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.eclipse.paho.client.mqttv3.MqttClient;
-import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -50,6 +48,7 @@ public class LightHandler implements MsgHandler {
                 deviceService.updateById(device);
             }
         } catch (Exception e) {
+            log.error("设备{}处理失败", topic, e);
             throw new RuntimeException(e);
         }
     }

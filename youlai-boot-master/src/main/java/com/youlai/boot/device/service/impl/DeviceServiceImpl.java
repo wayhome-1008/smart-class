@@ -1,42 +1,36 @@
 package com.youlai.boot.device.service.impl;
 
+import cn.hutool.core.lang.Assert;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.common.model.Option;
-import com.youlai.boot.config.mqtt.MqttProducer;
+import com.youlai.boot.device.converter.DeviceConverter;
+import com.youlai.boot.device.mapper.DeviceMapper;
 import com.youlai.boot.device.model.dto.event.DeviceEventParams;
 import com.youlai.boot.device.model.dto.event.SubDevicesEvent;
+import com.youlai.boot.device.model.entity.Device;
+import com.youlai.boot.device.model.form.DeviceForm;
+import com.youlai.boot.device.model.query.DeviceQuery;
+import com.youlai.boot.device.model.vo.DeviceVO;
+import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.deviceType.mapper.DeviceTypeMapper;
 import com.youlai.boot.deviceType.model.entity.DeviceType;
-import com.youlai.boot.system.mapper.DictItemMapper;
-import com.youlai.boot.system.mapper.DictMapper;
-import com.youlai.boot.system.model.entity.Dict;
 import com.youlai.boot.system.model.entity.DictItem;
 import com.youlai.boot.system.service.DictItemService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.math.NumberUtils;
-import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.youlai.boot.device.mapper.DeviceMapper;
-import com.youlai.boot.device.service.DeviceService;
-import com.youlai.boot.device.model.entity.Device;
-import com.youlai.boot.device.model.form.DeviceForm;
-import com.youlai.boot.device.model.query.DeviceQuery;
-import com.youlai.boot.device.model.vo.DeviceVO;
-import com.youlai.boot.device.converter.DeviceConverter;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import cn.hutool.core.lang.Assert;
-import cn.hutool.core.util.StrUtil;
 
 /**
  * 设备管理服务实现类
@@ -76,11 +70,10 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
      */
     @Override
     public IPage<DeviceVO> getDevicePage(DeviceQuery queryParams) {
-        Page<DeviceVO> pageVO = this.baseMapper.getDevicePage(
+        return this.baseMapper.getDevicePage(
                 new Page<>(queryParams.getPageNum(), queryParams.getPageSize()),
                 queryParams
         );
-        return pageVO;
     }
 
     /**

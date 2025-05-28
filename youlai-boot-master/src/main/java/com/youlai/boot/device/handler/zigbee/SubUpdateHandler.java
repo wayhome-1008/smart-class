@@ -8,7 +8,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.youlai.boot.common.constant.RedisConstants;
-import com.youlai.boot.common.util.JsonUtils;
 import com.youlai.boot.device.handler.service.MsgHandler;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.SubUpdateSensorRsp;
@@ -22,8 +21,6 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
-import java.util.Iterator;
-import java.util.Map;
 import java.util.Optional;
 
 import static com.youlai.boot.common.util.JsonUtils.mergeJson;

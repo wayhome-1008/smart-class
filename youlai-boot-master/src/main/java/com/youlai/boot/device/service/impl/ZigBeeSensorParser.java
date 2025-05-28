@@ -1,6 +1,5 @@
 package com.youlai.boot.device.service.impl;
 
-import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.youlai.boot.device.model.vo.DeviceInfo;
 import com.youlai.boot.device.service.DeviceInfoParser;

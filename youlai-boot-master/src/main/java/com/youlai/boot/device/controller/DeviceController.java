@@ -27,7 +27,6 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -51,7 +50,6 @@ import static com.youlai.boot.config.mqtt.TopicConfig.TOPIC_LIST;
 @RestController
 @RequestMapping("/api/v1/device")
 @RequiredArgsConstructor
-@Transactional
 public class DeviceController {
 
     private final DeviceService deviceService;

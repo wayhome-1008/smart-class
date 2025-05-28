@@ -1,7 +1,5 @@
 package com.youlai.boot.device.Enum;
 
-import lombok.Data;
-
 // 设备类型枚举
 public enum DeviceTypeEnum {
     GATEWAY(1L, "Gateway"),

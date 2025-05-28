@@ -1,7 +1,6 @@
 package com.youlai.boot.dashBoard.controller;
 
 
-import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.common.result.Result;
 import com.youlai.boot.dashBoard.model.vo.DashCount;
 import com.youlai.boot.device.Enum.CommunicationModeEnum;
@@ -10,7 +9,6 @@ import com.youlai.boot.device.factory.DeviceInfoParserFactory;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.vo.DeviceInfo;
 import com.youlai.boot.device.model.vo.DeviceInfoVO;
-import com.youlai.boot.device.model.vo.DeviceVO;
 import com.youlai.boot.device.service.DeviceInfoParser;
 import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.room.model.entity.Room;
@@ -21,7 +19,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;

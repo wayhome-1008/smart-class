@@ -1,6 +1,5 @@
 package com.youlai.boot.device.model.vo;
 
-import com.baomidou.mybatisplus.annotation.TableLogic;
 import lombok.Data;
 
 import java.util.List;
