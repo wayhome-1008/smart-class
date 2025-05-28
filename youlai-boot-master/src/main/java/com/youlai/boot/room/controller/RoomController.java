@@ -27,7 +27,7 @@ import java.util.List;
  * @author way
  * @since 2025-05-09 12:09
  */
-@Tag(name = "房间管理接口")
+@Tag(name = "08.房间管理接口")
 @RestController
 @RequestMapping("/api/v1/room")
 @RequiredArgsConstructor

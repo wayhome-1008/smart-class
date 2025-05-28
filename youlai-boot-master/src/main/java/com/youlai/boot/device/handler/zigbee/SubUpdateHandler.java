@@ -5,7 +5,10 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.youlai.boot.common.constant.RedisConstants;
+import com.youlai.boot.common.util.JsonUtils;
 import com.youlai.boot.device.handler.service.MsgHandler;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.SubUpdateSensorRsp;
@@ -19,6 +22,8 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Optional;
 
 import static com.youlai.boot.common.util.JsonUtils.mergeJson;
@@ -74,16 +79,32 @@ public class SubUpdateHandler implements MsgHandler {
             log.error("发送消息失败", e);
         }
     }
+
     /**
-     * @description: 随意贴
+     * @description: 开关
      * @author: way
      * @date: 2025/5/27 17:36
      **/
     private void processThreeWaySwitch(String topic, MqttClient mqttClient, Device device, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
         if (ObjectUtil.isNotEmpty(device)) {
             JsonNode jsonNode = stringToJsonNode(jsonMsg);
-            JsonNode mergeJson = mergeJson(Optional.ofNullable(device).map(Device::getDeviceInfo).orElse(null), jsonNode);
+            //获取params
+            JsonNode params = jsonNode.get("params");
+            JsonNode switchesArray = params.get("switches");
+            // 1. 准备存储所有开关状态的对象
+            ObjectNode allSwitchStates = JsonNodeFactory.instance.objectNode();
+            // 2. 遍历switches数组
+            if (switchesArray.isArray()) {
+                for (JsonNode switchNode : switchesArray) {
+                    int outletNum = switchNode.get("outlet").asInt(); // 转为1-based编号
+                    String switchState = switchNode.get("switch").asText();
+                    // 3. 存储每个开关状态
+                    allSwitchStates.put("outlet" + outletNum, outletNum);
+                    allSwitchStates.put("switch" + outletNum, switchState);
+                }
+            }
             if (device != null) {
+                JsonNode mergeJson = mergeJson(Optional.of(device).map(Device::getDeviceInfo).orElse(null), allSwitchStates);
                 device.setDeviceInfo(mergeJson);
                 redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
                 deviceService.updateById(device);

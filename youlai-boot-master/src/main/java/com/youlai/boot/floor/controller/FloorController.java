@@ -27,7 +27,7 @@ import java.util.List;
  * @author way
  * @since 2025-05-08 12:23
  */
-@Tag(name = "楼层管理接口")
+@Tag(name = "07.楼层管理接口")
 @RestController
 @RequestMapping("/api/v1/floor")
 @RequiredArgsConstructor

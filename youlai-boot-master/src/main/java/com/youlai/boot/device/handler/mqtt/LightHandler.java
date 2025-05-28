@@ -1,5 +1,6 @@
 package com.youlai.boot.device.handler.mqtt;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.device.handler.service.MsgHandler;
@@ -10,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.eclipse.paho.client.mqttv3.MqttClient;
+import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -19,13 +21,13 @@ import static com.youlai.boot.common.util.MacUtils.getCodeByTopic;
 
 /**
  *@Author: way
- *@CreateTime: 2025-05-23  17:05
+ *@CreateTime: 2025-05-28  16:53
  *@Description: TODO
  */
 @Component
 @Slf4j
 @RequiredArgsConstructor
-public class SensorHandler implements MsgHandler {
+public class LightHandler implements MsgHandler {
     private final RedisTemplate<String, Object> redisTemplate;
     private final DeviceService deviceService;
 
@@ -54,6 +56,6 @@ public class SensorHandler implements MsgHandler {
 
     @Override
     public HandlerType getType() {
-        return HandlerType.SENSOR;
+        return HandlerType.LIGHT;
     }
 }

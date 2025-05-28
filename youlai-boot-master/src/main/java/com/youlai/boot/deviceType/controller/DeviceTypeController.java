@@ -23,14 +23,12 @@ import java.util.List;
  * @author way
  * @since 2025-05-19 10:59
  */
-@Tag(name = "设备类型字典(自维护)接口")
+@Tag(name = "06.设备类型接口")
 @RestController
 @RequestMapping("/api/v1/deviceType")
 @RequiredArgsConstructor
 public class DeviceTypeController {
-
     private final DeviceTypeService deviceTypeService;
-
     @Operation(summary = "设备类型字分页列表")
     @GetMapping("/page")
     @PreAuthorize("@ss.hasPerm('deviceType:deviceType:query')")
@@ -39,9 +37,10 @@ public class DeviceTypeController {
         return PageResult.success(result);
     }
 
-    @Operation(summary = "房间下拉列表")
+
+    @Operation(summary = "设备类型下拉列表")
     @GetMapping("/options")
-    public Result<List<Option<Long>>> listRoomOptions() {
+    public Result<List<Option<Long>>> listDeviceTypeOptions() {
         List<Option<Long>> list = deviceTypeService.listDeviceTypeOptions();
         return Result.success(list);
     }

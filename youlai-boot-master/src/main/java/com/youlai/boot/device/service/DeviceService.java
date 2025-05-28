@@ -8,6 +8,7 @@ import com.youlai.boot.device.model.query.DeviceQuery;
 import com.youlai.boot.device.model.vo.DeviceVO;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
+import org.eclipse.paho.client.mqttv3.MqttException;
 
 import java.util.List;
 

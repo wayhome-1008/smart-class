@@ -27,5 +27,6 @@ public enum HandlerType {
     SUB_THINGS_RSP,
 
     //MQTT直连设备
-    SENSOR; //温湿度传感器
+    SENSOR, //温湿度传感器
+    LIGHT;
 }

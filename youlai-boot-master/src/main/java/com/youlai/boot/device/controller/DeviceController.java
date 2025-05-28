@@ -47,7 +47,7 @@ import static com.youlai.boot.config.mqtt.TopicConfig.TOPIC_LIST;
  * @since 2025-05-08 15:16
  */
 @Slf4j
-@Tag(name = "设备管理接口")
+@Tag(name = "04.设备管理接口")
 @RestController
 @RequestMapping("/api/v1/device")
 @RequiredArgsConstructor

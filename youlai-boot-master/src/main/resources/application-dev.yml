@@ -179,11 +179,16 @@ springdoc:
     - group: 'dashboard'
       paths-to-match: "/**"
       packages-to-scan:
+        - com.youlai.boot.building.controller
         - com.youlai.boot.dashBoard.controller
+        - com.youlai.boot.device.controller
+        - com.youlai.boot.deviceType.controller
+        - com.youlai.boot.floor.controller
+        - com.youlai.boot.room.controller
         - com.youlai.boot.shared.auth.controller
         - com.youlai.boot.shared.file.controller
         - com.youlai.boot.shared.codegen.controller
-        - com.youlai.boot.device.controller
+        - com.youlai.boot.shared.system.controller
   default-flat-param-object: true
 
 # knife4j 接口文档配置
