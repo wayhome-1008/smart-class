@@ -1,6 +1,7 @@
 package com.youlai.boot.config.mqtt;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.common.util.MacUtils;
 import com.youlai.boot.device.factory.MsgHandlerFactory;
 import com.youlai.boot.device.handler.service.MsgHandler;
@@ -12,10 +13,12 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.paho.client.mqttv3.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+import static com.youlai.boot.common.util.MacUtils.getCodeByTopic;
 import static com.youlai.boot.config.mqtt.TopicConfig.BASE_TOPIC;
 import static com.youlai.boot.config.mqtt.TopicConfig.TOPIC_LIST;
 
@@ -26,6 +29,8 @@ public class MqttCallback implements MqttCallbackExtended {
     private MsgHandlerFactory factory;
     @Autowired
     private DeviceService deviceService;
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
 
     @Override
     public void connectionLost(Throwable throwable) {
@@ -47,7 +52,23 @@ public class MqttCallback implements MqttCallbackExtended {
         }
         //tele
         if (topic.startsWith("tele")) {
-            finalTopic="/SENSOR";
+            //从缓存去设备
+            String deviceCode = getCodeByTopic(topic);
+            Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
+            if  (device == null) {
+                device = deviceService.getByCode(deviceCode);
+            }
+            if (device != null) {
+                //温湿度传感器
+                if (device.getDeviceTypeId() == 2) {
+                    finalTopic = "/SENSOR";
+                }
+                //灯光
+                if (device.getDeviceTypeId() == 8) {
+                    finalTopic = "/LIGHT";
+                }
+            }
+
         }
         if (StringUtils.isNotEmpty(finalTopic)) {
             HandlerType type = null;
@@ -90,6 +111,9 @@ public class MqttCallback implements MqttCallbackExtended {
                     break;
                 case "/SENSOR":
                     type = HandlerType.SENSOR;
+                    break;
+                case "/LIGHT":
+                    type = HandlerType.LIGHT;
                     break;
                 default:
                     break;
@@ -153,10 +177,10 @@ public class MqttCallback implements MqttCallbackExtended {
                             log.info("订阅主题:{}", BASE_TOPIC + deviceMac + consumerTopic);
                         }
                         //独立mqtt通信设备
-                    }else if (device.getCommunicationModeItemId()==4){
-                        mqttClient.subscribe("tele/" + device.getDeviceCode()+ "/SENSOR", 2);
-                        mqttClient.subscribe("tele/" + device.getDeviceCode()+ "/INFO3", 2);
-                        mqttClient.subscribe("tele/" + device.getDeviceCode()+ "/STATE", 2);
+                    } else if (device.getCommunicationModeItemId() == 4) {
+                        mqttClient.subscribe("tele/" + device.getDeviceCode() + "/SENSOR", 2);
+                        mqttClient.subscribe("tele/" + device.getDeviceCode() + "/INFO3", 2);
+                        mqttClient.subscribe("tele/" + device.getDeviceCode() + "/STATE", 2);
                     }
                 }
             } catch (MqttException e) {

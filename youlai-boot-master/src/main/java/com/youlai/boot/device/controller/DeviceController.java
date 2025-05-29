@@ -117,6 +117,7 @@ public class DeviceController {
 
     private void mqttDevice(@Valid DeviceForm formData) {
         mqttCallback.subscribeTopic("tele/" + formData.getDeviceMac() + "/SENSOR");
+        mqttCallback.subscribeTopic("tele/" + formData.getDeviceMac() + "/STATE");
     }
 
     private void zigBeeDevice(@Valid DeviceForm formData) throws MqttException {

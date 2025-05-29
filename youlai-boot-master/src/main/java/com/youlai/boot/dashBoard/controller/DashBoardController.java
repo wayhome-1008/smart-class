@@ -76,6 +76,7 @@ public class DashBoardController {
 
     private DeviceInfoVO basicPropertyConvert(Device device) {
         DeviceInfoVO deviceInfoVO = new DeviceInfoVO();
+        deviceInfoVO.setId(device.getId());
         deviceInfoVO.setDeviceName(device.getDeviceName());
         deviceInfoVO.setDeviceCode(device.getDeviceCode());
         deviceInfoVO.setDeviceRoom(device.getDeviceRoom());

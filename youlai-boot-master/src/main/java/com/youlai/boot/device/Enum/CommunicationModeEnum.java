@@ -3,8 +3,8 @@ package com.youlai.boot.device.Enum;
 public enum CommunicationModeEnum {
     ZIGBEE(1L, "ZigBee"),
     WIFI(2L, "WiFi"),
-    TCP_IP(3L, "tcpIp"),
-    MQTT(4L, "Mqtt");
+    TCP_IP(3L, "TCP/IP"),
+    MQTT(4L, "MQTT");
 
     private final Long id;
     private final String name;

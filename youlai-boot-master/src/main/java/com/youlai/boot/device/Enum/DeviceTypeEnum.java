@@ -8,7 +8,8 @@ public enum DeviceTypeEnum {
     PLUG(4L, "Plug"),
     HUMAN_RADAR_SENSOR(5L, "HumanRadarSensor"),
     HUMAN_SENSOR(6L, "HumanSensor"),
-    SWITCH(7L, "Switch");
+    SWITCH(7L, "Switch"),
+    LIGHT(8L, "Light");
     private final Long id;
     private final String name;
 

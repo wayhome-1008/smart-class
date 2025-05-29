@@ -10,4 +10,5 @@ import lombok.Data;
 @Data
 public class DeviceOperate {
     private String operate;
+    private String way;
 }

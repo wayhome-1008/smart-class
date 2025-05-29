@@ -11,6 +11,7 @@ import java.util.List;
  */
 @Data
 public class DeviceInfoVO {
+    private Long id;
     /**
      * 设备名称
      */

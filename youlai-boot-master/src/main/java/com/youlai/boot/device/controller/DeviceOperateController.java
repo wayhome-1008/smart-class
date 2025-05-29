@@ -1,5 +1,6 @@
 package com.youlai.boot.device.controller;
 
+import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.common.result.Result;
 import com.youlai.boot.config.mqtt.MqttProducer;
 import com.youlai.boot.device.model.entity.Device;
@@ -11,6 +12,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.paho.client.mqttv3.MqttException;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -29,6 +31,7 @@ import org.springframework.web.bind.annotation.*;
 public class DeviceOperateController {
     private final DeviceService deviceService;
     private final MqttProducer mqttProducer;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Operation(summary = "灯光操作")
     @PutMapping(value = "/{id}")
@@ -40,7 +43,13 @@ public class DeviceOperateController {
         //根据设备发送mqtt
         Device device = deviceService.getById(id);
         String deviceCode = device.getDeviceCode();
-        mqttProducer.send("/tele/" + deviceCode + "/POWER", 0, false, deviceOperate.getOperate());
+        //判断几路
+        int lightCount = device.getDeviceInfo().get("count").asInt();
+        if (lightCount == 1) {
+            mqttProducer.send("cmnd/" + deviceCode + "/POWER", 0, false, deviceOperate.getOperate());
+        } else {
+            mqttProducer.send("cmnd/" + deviceCode + "/POWER" + deviceOperate.getWay(), 0, false, deviceOperate.getOperate());
+        }
         return Result.success();
     }
 }
