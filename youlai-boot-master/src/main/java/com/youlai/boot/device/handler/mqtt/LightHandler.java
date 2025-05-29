@@ -46,7 +46,7 @@ public class LightHandler implements MsgHandler {
                 device = deviceService.getByCode(deviceCode);
             }
             //定义灯光路数
-            int lightCount =0;
+            int lightCount = 0;
             // 3. 动态处理所有灯光路数
             ObjectNode lightStatus = JsonNodeFactory.instance.objectNode();
             Iterator<String> fieldNames = jsonNode.fieldNames();

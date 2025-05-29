@@ -1,8 +1,14 @@
 package com.youlai.boot.device.controller;
 
-import com.youlai.boot.common.constant.RedisConstants;
+import com.alibaba.fastjson.JSON;
 import com.youlai.boot.common.result.Result;
+import com.youlai.boot.common.util.JsonUtils;
 import com.youlai.boot.config.mqtt.MqttProducer;
+import com.youlai.boot.device.Enum.CommunicationModeEnum;
+import com.youlai.boot.device.model.dto.Control;
+import com.youlai.boot.device.model.dto.ControlParams;
+import com.youlai.boot.device.model.dto.PlugParams;
+import com.youlai.boot.device.model.dto.Switch;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.DeviceOperate;
 import com.youlai.boot.device.service.DeviceService;
@@ -11,11 +17,14 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  *@Author: way
@@ -42,6 +51,7 @@ public class DeviceOperateController {
     ) throws MqttException {
         //根据设备发送mqtt
         Device device = deviceService.getById(id);
+        if (ObjectUtils.isEmpty(device)) return Result.failed("设备不存在");
         String deviceCode = device.getDeviceCode();
         //判断几路
         int lightCount = device.getDeviceInfo().get("count").asInt();
@@ -50,6 +60,57 @@ public class DeviceOperateController {
         } else {
             mqttProducer.send("cmnd/" + deviceCode + "/POWER" + deviceOperate.getWay(), 0, false, deviceOperate.getOperate());
         }
+        return Result.success();
+    }
+
+    @Operation(summary = "插座操作")
+    @PutMapping(value = "/socket/{id}")
+    public Result<Void> operateSocket(
+            @Parameter(description = "设备ID") @PathVariable Long id,
+            @RequestBody @Validated DeviceOperate
+                    deviceOperate
+    ) throws MqttException {
+        //根据设备发送mqtt
+        Device device = deviceService.getById(id);
+        if (ObjectUtils.isEmpty(device)) return Result.failed("设备不存在");
+        //根据通信协议去发送不同协议报文
+        return switch (CommunicationModeEnum.getNameById(device.getCommunicationModeItemId())) {
+            case "ZigBee" ->
+                //zigBee
+                    zigBeeDevice(device, deviceOperate);
+            case "MQTT" ->
+                //mqtt
+                    mqttDevice(device, deviceOperate);
+            default -> Result.failed("暂不支持该协议");
+        };
+    }
+
+    private Result<Void> mqttDevice(Device device, DeviceOperate
+            deviceOperate) throws MqttException {
+        //直接发
+        mqttProducer.send("cmnd/" + device.getDeviceCode() + "/POWER", 0, false, deviceOperate.getOperate());
+        return Result.success();
+    }
+
+    private Result<Void> zigBeeDevice(Device device, DeviceOperate
+            deviceOperate) throws MqttException {
+        //查询该子设备的网关
+        Device gateway = deviceService.getById(device.getDeviceGatewayId());
+        if (ObjectUtils.isEmpty(gateway)) return Result.failed("该设备没有网关");
+        //组发送json
+        Control control = new Control();
+        control.setDeviceId(device.getDeviceCode());
+        control.setSequence(String.valueOf(System.currentTimeMillis()));
+        Switch plug = new Switch();
+        plug.setSwitchStatus(deviceOperate.getOperate().equals("ON") ? "on" : "off");
+        plug.setOutlet(0);
+        List<Switch> switches = new java.util.ArrayList<>();
+        switches.add(plug);
+        ControlParams controlParams = new ControlParams();
+        controlParams.setSwitches(switches);
+        control.setParams(controlParams);
+        log.info("发送的报文：{}", JSON.toJSONString(control));
+        mqttProducer.send("/zbgw/" + gateway.getDeviceCode() + "/sub/control", 0, false, JSON.toJSONString(control));
         return Result.success();
     }
 }
