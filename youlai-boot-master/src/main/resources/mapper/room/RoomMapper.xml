@@ -16,6 +16,9 @@
             <if test="queryParams.classroomCode != null and queryParams.classroomCode != ''">
                 AND classroom_code LIKE CONCAT('%', #{queryParams.classroomCode}, '%')
             </if>
+            <if test="queryParams.floorId != null">
+                AND floor_id = #{queryParams.floorId}
+            </if>
         </where>
     </select>
 

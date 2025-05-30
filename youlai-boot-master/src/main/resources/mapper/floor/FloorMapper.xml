@@ -23,6 +23,9 @@
             <if test="queryParams.floorNumber != null">
                 AND f.floor_number LIKE CONCAT('%', #{queryParams.floorNumber}, '%')
             </if>
+            <if test="queryParams.buildingId != null">
+                AND f.building_id = #{queryParams.buildingId}
+            </if>
         </where>
     </select>
 

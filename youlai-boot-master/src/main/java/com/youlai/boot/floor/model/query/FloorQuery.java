@@ -20,4 +20,7 @@ public class FloorQuery extends BasePageQuery {
 
     @Schema(description = "楼层号（如 1、2、-1（负一层））")
     private String floorNumber;
+
+    @Schema(description ="楼宇id")
+    private Long buildingId;
 }
