@@ -13,7 +13,7 @@ import java.util.List;
 @Data
 public class Control {
     @JsonProperty("sequence")
-    private String sequence;
+    private Integer sequence;
 
     @JsonProperty("deviceId")
     private String deviceId;

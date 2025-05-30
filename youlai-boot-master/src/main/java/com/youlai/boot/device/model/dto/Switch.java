@@ -1,6 +1,7 @@
 package com.youlai.boot.device.model.dto;
 
 import com.alibaba.fastjson.annotation.JSONField;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -18,11 +19,13 @@ public class Switch {
      * 通道状态，取值为 "on" 或 "off"
      */
     @JSONField(name = "switch")
+    @JsonProperty("switch")
     private String switchStatus;
 
     /**
      * 通道编号，目前固定为 0
      */
     @JSONField(name = "outlet")
+    @JsonProperty("outlet")
     private Integer outlet;
 }

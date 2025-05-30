@@ -3,6 +3,7 @@ package com.youlai.boot.device.controller;
 import com.alibaba.fastjson.JSON;
 import com.youlai.boot.common.result.Result;
 import com.youlai.boot.common.util.JsonUtils;
+import com.youlai.boot.common.util.MacUtils;
 import com.youlai.boot.config.mqtt.MqttProducer;
 import com.youlai.boot.device.Enum.CommunicationModeEnum;
 import com.youlai.boot.device.model.dto.Control;
@@ -100,7 +101,7 @@ public class DeviceOperateController {
         //组发送json
         Control control = new Control();
         control.setDeviceId(device.getDeviceCode());
-        control.setSequence(String.valueOf(System.currentTimeMillis()));
+        control.setSequence((int) System.currentTimeMillis());
         Switch plug = new Switch();
         plug.setSwitchStatus(deviceOperate.getOperate().equals("ON") ? "on" : "off");
         plug.setOutlet(0);
@@ -109,8 +110,9 @@ public class DeviceOperateController {
         ControlParams controlParams = new ControlParams();
         controlParams.setSwitches(switches);
         control.setParams(controlParams);
-        log.info("发送的报文：{}", JSON.toJSONString(control));
-        mqttProducer.send("/zbgw/" + gateway.getDeviceCode() + "/sub/control", 0, false, JSON.toJSONString(control));
+        String deviceMac = gateway.getDeviceMac();
+        String gateWayTopic = MacUtils.reParseMACAddress(deviceMac);
+        mqttProducer.send("/zbgw/" + gateWayTopic + "/sub/control", 0, false, JSON.toJSONString(control));
         return Result.success();
     }
 }
