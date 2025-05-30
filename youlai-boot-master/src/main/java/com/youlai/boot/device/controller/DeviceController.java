@@ -10,6 +10,7 @@ import com.youlai.boot.common.result.PageResult;
 import com.youlai.boot.common.result.Result;
 import com.youlai.boot.config.mqtt.MqttCallback;
 import com.youlai.boot.config.mqtt.MqttProducer;
+import com.youlai.boot.device.converter.DeviceConverter;
 import com.youlai.boot.device.model.dto.GateWayManage;
 import com.youlai.boot.device.model.dto.GateWayManageParams;
 import com.youlai.boot.device.model.entity.Device;
@@ -56,7 +57,7 @@ public class DeviceController {
     private final RedisTemplate<String, Object> redisTemplate;
     private final MqttProducer mqttProducer;
     private final MqttCallback mqttCallback;
-
+    private final DeviceConverter deviceConverter;
     @Operation(summary = "设备管理分页列表")
     @GetMapping("/page")
     @PreAuthorize("@ss.hasPerm('device:device:query')")
@@ -133,7 +134,9 @@ public class DeviceController {
         //zigBee网关(需要去缓存根据mac查询是否存在)
         Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, formData.getDeviceCode());
         if (ObjectUtils.isEmpty(device)) {
-            redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, formData.getDeviceCode(), formData);
+            //此处应该存Device
+            Device entity = deviceConverter.toEntity(formData);
+            redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, formData.getDeviceCode(), entity);
         }
         //实时订阅
         for (String consumerTopic : TOPIC_LIST) {
@@ -192,6 +195,7 @@ public class DeviceController {
                     //ZigBee网关子设备
                     zigBeeDeviceDel(device);
                     result = deviceService.removeById(device.getId());
+                    gatewayDeviceDelMqtt(device);
                     break;
                 case 2:
                     //WIFI独立设备
@@ -202,7 +206,6 @@ public class DeviceController {
                     //ZigBee网关
                     zigBeeGateWayDelDel(device);
                     result = deviceService.removeById(device.getId());
-                    break;
                 case 4:
                     //MQTT独立设备
                     mqttDeviceDel(device);
@@ -211,7 +214,6 @@ public class DeviceController {
                 default:
                     break;
             }
-            gatewayDeviceDelMqtt(device);
         }
 
         return Result.judge(result);
