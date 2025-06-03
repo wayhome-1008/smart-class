@@ -93,7 +93,7 @@ public class SubUpdateHandler implements MsgHandler {
             // 2. 遍历switches数组
             if (switchesArray.isArray()) {
                 for (JsonNode switchNode : switchesArray) {
-                    int outletNum = switchNode.get("outlet").asInt(); // 转为1-based编号
+                    int outletNum = switchNode.get("outlet").asInt() + 1; // 转为1-based编号
                     String switchState = switchNode.get("switch").asText();
                     //大小写转换
                     if (switchState.equals("on")) {
@@ -116,10 +116,22 @@ public class SubUpdateHandler implements MsgHandler {
         }
     }
 
+    /**
+     * @description: 随意贴
+     * @author: way
+     * @date: 2025/6/3 10:19
+     **/
     private void processFreePosting(String topic, MqttClient mqttClient, Device device, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
         if (ObjectUtil.isNotEmpty(device)) {
             JsonNode jsonNode = stringToJsonNode(jsonMsg);
-            JsonNode mergeJson = mergeJson(Optional.ofNullable(device).map(Device::getDeviceInfo).orElse(null), jsonNode);
+            //获取params
+            JsonNode params = jsonNode.get("params");
+            // 1. 准备存储所有开关状态的对象
+            ObjectNode allSwitchStates = JsonNodeFactory.instance.objectNode();
+            //2.根据返回的key决定是几路
+            int way = params.get("outlet").asInt() + 1;
+            allSwitchStates.put("switch" + way, params.get("key").asText());
+            JsonNode mergeJson = mergeJson(Optional.ofNullable(device).map(Device::getDeviceInfo).orElse(null), allSwitchStates);
             if (device != null) {
                 device.setDeviceInfo(mergeJson);
                 redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);

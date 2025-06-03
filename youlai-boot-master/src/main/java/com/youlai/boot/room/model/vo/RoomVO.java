@@ -3,9 +3,11 @@ package com.youlai.boot.room.model.vo;
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
+
 import java.time.LocalDateTime;
 
 /**
@@ -16,7 +18,7 @@ import java.time.LocalDateTime;
  */
 @Getter
 @Setter
-@Schema( description = "房间管理视图对象")
+@Schema(description = "房间管理视图对象")
 public class RoomVO implements Serializable {
 
     @Serial
@@ -28,6 +30,8 @@ public class RoomVO implements Serializable {
     private Long floorId;
     @Schema(description = "所属教学楼")
     private Long buildingId;
+    @Schema(description = "所属教学楼名称")
+    private String buildingName;
     @Schema(description = "房间号")
     private String classroomCode;
     @Schema(description = "备注")

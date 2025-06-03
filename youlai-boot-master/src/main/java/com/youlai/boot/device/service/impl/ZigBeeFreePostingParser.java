@@ -1,11 +1,16 @@
 package com.youlai.boot.device.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.youlai.boot.device.model.vo.DeviceInfo;
 import com.youlai.boot.device.service.DeviceInfoParser;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+
+import static com.youlai.boot.common.util.JsonUtils.mergeJson;
 
 /**
  *@Author: way
@@ -16,21 +21,23 @@ public class ZigBeeFreePostingParser implements DeviceInfoParser {
     @Override
     public List<DeviceInfo> parse(JsonNode deviceInfo) {
         List<DeviceInfo> properties = new ArrayList<>();
-        if (deviceInfo.has("params")) {
-            JsonNode freePostingData = deviceInfo.get("params");
-            //电量
-            if (freePostingData.has("battery")) {
-                properties.add(new DeviceInfo("battery", freePostingData.get("battery").asInt()));
-            }
-            //点击 双击 长摁
-            if (freePostingData.has("key")) {
-                properties.add(new DeviceInfo("key", freePostingData.get("key").asInt()));
-            }
-            //最后点击
-            if (freePostingData.has("outlet")) {
-                properties.add(new DeviceInfo("outlet", freePostingData.get("outlet").asInt()));
+        //电量
+        if (deviceInfo.has("battery")) {
+            properties.add(new DeviceInfo("battery", deviceInfo.get("battery").asInt()));
+        }
+        ObjectNode switches = JsonNodeFactory.instance.objectNode();
+        Iterator<String> fieldNames = deviceInfo.fieldNames();
+        int count = 0;
+        while (fieldNames.hasNext()) {
+            String fieldName = fieldNames.next();
+            if (fieldName.startsWith("switch")) {
+                count++;
+                String freePostingStatus = deviceInfo.get(fieldName).asText();
+                switches.put(fieldName, freePostingStatus);
+                properties.add(new DeviceInfo(fieldName, freePostingStatus));
             }
         }
+        properties.add(new DeviceInfo("count", count));
         return properties;
     }
 }
