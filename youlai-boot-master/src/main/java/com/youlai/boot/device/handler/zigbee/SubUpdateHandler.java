@@ -95,6 +95,12 @@ public class SubUpdateHandler implements MsgHandler {
                 for (JsonNode switchNode : switchesArray) {
                     int outletNum = switchNode.get("outlet").asInt(); // 转为1-based编号
                     String switchState = switchNode.get("switch").asText();
+                    //大小写转换
+                    if (switchState.equals("on")) {
+                        switchState = "ON";
+                    } else if (switchState.equals("off")) {
+                        switchState = "OFF";
+                    }
                     // 3. 存储每个开关状态
                     allSwitchStates.put("outlet" + outletNum, outletNum);
                     allSwitchStates.put("switch" + outletNum, switchState);
