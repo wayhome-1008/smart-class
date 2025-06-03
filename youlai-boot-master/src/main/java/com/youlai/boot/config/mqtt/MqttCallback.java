@@ -8,6 +8,7 @@ import com.youlai.boot.device.handler.service.MsgHandler;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.device.topic.HandlerType;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -202,9 +203,6 @@ public class MqttCallback implements MqttCallbackExtended {
 //        }
     }
 
+    @Setter
     private MqttClient mqttClient;
-
-    public void setMqttClient(MqttClient mqttClient) {
-        this.mqttClient = mqttClient;
-    }
 }
