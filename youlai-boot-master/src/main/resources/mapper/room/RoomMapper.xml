@@ -5,13 +5,17 @@
     <!-- 获取房间管理分页列表 -->
     <select id="getRoomPage" resultType="com.youlai.boot.room.model.vo.RoomVO">
         SELECT
-                id,
-                floor_id,
-                building_id,
-                classroom_code,
-                remark
+        r.id,
+        r.floor_id,
+        r.building_id,
+        r.classroom_code,
+        r.remark,
+        b.building_name AS buildingName,
+         f.floor_number AS floorName
         FROM
-            room
+        room r
+        LEFT JOIN building b ON r.building_id = b.id
+                                    LEFT JOIN floor f ON r.floor_id = f.id
         <where>
             <if test="queryParams.classroomCode != null and queryParams.classroomCode != ''">
                 AND classroom_code LIKE CONCAT('%', #{queryParams.classroomCode}, '%')

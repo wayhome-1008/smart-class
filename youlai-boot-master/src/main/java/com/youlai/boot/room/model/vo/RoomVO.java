@@ -32,6 +32,8 @@ public class RoomVO implements Serializable {
     private Long buildingId;
     @Schema(description = "所属教学楼名称")
     private String buildingName;
+    @Schema(description = "楼层名称")
+    private String floorName;
     @Schema(description = "房间号")
     private String classroomCode;
     @Schema(description = "备注")
