@@ -128,10 +128,16 @@ public class SubUpdateHandler implements MsgHandler {
             JsonNode params = jsonNode.get("params");
             // 1. 准备存储所有开关状态的对象
             ObjectNode allSwitchStates = JsonNodeFactory.instance.objectNode();
+            JsonNode mergeJson;
             //2.根据返回的key决定是几路
-            int way = params.get("outlet").asInt() + 1;
-            allSwitchStates.put("switch" + way, params.get("key").asText());
-            JsonNode mergeJson = mergeJson(Optional.ofNullable(device).map(Device::getDeviceInfo).orElse(null), allSwitchStates);
+            if (params.has("outlet")) {
+                int way = params.get("outlet").asInt() + 1;
+                allSwitchStates.put("switch" + way, params.get("key").asText());
+            }
+            if (params.has("battery")) {
+                allSwitchStates.put("battery", params.get("battery").asText());
+            }
+            mergeJson = mergeJson(Optional.ofNullable(device).map(Device::getDeviceInfo).orElse(null), allSwitchStates);
             if (device != null) {
                 device.setDeviceInfo(mergeJson);
                 redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
