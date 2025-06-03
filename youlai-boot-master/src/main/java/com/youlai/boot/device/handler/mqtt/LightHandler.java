@@ -64,11 +64,16 @@ public class LightHandler implements MsgHandler {
             if (ObjectUtils.isNotEmpty(device)) {
                 JsonNode mergedInfo = mergeJson(device.getDeviceInfo(), lightStatus);
                 device.setDeviceInfo(mergedInfo);
-
-                // 双写：Redis缓存 + 数据库
-                redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
-                deviceService.updateById(device);
-
+                Device deviceCache = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
+                if (deviceCache != null) {
+                    // 双写：Redis缓存 + 数据库
+                    redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
+                    deviceService.updateById(device);
+                } else {
+                    // 单写：数据库
+                    device.setStatus(1);
+                    deviceService.updateById(device);
+                }
                 log.info("设备 {} 灯光状态更新完成", deviceCode);
             }
         } catch (Exception e) {

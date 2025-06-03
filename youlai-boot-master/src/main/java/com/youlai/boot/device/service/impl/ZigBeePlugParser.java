@@ -22,8 +22,9 @@ public class ZigBeePlugParser implements DeviceInfoParser {
             if (switchesArray.isArray()) {
                 for (JsonNode switchNode : switchesArray) {
                     // 3. 存储每个开关状态
-                    properties.add(new DeviceInfo("outlet", switchNode.get("outlet").asInt()));
-                    properties.add(new DeviceInfo("switch", switchNode.get("switch").asInt()));
+                    properties.add(new DeviceInfo("outlet1", switchNode.get("outlet").asInt()));
+                    properties.add(new DeviceInfo("switch1", switchNode.get("switch").asText().equals("on") ? "ON" : "OFF"));
+                    properties.add(new DeviceInfo("count", 1));
                 }
             }
             if (plugData.has("RMS_VoltageA")) {

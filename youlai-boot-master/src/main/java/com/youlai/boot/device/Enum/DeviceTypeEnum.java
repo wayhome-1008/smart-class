@@ -9,7 +9,8 @@ public enum DeviceTypeEnum {
     HUMAN_RADAR_SENSOR(5L, "HumanRadarSensor"),
     HUMAN_SENSOR(6L, "HumanSensor"),
     SWITCH(7L, "Switch"),
-    LIGHT(8L, "Light");
+    LIGHT(8L, "Light"),
+    SENSOR3ON1(9L, "Sensor3On1");
     private final Long id;
     private final String name;
 

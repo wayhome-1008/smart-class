@@ -2,13 +2,11 @@ package com.youlai.boot.device.controller;
 
 import com.alibaba.fastjson.JSON;
 import com.youlai.boot.common.result.Result;
-import com.youlai.boot.common.util.JsonUtils;
 import com.youlai.boot.common.util.MacUtils;
 import com.youlai.boot.config.mqtt.MqttProducer;
 import com.youlai.boot.device.Enum.CommunicationModeEnum;
 import com.youlai.boot.device.model.dto.Control;
 import com.youlai.boot.device.model.dto.ControlParams;
-import com.youlai.boot.device.model.dto.PlugParams;
 import com.youlai.boot.device.model.dto.Switch;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.DeviceOperate;
@@ -53,6 +51,8 @@ public class DeviceOperateController {
         //根据设备发送mqtt
         Device device = deviceService.getById(id);
         if (ObjectUtils.isEmpty(device)) return Result.failed("设备不存在");
+        //校验是否为灯
+        if (device.getDeviceTypeId() != 8) return Result.failed("该设备不是灯");
         String deviceCode = device.getDeviceCode();
         //判断几路
         int lightCount = device.getDeviceInfo().get("count").asInt();
@@ -74,6 +74,7 @@ public class DeviceOperateController {
         //根据设备发送mqtt
         Device device = deviceService.getById(id);
         if (ObjectUtils.isEmpty(device)) return Result.failed("设备不存在");
+        if (device.getDeviceTypeId() != 3 && device.getDeviceTypeId() != 4 &&device.getDeviceTypeId() != 7) return Result.failed("该设备不是开关");
         //根据通信协议去发送不同协议报文
         return switch (CommunicationModeEnum.getNameById(device.getCommunicationModeItemId())) {
             case "ZigBee" ->

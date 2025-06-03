@@ -55,7 +55,7 @@ public class MqttCallback implements MqttCallbackExtended {
             //从缓存去设备
             String deviceCode = getCodeByTopic(topic);
             Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
-            if  (device == null) {
+            if (device == null) {
                 device = deviceService.getByCode(deviceCode);
             }
             if (device != null) {
@@ -114,6 +114,9 @@ public class MqttCallback implements MqttCallbackExtended {
                     break;
                 case "/LIGHT":
                     type = HandlerType.LIGHT;
+                    break;
+                case "/SENSOR3ON1":
+                    type = HandlerType.SENSOR3ON1;
                     break;
                 default:
                     break;

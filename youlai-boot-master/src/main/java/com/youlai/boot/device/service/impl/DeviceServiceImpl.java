@@ -108,7 +108,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     public boolean saveDevice(DeviceForm formData) {
         Device entity = deviceConverter.toEntity(formData);
         //新增设备默认状态非正常 需要handler主动修改
-        entity.setStatus(0);
+        entity.setStatus(3);
         return this.save(entity);
     }
 
