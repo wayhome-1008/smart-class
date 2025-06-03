@@ -18,7 +18,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.eclipse.paho.client.mqttv3.MqttException;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -39,7 +38,6 @@ import java.util.List;
 public class DeviceOperateController {
     private final DeviceService deviceService;
     private final MqttProducer mqttProducer;
-    private final RedisTemplate<String, Object> redisTemplate;
 
     @Operation(summary = "灯光操作")
     @PutMapping(value = "/{id}")
@@ -74,7 +72,8 @@ public class DeviceOperateController {
         //根据设备发送mqtt
         Device device = deviceService.getById(id);
         if (ObjectUtils.isEmpty(device)) return Result.failed("设备不存在");
-        if (device.getDeviceTypeId() != 3 && device.getDeviceTypeId() != 4 &&device.getDeviceTypeId() != 7) return Result.failed("该设备不是开关");
+        if (device.getDeviceTypeId() != 3 && device.getDeviceTypeId() != 4 && device.getDeviceTypeId() != 7)
+            return Result.failed("该设备不是开关");
         //根据通信协议去发送不同协议报文
         return switch (CommunicationModeEnum.getNameById(device.getCommunicationModeItemId())) {
             case "ZigBee" ->
