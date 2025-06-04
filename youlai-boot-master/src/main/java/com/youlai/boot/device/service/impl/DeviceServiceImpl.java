@@ -125,21 +125,21 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
         return this.updateById(entity);
     }
 
-    /**
-     * 删除设备管理
-     *
-     * @param ids 设备管理ID，多个以英文逗号(,)分割
-     * @return 是否删除成功
-     */
-    @Override
-    public boolean deleteDevices(String ids) {
-        Assert.isTrue(StrUtil.isNotBlank(ids), "删除的设备管理数据为空");
-        // 逻辑删除
-        List<Long> idList = Arrays.stream(ids.split(","))
-                .map(Long::parseLong)
-                .toList();
-        return this.removeByIds(idList);
-    }
+//    /**
+//     * 删除设备管理
+//     *
+//     * @param ids 设备管理ID，多个以英文逗号(,)分割
+//     * @return 是否删除成功
+//     */
+//    @Override
+//    public boolean deleteDevices(String ids) {
+//        Assert.isTrue(StrUtil.isNotBlank(ids), "删除的设备管理数据为空");
+//        // 逻辑删除
+//        List<Long> idList = Arrays.stream(ids.split(","))
+//                .map(Long::parseLong)
+//                .toList();
+//        return this.removeByIds(idList);
+//    }
 
     @Override
     public List<Device> getDeviceList() {

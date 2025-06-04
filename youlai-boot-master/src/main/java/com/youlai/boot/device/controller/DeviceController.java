@@ -180,6 +180,7 @@ public class DeviceController {
                     //ZigBee网关
                     zigBeeGateWayDelDel(device);
                     result = deviceService.removeById(device.getId());
+                    break;
                 case 4:
                     //MQTT独立设备
                     mqttDeviceDel(device);

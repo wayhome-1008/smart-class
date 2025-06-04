@@ -51,13 +51,13 @@ public interface DeviceService extends IService<Device> {
      */
     boolean updateDevice(Long id, DeviceForm formData);
 
-    /**
-     * 删除设备管理
-     *
-     * @param ids 设备管理ID，多个以英文逗号(,)分割
-     * @return 是否删除成功
-     */
-    boolean deleteDevices(String ids);
+//    /**
+//     * 删除设备管理
+//     *
+//     * @param ids 设备管理ID，多个以英文逗号(,)分割
+//     * @return 是否删除成功
+//     */
+//    boolean deleteDevices(String ids);
 
     List<Device> getDeviceList();
 
