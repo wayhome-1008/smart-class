@@ -29,14 +29,20 @@
             <if test="queryParams.deviceName != null and queryParams.deviceName != ''">
                 AND device_name LIKE CONCAT('%', #{queryParams.deviceName}, '%')
             </if>
-            <if test="queryParams.deviceCode != null and queryParams.deviceCode != ''">
-                AND device_code LIKE CONCAT('%', #{queryParams.deviceCode}, '%')
+            <if test="queryParams.deviceNo != null and queryParams.deviceNo != ''">
+                AND device_no LIKE CONCAT('%', #{queryParams.deviceNo}, '%')
             </if>
             <if test="queryParams.deviceRoom != null">
                 AND device_room = #{queryParams.deviceRoom}
             </if>
             <if test="queryParams.deviceMac != null and queryParams.deviceMac != ''">
                 AND device_mac = #{queryParams.deviceMac}
+            </if>
+            <if test="queryParams.communicationModeItemId != null and queryParams.communicationModeItemId != ''">
+                AND communication_mode_item_id = #{queryParams.communicationModeItemId}
+            </if>
+            <if test="queryParams.deviceTypeId != null">
+                AND device_type_id = #{queryParams.deviceTypeId}
             </if>
         </where>
     </select>
