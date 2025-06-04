@@ -19,6 +19,9 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+
+import static com.youlai.boot.common.util.MacUtils.extractFromTopic;
 
 /**
  *@Author: way
@@ -52,27 +55,26 @@ public class AddSubDeviceHandler implements MsgHandler {
                     log.info("添加网关协调器成功");
                 }
                 //先从缓存获取
-                Device deviceCache = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, subDevice.getMac());
-                if (ObjectUtils.isNotEmpty(deviceCache)) {
+                //todo 除了确定存在设备 还需要校验网关是否符合
+                //查询出该主题得网关
+                Device gateway = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, extractFromTopic(topic));
+                if (ObjectUtils.isEmpty(gateway)) {
+                    gateway = deviceService.getByMac(extractFromTopic(topic));
+                }
+                if (ObjectUtils.isEmpty(gateway)) return;
+                Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, subDevice.getMac());
+                if (ObjectUtils.isEmpty(device)) {
+                    device = deviceService.getByMac(MacUtils.parseMACAddress(subDevice.getMac()));
+                }
+                if (ObjectUtils.isEmpty(device)) return;
+                if (Objects.equals(device.getDeviceGatewayId(), gateway.getId())) {
                     //更改设备状态到库及缓存中
-                    deviceCache.setStatus(1);
-                    deviceCache.setDeviceCode(subDevice.getMac());
-                    redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCache.getDeviceCode(), deviceCache);
-                    deviceService.updateById(deviceCache);
+                    device.setStatus(1);
+                    device.setDeviceCode(subDevice.getMac());
+                    redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
+                    deviceService.updateById(device);
                     addSubDeviceRspMqtt(topic, mqttClient, subDevice, results1, params, addSubDeviceRsp);
                     log.info("添加网关子设备成功");
-                } else {
-                    //数据库中存在才可以发送
-                    Device device = deviceService.getByMac(MacUtils.parseMACAddress(subDevice.getMac()));
-                    if (ObjectUtils.isNotEmpty(device)) {
-                        //同时把mac地址去掉：后存储在设备中
-                        device.setDeviceCode(subDevice.getMac());
-                        device.setStatus(1);
-                        redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
-                        deviceService.updateById(device);
-                        log.info("添加设备成功");
-                        addSubDeviceRspMqtt(topic, mqttClient, subDevice, results1, params, addSubDeviceRsp);
-                    }
                 }
             }
         } catch (Exception e) {

@@ -131,6 +131,8 @@ public class DeviceController {
             @RequestBody @Validated DeviceForm formData
     ) {
         boolean result = deviceService.updateDevice(id, formData);
+        //更新缓存
+        redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, formData.getDeviceCode(), deviceService.getById(id));
         return Result.judge(result);
     }
 
@@ -189,6 +191,24 @@ public class DeviceController {
         }
 
         return Result.judge(result);
+    }
+
+    @Operation(summary = "重新录入设备")
+    @GetMapping("/reEnter/{id}")
+    public Result<Void> reEnter(
+            @Parameter(description = "设备ID") @PathVariable Long id) throws MqttException {
+        Device device = deviceService.getById(id);
+        //必须为zigBee子设备
+        if (ObjectUtils.isEmpty(device)) return Result.failed("设备不存在");
+        if (device.getCommunicationModeItemId() != 1) return Result.failed("设备不是zigBee子设备");
+        if (device.getDeviceGatewayId() == null) return Result.failed("设备没有网关");
+        Device gateway = deviceService.getById(device.getDeviceGatewayId());
+        if (ObjectUtils.isEmpty(gateway)) return Result.failed("该设备没有网关");
+        //发mqtt
+        gatewayDeviceAddMqtt(gateway.getDeviceCode());
+        device.setStatus(0);
+        deviceService.updateById(device);
+        return Result.success();
     }
 
     private void mqttDeviceDel(Device device) {

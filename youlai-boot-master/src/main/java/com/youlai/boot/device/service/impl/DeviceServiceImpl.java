@@ -108,7 +108,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     public boolean saveDevice(DeviceForm formData) {
         Device entity = deviceConverter.toEntity(formData);
         //新增设备默认状态非正常 需要handler主动修改
-        entity.setStatus(3);
+        entity.setStatus(2);
         return this.save(entity);
     }
 
@@ -161,8 +161,10 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
         List<SubDevicesEvent> subDevices = params.getSubDevices();
         for (SubDevicesEvent subDevice : subDevices) {
             Device deviceUpdate = new Device();
-            deviceUpdate.setStatus(subDevice.getOnline() ? 1 : 0);
-            this.deviceMapper.update(deviceUpdate, new LambdaQueryWrapper<Device>().eq(Device::getDeviceCode, subDevice.getDeviceId()));
+//            if (subDevice.getOnline() != null) {
+//                deviceUpdate.setStatus(subDevice.getOnline() ? 1 : 0);
+//                this.deviceMapper.update(deviceUpdate, new LambdaQueryWrapper<Device>().eq(Device::getDeviceCode, subDevice.getDeviceId()));
+//            }
         }
     }
 
@@ -178,8 +180,8 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     }
 
     @Override
-    public IPage<DeviceVO> getSubDevicePage( DeviceQuery queryParams) {
-        return this.deviceMapper.getSubDevicePage(new Page<>(queryParams.getPageNum(), queryParams.getPageSize()),queryParams);
+    public IPage<DeviceVO> getSubDevicePage(DeviceQuery queryParams) {
+        return this.deviceMapper.getSubDevicePage(new Page<>(queryParams.getPageNum(), queryParams.getPageSize()), queryParams);
     }
 
 }

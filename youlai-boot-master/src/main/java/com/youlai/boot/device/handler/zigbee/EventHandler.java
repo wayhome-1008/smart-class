@@ -1,16 +1,19 @@
 package com.youlai.boot.device.handler.zigbee;
 
 import com.alibaba.fastjson.JSON;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.youlai.boot.device.handler.service.MsgHandler;
 import com.youlai.boot.device.model.dto.event.DeviceEvent;
 import com.youlai.boot.device.model.dto.event.SubDevicesEvent;
 import com.youlai.boot.device.model.dto.event.rsp.DeviceEventResult;
 import com.youlai.boot.device.model.dto.event.rsp.DeviceStatusEventRsp;
 import com.youlai.boot.device.model.dto.event.rsp.SubDevicesResult;
+import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.device.topic.HandlerType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.jetbrains.annotations.NotNull;
@@ -18,6 +21,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  *@Author: way
@@ -35,16 +39,29 @@ public class EventHandler implements MsgHandler {
         //目前仅对子设备在线离线做处理
         log.info("[接收到网关转发子设备事件:{}]", jsonMsg);
         DeviceEvent deviceEvent = JSON.parseObject(jsonMsg, DeviceEvent.class);
-        //更新子设备状态
-        deviceService.updateDeviceStatusByCode(deviceEvent.getParams());
-        //组返回数据
-        DeviceStatusEventRsp deviceStatusEventRsp = new DeviceStatusEventRsp();
-        deviceStatusEventRsp.setSequence(deviceEvent.getSequence());
-        deviceStatusEventRsp.setError(0);
-        DeviceEventResult deviceEventResult = getDeviceEventResult(deviceEvent);
-        deviceStatusEventRsp.setResult(deviceEventResult);
-        //发送事件相应
-        mqttClient.publish(topic + "_rsp", JSON.toJSONString(deviceStatusEventRsp).getBytes(), 2, false);
+        if (deviceEvent != null) {
+            String event = Optional.of(deviceEvent).map(DeviceEvent::getEvent).orElse(null);
+            if (StringUtils.isEmpty(event)) {
+                //更新子设备状态
+                deviceService.updateDeviceStatusByCode(deviceEvent.getParams());
+            } else {
+                if (event.equals("leave")) {
+                    //说明该设备被重置 按理说我该删除或给警报 先给个状态2吧。。。
+                    Device updateDevice = new Device();
+                    updateDevice.setStatus(2);
+                    deviceService.update(updateDevice, new LambdaQueryWrapper<Device>().eq(Device::getDeviceCode, deviceEvent.getParams().getSubDevices().get(0).getDeviceId()));
+                }
+            }
+            //组返回数据
+            DeviceStatusEventRsp deviceStatusEventRsp = new DeviceStatusEventRsp();
+            deviceStatusEventRsp.setSequence(deviceEvent.getSequence());
+            deviceStatusEventRsp.setError(0);
+            DeviceEventResult deviceEventResult = getDeviceEventResult(deviceEvent);
+            deviceStatusEventRsp.setResult(deviceEventResult);
+            //发送事件相应
+            mqttClient.publish(topic + "_rsp", JSON.toJSONString(deviceStatusEventRsp).getBytes(), 2, false);
+        }
+
     }
 
     @NotNull

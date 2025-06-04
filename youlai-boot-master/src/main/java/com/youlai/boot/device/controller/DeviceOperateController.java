@@ -72,7 +72,7 @@ public class DeviceOperateController {
         //根据设备发送mqtt
         Device device = deviceService.getById(id);
         if (ObjectUtils.isEmpty(device)) return Result.failed("设备不存在");
-        if (device.getDeviceTypeId() != 3 && device.getDeviceTypeId() != 4 && device.getDeviceTypeId() != 7)
+        if (device.getDeviceTypeId() != 3 && device.getDeviceTypeId() != 4 && device.getDeviceTypeId() != 7 && device.getDeviceTypeId() != 10)
             return Result.failed("该设备不是开关");
         //根据通信协议去发送不同协议报文
         return switch (CommunicationModeEnum.getNameById(device.getCommunicationModeItemId())) {
@@ -104,7 +104,7 @@ public class DeviceOperateController {
         control.setSequence((int) System.currentTimeMillis());
         Switch plug = new Switch();
         plug.setSwitchStatus(deviceOperate.getOperate().equals("ON") ? "on" : "off");
-        plug.setOutlet(0);
+        plug.setOutlet(Integer.parseInt(deviceOperate.getWay()) - 1);
         List<Switch> switches = new java.util.ArrayList<>();
         switches.add(plug);
         ControlParams controlParams = new ControlParams();
@@ -112,6 +112,7 @@ public class DeviceOperateController {
         control.setParams(controlParams);
         String deviceMac = gateway.getDeviceMac();
         String gateWayTopic = MacUtils.reParseMACAddress(deviceMac);
+        log.info(control.toString());
         mqttProducer.send("/zbgw/" + gateWayTopic + "/sub/control", 0, false, JSON.toJSONString(control));
         return Result.success();
     }

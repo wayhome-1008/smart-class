@@ -70,11 +70,49 @@ public class SubUpdateHandler implements MsgHandler {
                 if (device.getDeviceTypeId() == 7) {
                     processThreeWaySwitch(topic, mqttClient, device, jsonMsg, sequence);
                 }
+                //插座
+                if (device.getDeviceTypeId() == 10) {
+                    processSocket(topic, mqttClient, device, jsonMsg, sequence);
+                }
             }
 
 
         } catch (Exception e) {
             log.error("发送消息失败", e);
+        }
+    }
+
+    private void processSocket(String topic, MqttClient mqttClient, Device device, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
+        if (ObjectUtil.isNotEmpty(device)) {
+            JsonNode jsonNode = stringToJsonNode(jsonMsg);
+            //获取params
+            JsonNode params = jsonNode.get("params");
+            JsonNode switchesArray = params.get("switches");
+            // 1. 准备存储所有开关状态的对象
+            ObjectNode allSwitchStates = JsonNodeFactory.instance.objectNode();
+            // 2. 遍历switches数组
+            if (switchesArray.isArray()) {
+                for (JsonNode switchNode : switchesArray) {
+                    int outletNum = switchNode.get("outlet").asInt() + 1; // 转为1-based编号
+                    String switchState = switchNode.get("switch").asText();
+                    //大小写转换
+                    if (switchState.equals("on")) {
+                        switchState = "ON";
+                    } else if (switchState.equals("off")) {
+                        switchState = "OFF";
+                    }
+                    // 3. 存储每个开关状态
+                    allSwitchStates.put("outlet" + outletNum, outletNum);
+                    allSwitchStates.put("switch" + outletNum, switchState);
+                }
+            }
+            if (device != null) {
+                JsonNode mergeJson = mergeJson(Optional.of(device).map(Device::getDeviceInfo).orElse(null), allSwitchStates);
+                device.setDeviceInfo(mergeJson);
+                redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
+                deviceService.updateById(device);
+                RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
+            }
         }
     }
 

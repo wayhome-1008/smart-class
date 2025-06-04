@@ -88,4 +88,27 @@ public class MacUtils {
         // 返回第二段路径（索引为1）
         return parts[1];
     }
+    /**
+     * 方案一：基于字符串索引提取
+     * @param url 输入字符串（如：/zbgw/9454c5ee7c68/add_subdevice）
+     * @return 提取的目标字符串（如：9454c5ee7c68），无匹配返回null
+     */
+    public static String extractFromTopic(String url) {
+        String prefix = "/zbgw/";
+        int prefixStart = url.indexOf(prefix);
+        if (prefixStart == -1) {
+            throw new IllegalArgumentException("错误topic");
+        }
+
+        // 计算/zbgw/的结束位置（prefixStart + 前缀长度）
+        int contentStart = prefixStart + prefix.length();
+        // 找到下一个/的位置（从contentStart开始查找）
+        int contentEnd = url.indexOf("/", contentStart);
+        if (contentEnd == -1) {
+            throw new IllegalArgumentException("错误topic");
+        }
+
+        // 截取中间的目标字符串
+        return url.substring(contentStart, contentEnd);
+    }
 }
