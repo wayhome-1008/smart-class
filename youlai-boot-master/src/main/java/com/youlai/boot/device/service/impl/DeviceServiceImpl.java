@@ -177,4 +177,9 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
         return deviceConverter.toOptions(list);
     }
 
+    @Override
+    public IPage<DeviceVO> getSubDevicePage( DeviceQuery queryParams) {
+        return this.deviceMapper.getSubDevicePage(new Page<>(queryParams.getPageNum(), queryParams.getPageSize()),queryParams);
+    }
+
 }

@@ -41,4 +41,32 @@
         </where>
     </select>
 
+    <select id="getSubDevicePage" resultType="com.youlai.boot.device.model.vo.DeviceVO">
+        SELECT
+        d.id,
+        d.device_name,
+        d.device_code,
+        d.device_room,
+        d.device_mac,
+        d.status,
+        d.remark,
+        d.device_no,
+        d.device_type_id AS deviceTypeId,
+        dt.device_type,
+        cmi.label AS communicationModeItemName,
+        cmi.value AS communicationModeItemId,
+        r.classroom_code AS roomName
+        FROM
+        device d
+        LEFT JOIN device_type dt ON d.device_type_id = dt.id
+        LEFT JOIN sys_dict_item cmi ON d.communication_mode_item_id = cmi.value
+        AND cmi.dict_code = 'communication_mode'
+        LEFT JOIN room r ON d.device_room = r.id
+        <where>
+            AND d.is_deleted = 0
+            <if test="queryParams.id != null and queryParams.id != ''">
+                AND device_gateway_id = #{queryParams.id}
+            </if>
+        </where>
+    </select>
 </mapper>

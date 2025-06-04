@@ -58,6 +58,7 @@ public class DeviceController {
     private final MqttProducer mqttProducer;
     private final MqttCallback mqttCallback;
     private final DeviceConverter deviceConverter;
+
     @Operation(summary = "设备管理分页列表")
     @GetMapping("/page")
     @PreAuthorize("@ss.hasPerm('device:device:query')")
@@ -112,51 +113,6 @@ public class DeviceController {
         return Result.judge(result);
     }
 
-    private void wifiDevice(@Valid DeviceForm formData) {
-        log.info(formData.toString());
-    }
-
-    private void mqttDevice(@Valid DeviceForm formData) {
-        mqttCallback.subscribeTopic("tele/" + formData.getDeviceMac() + "/SENSOR");
-        mqttCallback.subscribeTopic("tele/" + formData.getDeviceMac() + "/STATE");
-    }
-
-    private void zigBeeDevice(@Valid DeviceForm formData) throws MqttException {
-        //只要是zigBee网关子设备 第一步发送mqtt 然后存库 topic从绑定的网关开始
-        Device gateway = deviceService.getById(formData.getDeviceGatewayId());
-        if (ObjectUtils.isEmpty(gateway)) {
-            throw new BusinessException("网关不存在");
-        }
-        gatewayDeviceAddMqtt(gateway.getDeviceCode());
-    }
-
-    private void zigBeeGateWay(@Valid DeviceForm formData) {
-        //zigBee网关(需要去缓存根据mac查询是否存在)
-        Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, formData.getDeviceCode());
-        if (ObjectUtils.isEmpty(device)) {
-            //此处应该存Device
-            Device entity = deviceConverter.toEntity(formData);
-            redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, formData.getDeviceCode(), entity);
-        }
-        //实时订阅
-        for (String consumerTopic : TOPIC_LIST) {
-            mqttCallback.subscribeTopic(BASE_TOPIC + formData.getDeviceCode() + consumerTopic);
-        }
-    }
-
-    private void gatewayDeviceAddMqtt(String macTopic) throws MqttException {
-        //1.构造消息
-        GateWayManageParams params = new GateWayManageParams();
-        params.setPermitjoin(true);
-        params.setAdddevtime(60);
-        GateWayManage gateWayManage = new GateWayManage();
-        gateWayManage.setSequence(RandomUtil.randomNumbers(3));
-        gateWayManage.setCmd("addsubdevice");
-        gateWayManage.setParams(params);
-        //2.发送请求网关添加子设备
-        mqttProducer.send("/zbgw/" + macTopic + "/manage", 2, false, JSON.toJSONString(gateWayManage));
-    }
-
     @Operation(summary = "获取设备管理表单数据")
     @GetMapping("/{id}/form")
     @PreAuthorize("@ss.hasPerm('device:device:edit')")
@@ -176,6 +132,22 @@ public class DeviceController {
     ) {
         boolean result = deviceService.updateDevice(id, formData);
         return Result.judge(result);
+    }
+
+    @Operation(summary = "查询网关下子设备列表")
+    @GetMapping("/subDevicePage")
+    public PageResult<DeviceVO> getSubDevicePage(
+            DeviceQuery queryParams
+    ) {
+        Device gateWay = deviceService.getById(queryParams.getId());
+        if (gateWay == null) {
+            throw new BusinessException("设备不存在");
+        }
+        if (gateWay.getDeviceTypeId() != 1) {
+            throw new BusinessException("设备不是网关");
+        }
+        IPage<DeviceVO> result = deviceService.getSubDevicePage(queryParams);
+        return PageResult.success(result);
     }
 
     @Operation(summary = "删除设备管理")
@@ -266,4 +238,48 @@ public class DeviceController {
         mqttProducer.send("/zbgw/" + gateway.getDeviceCode() + "/manage", 2, false, JSON.toJSONString(rootMap));
     }
 
+    private void wifiDevice(@Valid DeviceForm formData) {
+        log.info(formData.toString());
+    }
+
+    private void mqttDevice(@Valid DeviceForm formData) {
+        mqttCallback.subscribeTopic("tele/" + formData.getDeviceMac() + "/SENSOR");
+        mqttCallback.subscribeTopic("tele/" + formData.getDeviceMac() + "/STATE");
+    }
+
+    private void zigBeeDevice(@Valid DeviceForm formData) throws MqttException {
+        //只要是zigBee网关子设备 第一步发送mqtt 然后存库 topic从绑定的网关开始
+        Device gateway = deviceService.getById(formData.getDeviceGatewayId());
+        if (ObjectUtils.isEmpty(gateway)) {
+            throw new BusinessException("网关不存在");
+        }
+        gatewayDeviceAddMqtt(gateway.getDeviceCode());
+    }
+
+    private void zigBeeGateWay(@Valid DeviceForm formData) {
+        //zigBee网关(需要去缓存根据mac查询是否存在)
+        Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, formData.getDeviceCode());
+        if (ObjectUtils.isEmpty(device)) {
+            //此处应该存Device
+            Device entity = deviceConverter.toEntity(formData);
+            redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, formData.getDeviceCode(), entity);
+        }
+        //实时订阅
+        for (String consumerTopic : TOPIC_LIST) {
+            mqttCallback.subscribeTopic(BASE_TOPIC + formData.getDeviceCode() + consumerTopic);
+        }
+    }
+
+    private void gatewayDeviceAddMqtt(String macTopic) throws MqttException {
+        //1.构造消息
+        GateWayManageParams params = new GateWayManageParams();
+        params.setPermitjoin(true);
+        params.setAdddevtime(60);
+        GateWayManage gateWayManage = new GateWayManage();
+        gateWayManage.setSequence(RandomUtil.randomNumbers(3));
+        gateWayManage.setCmd("addsubdevice");
+        gateWayManage.setParams(params);
+        //2.发送请求网关添加子设备
+        mqttProducer.send("/zbgw/" + macTopic + "/manage", 2, false, JSON.toJSONString(gateWayManage));
+    }
 }

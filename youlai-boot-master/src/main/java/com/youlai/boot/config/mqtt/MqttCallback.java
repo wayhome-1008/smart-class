@@ -68,6 +68,10 @@ public class MqttCallback implements MqttCallbackExtended {
                 if (device.getDeviceTypeId() == 8) {
                     finalTopic = "/LIGHT";
                 }
+                //三合一传感器
+                if (device.getDeviceTypeId() == 9) {
+                    finalTopic = "/SENSOR3ON1";
+                }
             }
 
         }

@@ -70,4 +70,6 @@ public interface DeviceService extends IService<Device> {
     Device getByCode(String code);
 
     List<Option<Long>> listGatewayOptions();
+
+    IPage<DeviceVO> getSubDevicePage( DeviceQuery queryParams);
 }

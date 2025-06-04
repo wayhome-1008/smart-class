@@ -4,6 +4,7 @@ import com.youlai.boot.common.base.BasePageQuery;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -13,11 +14,12 @@ import java.util.List;
  * @author way
  * @since 2025-05-08 15:16
  */
-@Schema(description ="设备管理查询对象")
+@Schema(description = "设备管理查询对象")
 @Getter
 @Setter
 public class DeviceQuery extends BasePageQuery {
-
+    @Schema(description = "设备id")
+    private Long id;
     @Schema(description = "设备名称")
     private String deviceName;
     @Schema(description = "设备编号")
