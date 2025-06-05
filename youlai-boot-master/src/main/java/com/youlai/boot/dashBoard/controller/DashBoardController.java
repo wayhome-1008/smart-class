@@ -61,7 +61,9 @@ public class DashBoardController {
     public Result<DeviceInfoVO> getDeviceInfo(@PathVariable String code) {
         //获取实体对基本类型转换VO
         Device device = deviceService.getByCode(code);
-        DeviceInfoVO deviceInfoVO = basicPropertyConvert(device);
+        //根据roomId查询
+        Room room = roomService.getById(device.getDeviceRoom());
+        DeviceInfoVO deviceInfoVO = basicPropertyConvert(device, room);
         //使用工厂对设备具体信息转换
         // 动态获取解析器
         // 使用枚举获取类型名称
@@ -74,14 +76,12 @@ public class DashBoardController {
         return Result.failed();
     }
 
-    private DeviceInfoVO basicPropertyConvert(Device device) {
+    public  static  DeviceInfoVO basicPropertyConvert(Device device, Room room) {
         DeviceInfoVO deviceInfoVO = new DeviceInfoVO();
         deviceInfoVO.setId(device.getId());
         deviceInfoVO.setDeviceName(device.getDeviceName());
         deviceInfoVO.setDeviceCode(device.getDeviceCode());
         deviceInfoVO.setDeviceRoom(device.getDeviceRoom());
-        //根据roomId查询
-        Room room = roomService.getById(device.getDeviceRoom());
         deviceInfoVO.setRoomName(room.getClassroomCode());
         deviceInfoVO.setDeviceMac(device.getDeviceMac());
         deviceInfoVO.setDeviceGatewayId(device.getDeviceGatewayId());

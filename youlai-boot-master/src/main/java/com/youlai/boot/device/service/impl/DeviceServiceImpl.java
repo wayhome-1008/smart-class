@@ -184,4 +184,9 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
         return this.deviceMapper.getSubDevicePage(new Page<>(queryParams.getPageNum(), queryParams.getPageSize()), queryParams);
     }
 
+    @Override
+    public List<Device> listDeviceByRoomId(Long roomId) {
+        return this.list(new LambdaQueryWrapper<Device>().eq(Device::getDeviceRoom, roomId));
+    }
+
 }

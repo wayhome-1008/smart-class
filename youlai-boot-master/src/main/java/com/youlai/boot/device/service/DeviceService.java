@@ -72,4 +72,6 @@ public interface DeviceService extends IService<Device> {
     List<Option<Long>> listGatewayOptions();
 
     IPage<DeviceVO> getSubDevicePage( DeviceQuery queryParams);
+
+    List<Device> listDeviceByRoomId(Long roomId);
 }
