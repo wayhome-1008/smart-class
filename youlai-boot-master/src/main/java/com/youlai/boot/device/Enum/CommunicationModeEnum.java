@@ -4,8 +4,8 @@ public enum CommunicationModeEnum {
     ZIGBEE(1L, "ZigBee"),
     WIFI(2L, "WiFi"),
     TCP_IP(3L, "TCP/IP"),
-    MQTT(4L, "MQTT");
-
+    MQTT(4L, "MQTT"),
+    ZIGBEE_SERIAL(5L, "ZigBee/Serial");
     private final Long id;
     private final String name;
 

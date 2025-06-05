@@ -7,7 +7,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.influxdb.client.InfluxDBClient;
 import com.youlai.boot.common.constant.RedisConstants;
+import com.youlai.boot.config.property.InfluxDBProperties;
 import com.youlai.boot.device.handler.service.MsgHandler;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.SubUpdateSensorRsp;
@@ -37,6 +39,8 @@ import static com.youlai.boot.common.util.JsonUtils.stringToJsonNode;
 public class SubUpdateHandler implements MsgHandler {
     private final DeviceService deviceService;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final InfluxDBClient influxDBClient;
+    private final InfluxDBProperties influxProperties;
 
     @Override
     public void process(String topic, String jsonMsg, MqttClient mqttClient) {
@@ -74,12 +78,21 @@ public class SubUpdateHandler implements MsgHandler {
                 if (device.getDeviceTypeId() == 10) {
                     processSocket(topic, mqttClient, device, jsonMsg, sequence);
                 }
+                //串口透传设备
+                if (device.getCommunicationModeItemId() == 5) {
+                    processSerialDevice(topic, mqttClient, device, jsonMsg, sequence);
+                }
             }
 
 
         } catch (Exception e) {
             log.error("发送消息失败", e);
         }
+    }
+
+    private void processSerialDevice(String topic, MqttClient mqttClient, Device device, String jsonMsg, int sequence) throws MqttException {
+        log.info("串口透传设备数据{}", jsonMsg);
+        RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
     }
 
     private void processSocket(String topic, MqttClient mqttClient, Device device, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
@@ -273,6 +286,10 @@ public class SubUpdateHandler implements MsgHandler {
                 } finally {
                     redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
                     RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
+                    //存influx试试
+//                    WriteApiBlocking writeApi = influxDBClient.getWriteApiBlocking();
+//                    deviceCache.setTime(Instant.now());
+//                    writeApi.writeMeasurement(influxProperties.getBucket(), influxProperties.getOrg(), WritePrecision.NS, deviceCache);
                 }
 
             }
@@ -350,6 +367,7 @@ public class SubUpdateHandler implements MsgHandler {
                     } catch (NullPointerException e) {
                         deviceService.updateById(device);
                     } finally {
+                        deviceService.updateById(device);
                         redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
                         RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
                     }

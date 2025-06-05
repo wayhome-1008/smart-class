@@ -38,6 +38,14 @@ spring:
       cache-null-values: true
     caffeine:
       spec: initialCapacity=50,maximumSize=1000,expireAfterWrite=600s
+influx:
+  url: http://192.168.80.216:8086
+  org: zjtc
+  token: ym7N-HBKxQdhPGyjlF91wK1dihW5pfJA4uO_nsA_TBKz8RsRnB8gLQGmW35D5KdsjxjvoOcr2bXUlIBtbSiskA==
+  bucket: smartClass
+  connectTimeout: 10000
+  readTimeout: 120000
+  writeTimeout: 120000
   # 邮件配置
   mail:
     host: smtp.youlai.tech

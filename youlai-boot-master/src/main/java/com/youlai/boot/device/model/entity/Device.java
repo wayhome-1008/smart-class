@@ -3,10 +3,13 @@ package com.youlai.boot.device.model.entity;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.influxdb.annotations.Column;
+import com.influxdb.annotations.Measurement;
 import com.youlai.boot.config.handler.JsonTypeHandler;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -21,15 +24,18 @@ import com.youlai.boot.common.base.BaseEntity;
 @Getter
 @Setter
 @TableName(value = "device", autoResultMap = true)// autoResultMap 启用自动结果映射
+@Measurement(name = "device")
 public class Device extends BaseEntity {
 
     /**
      * 设备名称
      */
+    @Column()
     private String deviceName;
     /**
      * 设备编号
      */
+    @Column(tag = true)
     private String deviceCode;
     /**
      * 教室
@@ -91,4 +97,8 @@ public class Device extends BaseEntity {
      */
     @TableLogic
     private Integer isDeleted;
+
+    @Column(timestamp = true)
+    @TableField(exist = false)
+    Instant time;
 }

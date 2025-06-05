@@ -3,13 +3,17 @@ package com.youlai.boot.device.controller;
 import cn.hutool.core.util.RandomUtil;
 import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.influxdb.client.InfluxDBClient;
+import com.influxdb.exceptions.InfluxException;
 import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.common.exception.BusinessException;
 import com.youlai.boot.common.model.Option;
 import com.youlai.boot.common.result.PageResult;
 import com.youlai.boot.common.result.Result;
+import com.youlai.boot.common.util.FluxUtil;
 import com.youlai.boot.config.mqtt.MqttCallback;
 import com.youlai.boot.config.mqtt.MqttProducer;
+import com.youlai.boot.config.property.InfluxDBProperties;
 import com.youlai.boot.device.converter.DeviceConverter;
 import com.youlai.boot.device.model.dto.GateWayManage;
 import com.youlai.boot.device.model.dto.GateWayManageParams;
@@ -58,6 +62,8 @@ public class DeviceController {
     private final MqttProducer mqttProducer;
     private final MqttCallback mqttCallback;
     private final DeviceConverter deviceConverter;
+    private final InfluxDBProperties influxDBProperties;
+    private final InfluxDBClient influxDBClient;
 
     @Operation(summary = "设备管理分页列表")
     @GetMapping("/page")
@@ -210,6 +216,34 @@ public class DeviceController {
         device.setStatus(0);
         deviceService.updateById(device);
         return Result.success();
+    }
+
+    @Operation(summary = "demo")
+    @GetMapping("/demo")
+    public Result<List<Device>> demo() {
+
+        try {
+            StringBuilder query = new StringBuilder();
+            FluxUtil.appendBucketFlux(query, influxDBProperties.getBucket());
+            FluxUtil.appendTimeRangeLastFlux(query, 10, "h");
+            FluxUtil.appendTableFlux(query, FluxUtil.getTableName(Device.class));
+
+            StringBuilder querycount = new StringBuilder();
+            querycount.append(query);
+
+            FluxUtil.appendPivotFlux(query);
+            FluxUtil.appendGroupFlux(query);
+            FluxUtil.appendLimitFlux(query, 2, 0);
+
+            FluxUtil.appendTagField(querycount, "deviceName");
+            System.out.println(query.toString());
+            List<Device> tables = influxDBClient.getQueryApi().query(query.toString(), influxDBProperties.getOrg(), Device.class);
+            return Result.success(tables);
+        } catch (InfluxException e) {
+            System.err.println("error：" + e.getMessage());
+        }
+        return null;
+
     }
 
     private void mqttDeviceDel(Device device) {
