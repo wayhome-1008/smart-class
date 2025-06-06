@@ -9,7 +9,6 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.domain.WritePrecision;
-import com.influxdb.client.write.Point;
 import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.config.property.InfluxDBProperties;
 import com.youlai.boot.device.handler.service.MsgHandler;
@@ -26,7 +25,6 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
 import java.util.Optional;
 
 import static com.youlai.boot.common.util.JsonUtils.mergeJson;
@@ -100,7 +98,6 @@ public class SubUpdateHandler implements MsgHandler {
     }
 
     private void processSocket(String topic, MqttClient mqttClient, Device device, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
-        if (ObjectUtil.isNotEmpty(device)) {
             JsonNode jsonNode = stringToJsonNode(jsonMsg);
             //获取params
             JsonNode params = jsonNode.get("params");
@@ -130,7 +127,7 @@ public class SubUpdateHandler implements MsgHandler {
                 deviceService.updateById(device);
                 RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
             }
-        }
+
     }
 
     /**
@@ -290,10 +287,6 @@ public class SubUpdateHandler implements MsgHandler {
                 } finally {
                     redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
                     RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
-                    //存influx试试
-//                    WriteApiBlocking writeApi = influxDBClient.getWriteApiBlocking();
-//                    deviceCache.setTime(Instant.now());
-//                    writeApi.writeMeasurement(influxProperties.getBucket(), influxProperties.getOrg(), WritePrecision.NS, deviceCache);
                 }
 
             }
@@ -322,12 +315,6 @@ public class SubUpdateHandler implements MsgHandler {
                         if (params.has("motion")) {
                             //查看缓存和新的电量是否一致
                             if (!deviceCache.getDeviceInfo().get("motion").asText().equals(params.get("motion").asText())) {
-                                deviceService.updateById(device);
-                            }
-                        }  //并且是电量
-                        if (params.has("battery")) {
-                            //查看缓存和新的电量是否一致
-                            if (!deviceCache.getDeviceInfo().get("battery").asText().equals(params.get("battery").asText())) {
                                 deviceService.updateById(device);
                             }
                         }
@@ -373,10 +360,6 @@ public class SubUpdateHandler implements MsgHandler {
                 } finally {
                     InfluxSensor point = new InfluxSensor();
                     point.setDeviceCode(device.getDeviceCode());
-//                    Point point = Point.measurement("device")
-//                            .addTag("deviceCode", device.getDeviceCode()); // 设备编码作为 tag
-                    // 扁平化处理 deviceInfo 中的嵌套 JSON
-//                    point = FluxUtil.flattenJson(device.getDeviceInfo(), point);
                     if (mergeJson.has("params")) {
                         JsonNode sensorData = mergeJson.get("params");
                         if (sensorData.has("battery")) {
