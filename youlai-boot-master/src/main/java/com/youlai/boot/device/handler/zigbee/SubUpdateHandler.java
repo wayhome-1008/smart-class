@@ -8,11 +8,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.influxdb.client.InfluxDBClient;
+import com.influxdb.client.domain.WritePrecision;
+import com.influxdb.client.write.Point;
 import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.config.property.InfluxDBProperties;
 import com.youlai.boot.device.handler.service.MsgHandler;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.SubUpdateSensorRsp;
+import com.youlai.boot.device.model.influx.InfluxSensor;
 import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.device.topic.HandlerType;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +26,7 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.Optional;
 
 import static com.youlai.boot.common.util.JsonUtils.mergeJson;
@@ -346,34 +350,57 @@ public class SubUpdateHandler implements MsgHandler {
     }
 
     private void processSensor(String topic, MqttClient mqttClient, Device device, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
-        if (ObjectUtil.isNotEmpty(device)) {
-            JsonNode jsonNode = stringToJsonNode(jsonMsg);
-            //获取params
-            JsonNode params = jsonNode.get("params");
-            JsonNode mergeJson = mergeJson(Optional.ofNullable(device).map(Device::getDeviceInfo).orElse(null), jsonNode);
-            //存redis
-            if (device != null) {
-                device.setDeviceInfo(mergeJson);
-                Device deviceCache = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, device.getDeviceCode());
-                if (deviceCache != null) {
-                    try {
-                        //并且是电量
-                        if (params.has("battery")) {
-                            //查看缓存和新的电量是否一致
-                            if (!deviceCache.getDeviceInfo().get("battery").asText().equals(params.get("battery").asText())) {
-                                deviceService.updateById(device);
-                            }
+        JsonNode jsonNode = stringToJsonNode(jsonMsg);
+        //获取params
+        JsonNode params = jsonNode.get("params");
+        //接收得数据于旧数据合并
+        JsonNode mergeJson = mergeJson(Optional.ofNullable(device).map(Device::getDeviceInfo).orElse(null), jsonNode);
+        //存redis
+        if (device != null) {
+            device.setDeviceInfo(mergeJson);
+            Device deviceCache = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, device.getDeviceCode());
+            if (deviceCache != null) {
+                try {
+                    //并且是电量
+                    if (params.has("battery")) {
+                        //查看缓存和新的电量是否一致
+                        if (!deviceCache.getDeviceInfo().get("battery").asText().equals(params.get("battery").asText())) {
+                            deviceService.updateById(device);
                         }
-                    } catch (NullPointerException e) {
-                        deviceService.updateById(device);
-                    } finally {
-                        deviceService.updateById(device);
-                        redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
-                        RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
                     }
+                } catch (NullPointerException e) {
+                    log.error(e.getMessage());
+                } finally {
+                    InfluxSensor point = new InfluxSensor();
+                    point.setDeviceCode(device.getDeviceCode());
+//                    Point point = Point.measurement("device")
+//                            .addTag("deviceCode", device.getDeviceCode()); // 设备编码作为 tag
+                    // 扁平化处理 deviceInfo 中的嵌套 JSON
+//                    point = FluxUtil.flattenJson(device.getDeviceInfo(), point);
+                    if (mergeJson.has("params")) {
+                        JsonNode sensorData = mergeJson.get("params");
+                        if (sensorData.has("battery")) {
+                            point.setBattery(sensorData.get("battery").asInt());
+                        }
+                        if (sensorData.has("temperature")) {
+                            point.setTemperature(sensorData.get("temperature").asInt());
+
+                        }
+                        if (sensorData.has("humidity")) {
+                            point.setHumidity(sensorData.get("humidity").asInt());
+                        }
+                        if (sensorData.has("Illuminance")) {
+                            point.setIlluminance(sensorData.get("Illuminance").asInt());
+                        }
+                    }
+                    influxDBClient.getWriteApiBlocking().writeMeasurement(influxProperties.getBucket(), influxProperties.getOrg(), WritePrecision.MS, point);
+                    deviceService.updateById(device);
+                    redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
+                    RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
                 }
             }
         }
+
     }
 
     private static void RspMqtt(String topic, MqttClient mqttClient, String deviceId, int sequence) throws

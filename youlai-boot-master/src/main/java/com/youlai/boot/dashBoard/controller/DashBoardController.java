@@ -1,12 +1,17 @@
 package com.youlai.boot.dashBoard.controller;
 
 
+import com.influxdb.client.InfluxDBClient;
+import com.influxdb.exceptions.InfluxException;
 import com.youlai.boot.common.result.Result;
+import com.youlai.boot.common.util.InfluxQueryBuilder;
+import com.youlai.boot.config.property.InfluxDBProperties;
 import com.youlai.boot.dashBoard.model.vo.DashCount;
 import com.youlai.boot.device.Enum.CommunicationModeEnum;
 import com.youlai.boot.device.Enum.DeviceTypeEnum;
 import com.youlai.boot.device.factory.DeviceInfoParserFactory;
 import com.youlai.boot.device.model.entity.Device;
+import com.youlai.boot.device.model.influx.InfluxSensor;
 import com.youlai.boot.device.model.vo.DeviceInfo;
 import com.youlai.boot.device.model.vo.DeviceInfoVO;
 import com.youlai.boot.device.service.DeviceInfoParser;
@@ -16,14 +21,13 @@ import com.youlai.boot.room.service.RoomService;
 import com.youlai.boot.system.service.LogService;
 import com.youlai.boot.system.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -37,11 +41,14 @@ import java.util.List;
 @RequestMapping("/api/v1/dashBoard")
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class DashBoardController {
     private final DeviceService deviceService;
     private final UserService userService;
     private final LogService logService;
     private final RoomService roomService;
+    private final InfluxDBProperties influxDBProperties;
+    private final InfluxDBClient influxDBClient;
 
     @Operation(summary = "获取首页count数量")
     @GetMapping("/count")
@@ -76,7 +83,30 @@ public class DashBoardController {
         return Result.failed();
     }
 
-    public  static  DeviceInfoVO basicPropertyConvert(Device device, Room room) {
+    @Operation(summary = "查询传感器数据")
+    @GetMapping("/sensor/data")
+    public Result<List<InfluxSensor>> getSensorData(@Parameter(description = "设备编码") @RequestParam String deviceCode,
+                                                    @Parameter(description = "查询时间范围（最近N小时，默认24h）", example = "24")
+                                                    @RequestParam(defaultValue = "24") Long lastHour) {
+        try {
+            InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
+                    .bucket(influxDBProperties.getBucket())
+                    .last(lastHour, "h")
+                    .measurement("device")
+                    .deviceCode(deviceCode)
+                    .addFilter("r._field == \"temperature\" or r._field == \"humidity\" or r._field == \"illuminance\" or r._field == \"battery\"");
+            log.info("influxdb查询语句{}", builder.pivot().build());
+            List<InfluxSensor> tables = influxDBClient.getQueryApi().query(builder.pivot().build(), influxDBProperties.getOrg(), InfluxSensor.class);
+            log.info("influxdb查询结果{}", tables);
+            return Result.success(tables);
+        } catch (InfluxException e) {
+            System.err.println("error：" + e.getMessage());
+        }
+        return null;
+
+    }
+
+    public static DeviceInfoVO basicPropertyConvert(Device device, Room room) {
         DeviceInfoVO deviceInfoVO = new DeviceInfoVO();
         deviceInfoVO.setId(device.getId());
         deviceInfoVO.setDeviceName(device.getDeviceName());
