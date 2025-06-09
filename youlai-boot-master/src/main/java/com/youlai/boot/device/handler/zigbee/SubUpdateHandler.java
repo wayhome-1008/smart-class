@@ -14,6 +14,7 @@ import com.youlai.boot.config.property.InfluxDBProperties;
 import com.youlai.boot.device.handler.service.MsgHandler;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.SubUpdateSensorRsp;
+import com.youlai.boot.device.model.influx.InfluxPlug;
 import com.youlai.boot.device.model.influx.InfluxSensor;
 import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.device.topic.HandlerType;
@@ -98,35 +99,35 @@ public class SubUpdateHandler implements MsgHandler {
     }
 
     private void processSocket(String topic, MqttClient mqttClient, Device device, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
-            JsonNode jsonNode = stringToJsonNode(jsonMsg);
-            //获取params
-            JsonNode params = jsonNode.get("params");
-            JsonNode switchesArray = params.get("switches");
-            // 1. 准备存储所有开关状态的对象
-            ObjectNode allSwitchStates = JsonNodeFactory.instance.objectNode();
-            // 2. 遍历switches数组
-            if (switchesArray.isArray()) {
-                for (JsonNode switchNode : switchesArray) {
-                    int outletNum = switchNode.get("outlet").asInt() + 1; // 转为1-based编号
-                    String switchState = switchNode.get("switch").asText();
-                    //大小写转换
-                    if (switchState.equals("on")) {
-                        switchState = "ON";
-                    } else if (switchState.equals("off")) {
-                        switchState = "OFF";
-                    }
-                    // 3. 存储每个开关状态
-                    allSwitchStates.put("outlet" + outletNum, outletNum);
-                    allSwitchStates.put("switch" + outletNum, switchState);
+        JsonNode jsonNode = stringToJsonNode(jsonMsg);
+        //获取params
+        JsonNode params = jsonNode.get("params");
+        JsonNode switchesArray = params.get("switches");
+        // 1. 准备存储所有开关状态的对象
+        ObjectNode allSwitchStates = JsonNodeFactory.instance.objectNode();
+        // 2. 遍历switches数组
+        if (switchesArray.isArray()) {
+            for (JsonNode switchNode : switchesArray) {
+                int outletNum = switchNode.get("outlet").asInt() + 1; // 转为1-based编号
+                String switchState = switchNode.get("switch").asText();
+                //大小写转换
+                if (switchState.equals("on")) {
+                    switchState = "ON";
+                } else if (switchState.equals("off")) {
+                    switchState = "OFF";
                 }
+                // 3. 存储每个开关状态
+                allSwitchStates.put("outlet" + outletNum, outletNum);
+                allSwitchStates.put("switch" + outletNum, switchState);
             }
-            if (device != null) {
-                JsonNode mergeJson = mergeJson(Optional.of(device).map(Device::getDeviceInfo).orElse(null), allSwitchStates);
-                device.setDeviceInfo(mergeJson);
-                redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
-                deviceService.updateById(device);
-                RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
-            }
+        }
+        if (device != null) {
+            JsonNode mergeJson = mergeJson(Optional.of(device).map(Device::getDeviceInfo).orElse(null), allSwitchStates);
+            device.setDeviceInfo(mergeJson);
+            redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
+            deviceService.updateById(device);
+            RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
+        }
 
     }
 
@@ -216,82 +217,83 @@ public class SubUpdateHandler implements MsgHandler {
 
     }
 
-    private void processPlug(String topic, MqttClient mqttClient, Device device, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
-        if (ObjectUtil.isNotEmpty(device)) {
-            JsonNode jsonNode = stringToJsonNode(jsonMsg);
-            //获取params
-            JsonNode params = jsonNode.get("params");
-            JsonNode mergeJson = mergeJson(Optional.ofNullable(device).map(Device::getDeviceInfo).orElse(null), jsonNode);
-            if (device != null) {
-                device.setDeviceInfo(mergeJson);
-                Device deviceCache = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, device.getDeviceCode());
-                try {
-                    if (deviceCache != null) {
-                        if (params.has("activePowerA")) {
-                            //查看缓存和新的电量是否一致
-                            if (!deviceCache.getDeviceInfo().get("activePowerA").asText().equals(params.get("activePowerA").asText())) {
-                                deviceService.updateById(device);
-                            }
-                        }
-                        if (params.has("activePowerB")) {
-                            //查看缓存和新的电量是否一致
-                            if (!deviceCache.getDeviceInfo().get("activePowerB").asText().equals(params.get("activePowerB").asText())) {
-                                deviceService.updateById(device);
-                            }
-                        }
-                        if (params.has("activePowerC")) {
-                            //查看缓存和新的电量是否一致
-                            if (!deviceCache.getDeviceInfo().get("activePowerC").asText().equals(params.get("activePowerC").asText())) {
-                                deviceService.updateById(device);
-                            }
-                        }
-                        if (params.has("RMS_VoltageA")) {
-                            if (!deviceCache.getDeviceInfo().get("RMS_VoltageA").asText().equals(params.get("RMS_VoltageA").asText())) {
-                                deviceService.updateById(device);
-                            }
-                        }
-                        if (params.has("RMS_VoltageB")) {
-                            if (!deviceCache.getDeviceInfo().get("RMS_VoltageB").asText().equals(params.get("RMS_VoltageB").asText())) {
-                                deviceService.updateById(device);
-                            }
-                        }
-                        if (params.has("RMS_VoltageC")) {
-                            if (!deviceCache.getDeviceInfo().get("RMS_VoltageC").asText().equals(params.get("RMS_VoltageC").asText())) {
-                                deviceService.updateById(device);
-                            }
-                        }
-                        if (params.has("RMS_CurrentA")) {
-                            if (!deviceCache.getDeviceInfo().get("RMS_CurrentA").asText().equals(params.get("RMS_CurrentA").asText())) {
-                                deviceService.updateById(device);
-                            }
-                        }
-                        if (params.has("RMS_CurrentB")) {
-                            if (!deviceCache.getDeviceInfo().get("RMS_CurrentB").asText().equals(params.get("RMS_CurrentB").asText())) {
-                                deviceService.updateById(device);
-                            }
-                        }
-                        if (params.has("RMS_CurrentC")) {
-                            if (!deviceCache.getDeviceInfo().get("RMS_CurrentC").asText().equals(params.get("RMS_CurrentC").asText())) {
-                                deviceService.updateById(device);
-                            }
-                        }
-                        if (params.has("electricalEnergy")) {
-                            if (!deviceCache.getDeviceInfo().get("electricalEnergy").asText().equals(params.get("electricalEnergy").asText())) {
-                                deviceService.updateById(device);
-                            }
-                        }
-                    }
-                } catch (NullPointerException e) {
-                    log.error(e.getMessage());
-                    deviceService.updateById(device);
-                } finally {
-                    redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
-                    RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
+    private void processPlug(String topic, MqttClient mqttClient, Device deviceCache, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
+        JsonNode jsonNode = stringToJsonNode(jsonMsg);
+        //获取params
+        JsonNode params = jsonNode.get("params");
+        if (ObjectUtils.isEmpty(deviceCache.getDeviceInfo())) return;
+
+        //接受得数据与旧数据合并
+        JsonNode mergeJson = mergeJson(deviceCache.getDeviceInfo(), jsonNode);
+        log.info("合并后的数据为:{}", mergeJson);
+        deviceCache.setDeviceInfo(mergeJson);
+
+        //获取合并后的params节点
+        JsonNode mergeParams = mergeJson.get("params");
+
+        //校验缓存与本次数据是否相同,从而判断是否需要更新数据库
+        boolean needUpdate = false;
+        if (params != null) {
+            String[] fieldTiCheck = {"activePowerA", "activePowerB", "activePowerC", "RMS_VoltageA", "RMS_VoltageB", "RMS_VoltageC", "RMS_CurrentA", "RMS_CurrentB", "RMS_CurrentC", "electricalEnergy"};
+            for (String field : fieldTiCheck) {
+                //当消息存在我要的属性
+                if (params.has(field) && !params.get(field).asText().equals(deviceCache.getDeviceInfo().get("params").get(field).asText())) {
+                    log.info("字段:{}不同,需要更新数据库,改前为{},改后为{}", field, deviceCache.getDeviceInfo().get("params").get(field).asText(), params.get(field).asText());
+                    needUpdate = true;
+                    break;
                 }
-
             }
-
+            if (needUpdate) {
+                deviceService.updateById(deviceCache);
+            }
         }
+
+        //创建influx数据
+        InfluxPlug influxPlug = new InfluxPlug();
+        //tag为设备编号
+        influxPlug.setDeviceCode(deviceCache.getDeviceCode());
+
+        //处理插座数据
+        if (mergeParams != null) {
+            if (mergeParams.has("activePowerA") && mergeParams.get("activePowerA").isNumber()) {
+                influxPlug.setActivePowerA(mergeParams.get("activePowerA").asDouble());
+            }
+//            if (mergeParams.has("activePowerB") && mergeParams.get("activePowerB").isInt()) {
+//                influxPlug.setActivePowerB(mergeParams.get("activePowerB").asInt());
+//            }
+//            if (mergeParams.has("activePowerC") && mergeParams.get("activePowerC").isInt()) {
+//                influxPlug.setActivePowerC(mergeParams.get("activePowerC").asInt());
+//            }
+            if (mergeParams.has("RMS_VoltageA") && mergeParams.get("RMS_VoltageA").isNumber()) {
+                influxPlug.setRMS_VoltageA(mergeParams.get("RMS_VoltageA").asDouble());
+            }
+//            if (mergeParams.has("RMS_VoltageB") && mergeParams.get("RMS_VoltageB").isInt()) {
+//                influxPlug.setRMS_VoltageB(mergeParams.get("RMS_VoltageB").asInt());
+//            }
+//            if (mergeParams.has("RMS_VoltageC") && mergeParams.get("RMS_VoltageC").isInt()) {
+//                influxPlug.setRMS_VoltageC(mergeParams.get("RMS_VoltageC").asInt());
+//            }
+            if (mergeParams.has("RMS_CurrentA") && mergeParams.get("RMS_CurrentA").isNumber()) {
+                influxPlug.setRMS_CurrentA(mergeParams.get("RMS_CurrentA").asDouble());
+            }
+//            if (mergeParams.has("RMS_CurrentB") && mergeParams.get("RMS_CurrentB").isInt()) {
+//                influxPlug.setRMS_CurrentB(mergeParams.get("RMS_CurrentB").asInt());
+//            }
+//            if (mergeParams.has("RMS_CurrentC") && mergeParams.get("RMS_CurrentC").isInt()) {
+//                influxPlug.setRMS_CurrentC(mergeParams.get("RMS_CurrentC").asInt());
+//            }
+            if (mergeParams.has("electricalEnergy") && mergeParams.get("electricalEnergy").isNumber()) {
+                influxPlug.setElectricalEnergy(mergeParams.get("electricalEnergy").asDouble());
+            }
+            influxDBClient.getWriteApiBlocking().writeMeasurement(
+                    influxProperties.getBucket(),
+                    influxProperties.getOrg(),
+                    WritePrecision.MS,
+                    influxPlug
+            );
+        }
+        redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCache.getDeviceCode(), deviceCache);
+        RspMqtt(topic, mqttClient, deviceCache.getDeviceCode(), sequence);
     }
 
     private void processHumanRadarSensor(String topic, MqttClient mqttClient, Device device, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
@@ -336,54 +338,69 @@ public class SubUpdateHandler implements MsgHandler {
         }
     }
 
-    private void processSensor(String topic, MqttClient mqttClient, Device device, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
+    private void processSensor(String topic, MqttClient mqttClient, Device deviceCache, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
         JsonNode jsonNode = stringToJsonNode(jsonMsg);
         //获取params
         JsonNode params = jsonNode.get("params");
-        //接收得数据于旧数据合并
-        JsonNode mergeJson = mergeJson(Optional.ofNullable(device).map(Device::getDeviceInfo).orElse(null), jsonNode);
-        //存redis
-        if (device != null) {
-            device.setDeviceInfo(mergeJson);
-            Device deviceCache = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, device.getDeviceCode());
-            if (deviceCache != null) {
-                try {
-                    //并且是电量
-                    if (params.has("battery")) {
-                        //查看缓存和新的电量是否一致
-                        if (!deviceCache.getDeviceInfo().get("battery").asText().equals(params.get("battery").asText())) {
-                            deviceService.updateById(device);
-                        }
-                    }
-                } catch (NullPointerException e) {
-                    log.error(e.getMessage());
-                } finally {
-                    InfluxSensor point = new InfluxSensor();
-                    point.setDeviceCode(device.getDeviceCode());
-                    if (mergeJson.has("params")) {
-                        JsonNode sensorData = mergeJson.get("params");
-                        if (sensorData.has("battery")) {
-                            point.setBattery(sensorData.get("battery").asInt());
-                        }
-                        if (sensorData.has("temperature")) {
-                            point.setTemperature(sensorData.get("temperature").asInt());
+        if (ObjectUtil.isEmpty(deviceCache.getDeviceInfo())) return;
 
-                        }
-                        if (sensorData.has("humidity")) {
-                            point.setHumidity(sensorData.get("humidity").asInt());
-                        }
-                        if (sensorData.has("Illuminance")) {
-                            point.setIlluminance(sensorData.get("Illuminance").asInt());
-                        }
-                    }
-                    influxDBClient.getWriteApiBlocking().writeMeasurement(influxProperties.getBucket(), influxProperties.getOrg(), WritePrecision.MS, point);
-                    deviceService.updateById(device);
-                    redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
-                    RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
+        //接收得数据于旧数据合并
+        JsonNode mergeJson = mergeJson(deviceCache.getDeviceInfo(), jsonNode);
+        deviceCache.setDeviceInfo(mergeJson);
+
+        // 获取合并后的params节点
+        JsonNode mergedParams = mergeJson.get("params");
+
+
+        //校验缓存于本次数据是否相同 从而判断是否更新数据库
+        boolean needUpdate = false;
+        if (params != null && mergedParams != null) {
+            String[] fieldsToCheck = {"battery", "temperature", "humidity", "Illuminance"};
+            for (String field : fieldsToCheck) {
+                if (params.has(field) && mergedParams.has(field)
+                        && !mergedParams.get(field).asText().equals(params.get(field).asText())) {
+                    needUpdate = true;
+                    break;
                 }
+            }
+            if (needUpdate) {
+                deviceService.updateById(deviceCache);
             }
         }
 
+        //创建influx数据
+        InfluxSensor point = new InfluxSensor();
+        //tag为设备编号
+        point.setDeviceCode(deviceCache.getDeviceCode());
+
+        // 处理传感器数据
+        if (mergedParams != null) {
+            if (mergedParams.has("battery") && mergedParams.get("battery").isInt()) {
+                point.setBattery(mergedParams.get("battery").asInt());
+            }
+            if (mergedParams.has("temperature") && mergedParams.get("temperature").isInt()) {
+                point.setTemperature(mergedParams.get("temperature").asInt());
+            }
+            if (mergedParams.has("humidity") && mergedParams.get("humidity").isInt()) {
+                point.setHumidity(mergedParams.get("humidity").asInt());
+            }
+            if (mergedParams.has("Illuminance") && mergedParams.get("Illuminance").isInt()) {
+                point.setIlluminance(mergedParams.get("Illuminance").asInt());
+            }
+
+            influxDBClient.getWriteApiBlocking().writeMeasurement(
+                    influxProperties.getBucket(),
+                    influxProperties.getOrg(),
+                    WritePrecision.MS,
+                    point
+            );
+            redisTemplate.opsForHash().put(
+                    RedisConstants.Device.DEVICE,
+                    deviceCache.getDeviceCode(),
+                    deviceCache
+            );
+            RspMqtt(topic, mqttClient, deviceCache.getDeviceCode(), sequence);
+        }
     }
 
     private static void RspMqtt(String topic, MqttClient mqttClient, String deviceId, int sequence) throws

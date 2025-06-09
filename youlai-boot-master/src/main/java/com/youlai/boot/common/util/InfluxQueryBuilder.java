@@ -33,7 +33,8 @@ public class InfluxQueryBuilder {
     private List<String> extraFilters;   // 额外过滤条件（可选）
     private String aggregateFunction;    // 聚合函数（可选，如 "last()", "mean()"）
     private boolean pivot;               // 是否透视（默认 false）
-
+    private String sortColumn = "_time";  // 默认排序字段
+    private boolean sortDesc = true;      // 默认降序
     private InfluxQueryBuilder() {
         this.extraFilters = new ArrayList<>();
         // 默认不设置聚合函数（用户需显式调用 aggregate() 才会添加）
@@ -127,7 +128,23 @@ public class InfluxQueryBuilder {
         this.pivot = true;
         return this;
     }
+    /**
+     * 设置排序（可选，默认按 _time 降序）
+     * @param column 排序字段（默认 "_time"）
+     * @param desc 是否降序（默认 true）
+     */
+    public InfluxQueryBuilder sort(@Nullable String column, boolean desc) {
+        this.sortColumn = column != null ? column : "_time";
+        this.sortDesc = desc;
+        return this;
+    }
 
+    /**
+     * 设置按时间降序排序（默认行为）
+     */
+    public InfluxQueryBuilder sort() {
+        return sort(null, true);
+    }
     /**
      * 构建 Flux 查询字符串
      * @return 符合 InfluxDB 规范的 Flux 查询语句
@@ -167,6 +184,10 @@ public class InfluxQueryBuilder {
         }
         // 新增：时间偏移（UTC -> 北京时间）  <-- 关键改动3
         flux.append(String.format("  |> timeShift(duration: %s)\n", timeShiftDuration));
+        if (sortColumn != null) {
+            flux.append(String.format("  |> sort(columns: [\"%s\"], desc: %b)\n",
+                    sortColumn, sortDesc));
+        }
         return flux.toString().trim();
     }
 
