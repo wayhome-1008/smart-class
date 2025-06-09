@@ -26,10 +26,12 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
-import static com.youlai.boot.common.util.JsonUtils.mergeJson;
-import static com.youlai.boot.common.util.JsonUtils.stringToJsonNode;
+import static com.youlai.boot.common.util.JsonUtils.*;
 
 /**
  *@Author: way
@@ -234,14 +236,22 @@ public class SubUpdateHandler implements MsgHandler {
         boolean needUpdate = false;
         if (params != null) {
             String[] fieldTiCheck = {"activePowerA", "activePowerB", "activePowerC", "RMS_VoltageA", "RMS_VoltageB", "RMS_VoltageC", "RMS_CurrentA", "RMS_CurrentB", "RMS_CurrentC", "electricalEnergy"};
-            for (String field : fieldTiCheck) {
-                //当消息存在我要的属性
-                if (params.has(field) && !params.get(field).asText().equals(deviceCache.getDeviceInfo().get("params").get(field).asText())) {
-                    log.info("字段:{}不同,需要更新数据库,改前为{},改后为{}", field, deviceCache.getDeviceInfo().get("params").get(field).asText(), params.get(field).asText());
+            Map<String, JsonNode> matchedFields = matchedFields(fieldTiCheck, mergeParams);
+            Set<Map.Entry<String, JsonNode>> entries = matchedFields.entrySet();
+            for (Map.Entry<String, JsonNode> entry : entries) {
+                String value = deviceCache.getDeviceInfo().get("params").get(entry.getKey()).asText();
+                if (!value.equals(entry.getValue().get(entry.getKey()).asText())) {
                     needUpdate = true;
-                    break;
                 }
             }
+            //获取得数据肯定是一个 所以先拿到是哪一个得新属性
+//                if (params.)
+//                    //当消息存在我要的属性
+//                    if (params.has(field) && !params.get(field).asText().equals(deviceCache.getDeviceInfo().get("params").get(field).asText())) {
+//                        log.info("字段:{}不同,需要更新数据库,改前为{},改后为{}", field, deviceCache.getDeviceInfo().get("params").get(field).asText(), params.get(field).asText());
+//                        needUpdate = true;
+//                        break;
+//                    }
             if (needUpdate) {
                 deviceService.updateById(deviceCache);
             }
@@ -349,7 +359,6 @@ public class SubUpdateHandler implements MsgHandler {
 
         // 获取合并后的params节点
         JsonNode mergedParams = mergeJson.get("params");
-
 
         //校验缓存于本次数据是否相同 从而判断是否更新数据库
         boolean needUpdate = false;

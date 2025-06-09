@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -83,5 +84,30 @@ public class JsonUtils {
             throw new IllegalArgumentException("JSON字符串不能为空");
         }
         return OBJECT_MAPPER.readTree(jsonStr);  // 核心方法：解析字符串为JsonNode
+    }
+
+    /**
+     * 从 JsonNode 中提取指定属性名的键值对
+     * @param matchFields 需要匹配的属性名数组（如 ["activePowerA", "RMS_VoltageA"]）
+     * @param jsonNode 待提取的 JSON 节点（需为 Object 类型）
+     * @return 匹配到的属性名与对应值的 Map（未匹配到的属性不包含）
+     */
+    public static Map<String, JsonNode> matchedFields(String[] matchFields, JsonNode jsonNode) {
+        Map<String, JsonNode> matchedMap = new HashMap<>();
+
+        // 防御性检查：参数为空或 jsonNode 非对象类型时返回空 Map
+        if (matchFields == null || matchFields.length == 0 || jsonNode == null || !jsonNode.isObject()) {
+            return matchedMap;
+        }
+
+        // 遍历目标属性名数组，逐个检查是否存在并提取
+        for (String field : matchFields) {
+            if (jsonNode.has(field)) { // 检查 JsonNode 是否包含该属性
+                JsonNode value = jsonNode.get(field);
+                matchedMap.put(field, value); // 记录属性名和值
+            }
+        }
+
+        return matchedMap;
     }
 }
