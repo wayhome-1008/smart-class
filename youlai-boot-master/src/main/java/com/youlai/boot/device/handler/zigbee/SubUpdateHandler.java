@@ -225,7 +225,6 @@ public class SubUpdateHandler implements MsgHandler {
 
         //接受得数据与旧数据合并
         JsonNode mergeJson = mergeJson(deviceCache.getDeviceInfo(), jsonNode);
-        log.info("合并后的数据为:{}", mergeJson);
         deviceCache.setDeviceInfo(mergeJson);
 
         //获取合并后的params节点

@@ -105,9 +105,8 @@ public class DashBoardController {
                     .measurement("device")
                     .deviceCode(deviceCode)
                     .addFilter("r._field == \"temperature\" or r._field == \"humidity\" or r._field == \"illuminance\" or r._field == \"battery\"");
-            log.info("influxdb查询语句{}", builder.pivot().build());
+            log.info("influxdb查询传感器语句{}", builder.pivot().build());
             List<InfluxSensor> tables = influxDBClient.getQueryApi().query(builder.pivot().build(), influxDBProperties.getOrg(), InfluxSensor.class);
-            log.info("influxdb查询结果{}", tables);
             return Result.success(tables);
         } catch (InfluxException e) {
             System.err.println("error：" + e.getMessage());
@@ -155,9 +154,8 @@ public class DashBoardController {
                     .deviceCode(deviceCode)
                     .sort()
                     .addFilter("r._field == \"activePowerA\" or r._field == \"RMS_VoltageA\" or r._field==\"RMS_CurrentA\" or r._field==\"electricalEnergy\"");
-            log.info("influxdb查询语句{}", builder.pivot().build());
+            log.info("influxdb查询计量插座语句{}", builder.pivot().build());
             List<InfluxPlug> tables = influxDBClient.getQueryApi().query(builder.pivot().build(), influxDBProperties.getOrg(), InfluxPlug.class);
-            log.info("influxdb查询结果{}", tables);
             return Result.success(tables);
         } catch (InfluxException e) {
             System.err.println("error：" + e.getMessage());
