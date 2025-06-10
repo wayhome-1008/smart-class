@@ -75,9 +75,7 @@ public class RoomController {
     @Operation(summary = "获取房间管理表单数据")
     @GetMapping("/{id}/form")
     @PreAuthorize("@ss.hasPerm('room:room:edit')")
-    public Result<RoomForm> getRoomForm(
-            @Parameter(description = "房间管理ID") @PathVariable Long id
-    ) {
+    public Result<RoomForm> getRoomForm(@Parameter(description = "房间管理ID") @PathVariable Long id) {
         RoomForm formData = roomService.getRoomFormData(id);
         return Result.success(formData);
     }
@@ -85,10 +83,7 @@ public class RoomController {
     @Operation(summary = "修改房间管理")
     @PutMapping(value = "/{id}")
     @PreAuthorize("@ss.hasPerm('room:room:edit')")
-    public Result<Void> updateRoom(
-            @Parameter(description = "房间管理ID") @PathVariable Long id,
-            @RequestBody @Validated RoomForm formData
-    ) {
+    public Result<Void> updateRoom(@Parameter(description = "房间管理ID") @PathVariable Long id, @RequestBody @Validated RoomForm formData) {
         boolean result = roomService.updateRoom(id, formData);
         return Result.judge(result);
     }
@@ -96,36 +91,19 @@ public class RoomController {
     @Operation(summary = "删除房间管理")
     @DeleteMapping("/{ids}")
     @PreAuthorize("@ss.hasPerm('room:room:delete')")
-    public Result<Void> deleteRooms(
-            @Parameter(description = "房间管理ID，多个以英文逗号(,)分割") @PathVariable String ids
-    ) {
+    public Result<Void> deleteRooms(@Parameter(description = "房间管理ID，多个以英文逗号(,)分割") @PathVariable String ids) {
         boolean result = roomService.deleteRooms(ids);
         return Result.judge(result);
     }
 
     @Operation(summary = "房间设备信息")
     @GetMapping("/device/{id}")
-    public Result<List<DeviceInfoVO>> getRoomDetail(
-            @Parameter(description = "房间管理ID") @PathVariable Long id
-    ) {
+    public Result<List<DeviceInfoVO>> getRoomDetail(@Parameter(description = "房间管理ID") @PathVariable Long id) {
         //查询房间是否存在
         Room room = roomService.getById(id);
         if (ObjectUtils.isEmpty(room)) return Result.failed("房间不存在");
         //根据房间id查询设备
-        List<Device> roomDevices = deviceService.listDeviceByRoomId(id);
-        List<DeviceInfoVO> deviceInfoVOS = new ArrayList<>();
-        for (Device roomDevice : roomDevices) {
-            //转VO
-            DeviceInfoVO deviceInfoVO = basicPropertyConvert(roomDevice, room);
-            String deviceType = DeviceTypeEnum.getNameById(roomDevice.getDeviceTypeId());
-            String communicationMode = CommunicationModeEnum.getNameById(roomDevice.getCommunicationModeItemId());
-            if (!deviceType.equals("Gateway")) {
-                DeviceInfoParser parser = DeviceInfoParserFactory.getParser(deviceType, communicationMode);
-                List<DeviceInfo> deviceInfos = parser.parse(roomDevice.getDeviceInfo());
-                deviceInfoVO.setDeviceInfo(deviceInfos);
-            }
-            deviceInfoVOS.add(deviceInfoVO);
-        }
-        return Result.success(deviceInfoVOS);
+        List<DeviceInfoVO> roomDevices = deviceService.listDeviceByRoomId(id, room);
+        return Result.success(roomDevices);
     }
 }

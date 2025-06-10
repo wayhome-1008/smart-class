@@ -7,7 +7,9 @@ import com.youlai.boot.device.model.dto.event.DeviceEventParams;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.DeviceForm;
 import com.youlai.boot.device.model.query.DeviceQuery;
+import com.youlai.boot.device.model.vo.DeviceInfoVO;
 import com.youlai.boot.device.model.vo.DeviceVO;
+import com.youlai.boot.room.model.entity.Room;
 
 import java.util.List;
 
@@ -73,5 +75,5 @@ public interface DeviceService extends IService<Device> {
 
     IPage<DeviceVO> getSubDevicePage( DeviceQuery queryParams);
 
-    List<Device> listDeviceByRoomId(Long roomId);
+    List<DeviceInfoVO> listDeviceByRoomId(Long roomId, Room room);
 }
