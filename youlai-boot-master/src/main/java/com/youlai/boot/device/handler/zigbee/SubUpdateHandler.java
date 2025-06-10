@@ -21,6 +21,7 @@ import com.youlai.boot.device.topic.HandlerType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -225,6 +226,9 @@ public class SubUpdateHandler implements MsgHandler {
         JsonNode params = jsonNode.get("params");
         if (ObjectUtils.isEmpty(deviceCache.getDeviceInfo())) return;
 
+        //获取旧设备数据信息- 使用deepCopy创建独立拷贝
+        JsonNode oldParams = deviceCache.getDeviceInfo().get("params").deepCopy();
+
         //接受得数据与旧数据合并
         JsonNode mergeJson = mergeJson(deviceCache.getDeviceInfo(), jsonNode);
         deviceCache.setDeviceInfo(mergeJson);
@@ -236,22 +240,16 @@ public class SubUpdateHandler implements MsgHandler {
         boolean needUpdate = false;
         if (params != null) {
             String[] fieldTiCheck = {"activePowerA", "activePowerB", "activePowerC", "RMS_VoltageA", "RMS_VoltageB", "RMS_VoltageC", "RMS_CurrentA", "RMS_CurrentB", "RMS_CurrentC", "electricalEnergy"};
-            Map<String, JsonNode> matchedFields = matchedFields(fieldTiCheck, mergeParams);
-            Set<Map.Entry<String, JsonNode>> entries = matchedFields.entrySet();
-            for (Map.Entry<String, JsonNode> entry : entries) {
-                String value = deviceCache.getDeviceInfo().get("params").get(entry.getKey()).asText();
-                if (!value.equals(entry.getValue().get(entry.getKey()).asText())) {
+            String matched = matchedFields(fieldTiCheck, params);
+            if (StringUtils.isNotEmpty(matched)) {
+                //已知传入的字段 再根据oldParams比对
+                double newValue = params.get(matched).asDouble();
+                double oldValue = oldParams.get(matched).asDouble();
+                if (newValue != oldValue) {
+                    log.info("字段:{}不同,需要更新数据库,改前为{},改后为{}", matched, oldValue, newValue);
                     needUpdate = true;
                 }
             }
-            //获取得数据肯定是一个 所以先拿到是哪一个得新属性
-//                if (params.)
-//                    //当消息存在我要的属性
-//                    if (params.has(field) && !params.get(field).asText().equals(deviceCache.getDeviceInfo().get("params").get(field).asText())) {
-//                        log.info("字段:{}不同,需要更新数据库,改前为{},改后为{}", field, deviceCache.getDeviceInfo().get("params").get(field).asText(), params.get(field).asText());
-//                        needUpdate = true;
-//                        break;
-//                    }
             if (needUpdate) {
                 deviceService.updateById(deviceCache);
             }
@@ -348,10 +346,13 @@ public class SubUpdateHandler implements MsgHandler {
     }
 
     private void processSensor(String topic, MqttClient mqttClient, Device deviceCache, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
+        //1.字符串转jsonNode
         JsonNode jsonNode = stringToJsonNode(jsonMsg);
-        //获取params
+        //2.获取params
         JsonNode params = jsonNode.get("params");
         if (ObjectUtil.isEmpty(deviceCache.getDeviceInfo())) return;
+        //3.获取旧设备数据信息-使用deepCopy创建独立拷贝
+        JsonNode oldParams = deviceCache.getDeviceInfo().get("params").deepCopy();
 
         //接收得数据于旧数据合并
         JsonNode mergeJson = mergeJson(deviceCache.getDeviceInfo(), jsonNode);
@@ -362,13 +363,16 @@ public class SubUpdateHandler implements MsgHandler {
 
         //校验缓存于本次数据是否相同 从而判断是否更新数据库
         boolean needUpdate = false;
-        if (params != null && mergedParams != null) {
+        if (params != null) {
             String[] fieldsToCheck = {"battery", "temperature", "humidity", "Illuminance"};
-            for (String field : fieldsToCheck) {
-                if (params.has(field) && mergedParams.has(field)
-                        && !mergedParams.get(field).asText().equals(params.get(field).asText())) {
+            String matched = matchedFields(fieldsToCheck, params);
+            if (StringUtils.isNotEmpty(matched)) {
+                //对比
+                int newValue = params.get(matched).asInt();
+                int oldValue = oldParams.get(matched).asInt();
+                if (newValue != oldValue) {
+                    log.info("字段:{}不同,需要更新数据库,改前为{},改后为{}", matched, oldValue, newValue);
                     needUpdate = true;
-                    break;
                 }
             }
             if (needUpdate) {
