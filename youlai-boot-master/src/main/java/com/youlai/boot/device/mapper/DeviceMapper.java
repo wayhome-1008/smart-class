@@ -2,8 +2,8 @@ package com.youlai.boot.device.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.youlai.boot.device.model.entity.Device;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.query.DeviceQuery;
 import com.youlai.boot.device.model.vo.DeviceVO;
 import org.apache.ibatis.annotations.Mapper;

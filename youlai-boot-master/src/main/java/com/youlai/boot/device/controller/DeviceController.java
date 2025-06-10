@@ -10,13 +10,18 @@ import com.youlai.boot.common.result.PageResult;
 import com.youlai.boot.common.result.Result;
 import com.youlai.boot.config.mqtt.MqttCallback;
 import com.youlai.boot.config.mqtt.MqttProducer;
+import com.youlai.boot.device.Enum.CommunicationModeEnum;
+import com.youlai.boot.device.Enum.DeviceTypeEnum;
 import com.youlai.boot.device.converter.DeviceConverter;
+import com.youlai.boot.device.factory.DeviceInfoParserFactory;
 import com.youlai.boot.device.model.dto.GateWayManage;
 import com.youlai.boot.device.model.dto.GateWayManageParams;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.DeviceForm;
 import com.youlai.boot.device.model.query.DeviceQuery;
+import com.youlai.boot.device.model.vo.DeviceInfo;
 import com.youlai.boot.device.model.vo.DeviceVO;
+import com.youlai.boot.device.service.DeviceInfoParser;
 import com.youlai.boot.device.service.DeviceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -63,6 +68,13 @@ public class DeviceController {
     @PreAuthorize("@ss.hasPerm('device:device:query')")
     public PageResult<DeviceVO> getDevicePage(DeviceQuery queryParams) {
         IPage<DeviceVO> result = deviceService.getDevicePage(queryParams);
+        //对设备的deviceInfo赋值
+//        for (DeviceVO deviceVO : result.getRecords()) {
+//            String deviceType = DeviceTypeEnum.getNameById(deviceVO.getDeviceTypeId());
+//            String communicationMode = CommunicationModeEnum.getNameById(deviceVO.getCommunicationModeItemId());
+//            DeviceInfoParser parser = DeviceInfoParserFactory.getParser(deviceType, communicationMode);
+//            List<DeviceInfo> deviceInfos = parser.parse(deviceVO.getDeviceInfo());
+//        }
         return PageResult.success(result);
     }
 

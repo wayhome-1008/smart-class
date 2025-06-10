@@ -10,7 +10,11 @@ import com.youlai.boot.config.handler.JsonTypeHandler;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.ibatis.annotations.Result;
+import org.apache.ibatis.annotations.Results;
+
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 设备管理视图对象
@@ -51,4 +55,7 @@ public class DeviceVO implements Serializable {
     private String roomName;
     @Schema(description = "设备序号")
     private String deviceNo;
+
+    @Schema(description = "设备数据信息")
+    private JsonNode deviceInfo;
 }
