@@ -98,7 +98,7 @@ public class DeviceOperateController {
         //根据房间id查询设备
         List<DeviceInfoVO> deviceInfoVOS = deviceService.listDeviceByRoomId(operation.getId(), room);
         for (DeviceInfoVO deviceInfoVO : deviceInfoVOS) {
-           this.operate()
+            this.operate()
         }
     }
 
@@ -112,55 +112,52 @@ public class DeviceOperateController {
         //根据设备发送mqtt
         Device device = deviceService.getById(id);
         if (ObjectUtils.isEmpty(device)) return Result.failed("设备不存在");
-        return operate(deviceOperate, device);
+        return operate(deviceOperate.getOperate(), deviceOperate.getWay(), deviceOperate.getCount(), device);
     }
 
-    private Result<Void> operate(DeviceOperate deviceOperate, Device device) throws MqttException {
+    private Result<Void> operate(String operate, String way, int lightCount, Device device) throws MqttException {
         if (device.getDeviceTypeId() != 3 && device.getDeviceTypeId() != 4 && device.getDeviceTypeId() != 7 && device.getDeviceTypeId() != 10 && device.getDeviceTypeId() != 8)
             return Result.failed("该设备暂无操作");
         //根据通信协议去发送不同协议报文
         return switch (CommunicationModeEnum.getNameById(device.getCommunicationModeItemId())) {
             case "ZigBee" ->
                 //zigBee
-                    zigBeeDevice(device, deviceOperate);
+                    zigBeeDevice(device, operate, way, lightCount);
             case "MQTT" ->
                 //mqtt
-                    mqttDevice(device, deviceOperate);
+                    mqttDevice(device, operate, way, lightCount);
             default -> Result.failed("暂不支持该协议");
         };
     }
 
-    private Result<Void> mqttDevice(Device device, DeviceOperate
-            deviceOperate) throws MqttException {
+    private Result<Void> mqttDevice(Device device, String operate, String way, int lightCount) throws MqttException {
         //目前能控制的就只有灯的开关
         //判断几路
-        int lightCount = deviceOperate.getCount();
         if (lightCount == 1) {
-            mqttProducer.send("cmnd/" + device.getDeviceCode() + "/POWER", 0, false, deviceOperate.getOperate());
-        } else if (deviceOperate.getWay().equals("-1")) {
+            mqttProducer.send("cmnd/" + device.getDeviceCode() + "/POWER", 0, false, operate);
+        } else if (way.equals("-1")) {
             for (int i = 1; i <= lightCount; i++) {
-                mqttProducer.send("cmnd/" + device.getDeviceCode() + "/POWER" + i, 0, false, deviceOperate.getOperate());
+                mqttProducer.send("cmnd/" + device.getDeviceCode() + "/POWER" + i, 0, false, operate);
             }
         } else {
-            mqttProducer.send("cmnd/" + device.getDeviceCode() + "/POWER" + deviceOperate.getWay(), 0, false, deviceOperate.getOperate());
+            mqttProducer.send("cmnd/" + device.getDeviceCode() + "/POWER" + way, 0, false, operate);
         }
         return Result.success();
     }
 
-    private Result<Void> zigBeeDevice(Device device, DeviceOperate
-            deviceOperate) throws MqttException {
+    private Result<Void> zigBeeDevice(Device device, String operate, String way, int lightCount) throws MqttException {
         //目前能控制的就只有计量插座和开关
         //查询该子设备的网关
         Device gateway = deviceService.getById(device.getDeviceGatewayId());
         if (ObjectUtils.isEmpty(gateway)) return Result.failed("该设备没有网关");
         //组发送json
-        if (deviceOperate.getWay().equals("-1")) {
-            for (int i = 0; i < deviceOperate.getCount(); i++) {
+        if (way.equals("-1")) {
+            for (int i = 0; i < lightCount; i++) {
                 Control control = new Control();
                 control.setDeviceId(device.getDeviceCode());
                 control.setSequence((int) System.currentTimeMillis());
                 Switch plug = new Switch();
-                plug.setSwitchStatus(deviceOperate.getOperate().equals("ON") ? "on" : "off");
+                plug.setSwitchStatus(operate.equals("ON") ? "on" : "off");
                 plug.setOutlet(i);
                 List<Switch> switches = new java.util.ArrayList<>();
                 switches.add(plug);
@@ -178,8 +175,8 @@ public class DeviceOperateController {
             control.setDeviceId(device.getDeviceCode());
             control.setSequence((int) System.currentTimeMillis());
             Switch plug = new Switch();
-            plug.setSwitchStatus(deviceOperate.getOperate().equals("ON") ? "on" : "off");
-            plug.setOutlet(Integer.parseInt(deviceOperate.getWay()) - 1);
+            plug.setSwitchStatus(operate.equals("ON") ? "on" : "off");
+            plug.setOutlet(Integer.parseInt(way) - 1);
             List<Switch> switches = new java.util.ArrayList<>();
             switches.add(plug);
             ControlParams controlParams = new ControlParams();
