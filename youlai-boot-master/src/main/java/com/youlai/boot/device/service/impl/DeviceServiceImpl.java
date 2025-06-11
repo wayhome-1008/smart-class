@@ -25,7 +25,10 @@ import com.youlai.boot.device.service.DeviceInfoParser;
 import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.deviceType.mapper.DeviceTypeMapper;
 import com.youlai.boot.deviceType.model.entity.DeviceType;
+import com.youlai.boot.floor.model.entity.Floor;
+import com.youlai.boot.floor.service.FloorService;
 import com.youlai.boot.room.model.entity.Room;
+import com.youlai.boot.room.service.RoomService;
 import com.youlai.boot.system.model.entity.DictItem;
 import com.youlai.boot.system.service.DictItemService;
 import jakarta.annotation.PostConstruct;
@@ -34,10 +37,7 @@ import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.youlai.boot.dashBoard.controller.DashBoardController.basicPropertyConvert;
@@ -56,6 +56,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     private final DictItemService dictItemService;
     private final DeviceTypeMapper deviceTypeMapper;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final RoomService roomService;
 
     @PostConstruct
     public void init() {
@@ -209,6 +210,31 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
                 deviceInfoVO.setDeviceInfo(deviceInfos);
             }
             deviceInfoVOS.add(deviceInfoVO);
+        }
+        return deviceInfoVOS;
+    }
+
+    @Override
+    public List<DeviceInfoVO> listDeviceByFloorId(Long floorId, Floor floor) {
+        //1.查询该楼层有那些roomId
+        List<Room> roomList = roomService.list(new LambdaQueryWrapper<Room>().eq(Room::getFloorId, floorId));
+        List<Device> floorDevices = this.list(new LambdaQueryWrapper<Device>().in(Device::getDeviceRoom, roomList.stream().map(Room::getId).toList()));
+        List<DeviceInfoVO> deviceInfoVOS = new ArrayList<>();
+        for (Device floorDevice : floorDevices) {
+            for (Room room : roomList) {
+                if (Objects.equals(room.getId(), floorDevice.getDeviceRoom())) {
+                    //转VO
+                    DeviceInfoVO deviceInfoVO = basicPropertyConvert(floorDevice, room);
+                    String deviceType = DeviceTypeEnum.getNameById(floorDevice.getDeviceTypeId());
+                    String communicationMode = CommunicationModeEnum.getNameById(floorDevice.getCommunicationModeItemId());
+                    if (!deviceType.equals("Gateway")) {
+                        DeviceInfoParser parser = DeviceInfoParserFactory.getParser(deviceType, communicationMode);
+                        List<DeviceInfo> deviceInfos = parser.parse(floorDevice.getDeviceInfo());
+                        deviceInfoVO.setDeviceInfo(deviceInfos);
+                    }
+                    deviceInfoVOS.add(deviceInfoVO);
+                }
+            }
         }
         return deviceInfoVOS;
     }
