@@ -31,6 +31,10 @@ import jakarta.validation.Valid;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import static com.youlai.boot.dashBoard.controller.DashBoardController.basicPropertyConvert;
 
@@ -49,13 +53,198 @@ public class RoomController {
     private final RoomService roomService;
     private final DeviceService deviceService;
 
+//    @Operation(summary = "房间管理分页列表")
+//    @GetMapping("/page")
+//    @PreAuthorize("@ss.hasPerm('room:room:query')")
+//    public PageResult<RoomVO> getRoomPage(RoomQuery queryParams) {
+//        // 1. 获取房间分页数据
+//        IPage<RoomVO> result = roomService.getRoomPage(queryParams);
+//        // 2. 为每个房间添加设备信息
+//        List<DeviceInfoVO> devices = deviceService.listDeviceByRoomIds(result.getRecords());
+//        for (RoomVO record : result.getRecords()) {
+//            List<DeviceInfoVO> roomDevices = new ArrayList<>();
+//            for (DeviceInfoVO device : devices) {
+//                if (device.getDeviceRoom().equals(record.getId())) {
+//                    roomDevices.add(device);
+//                    record.setDeviceInfo(roomDevices);
+//                    //对每个房间VO判断是否显温度、湿度、光照、是否开灯、是否开插座、是否有人
+//                    if (device.getDeviceTypeId() == 2) {
+//                        Optional<Double> temperature = DeviceInfo.getValueByName(device.getDeviceInfo(), "temperature", Double.class);
+//                        temperature.ifPresent(record::setTemperature);
+//                        Optional<Double> humidity = DeviceInfo.getValueByName(device.getDeviceInfo(), "humidity", Double.class);
+//                        humidity.ifPresent(record::setHumidity);
+//                        Optional<Double> Illuminance = DeviceInfo.getValueByName(device.getDeviceInfo(), "Illuminance", Double.class);
+//                        Illuminance.ifPresent(record::setIlluminance);
+//                    }
+//                    if (device.getDeviceTypeId() == 8) {
+//                        //获取开关状态
+//                        Optional<Integer> count = DeviceInfo.getValueByName(device.getDeviceInfo(), "count", Integer.class);
+//                        if (count.isPresent()) {
+//                            boolean found = false;
+//                            for (int i = 0; i < count.get() && !found; i++) {
+//                                Optional<String> switchStatus = DeviceInfo.getValueByName(
+//                                        device.getDeviceInfo(),
+//                                        "power" + (i + 1),
+//                                        String.class
+//                                );
+//                                if (switchStatus.isPresent() && switchStatus.get().equals("ON")) {
+//                                    record.setLight(true);
+//                                    found = true; // 找到ON状态后立即跳出循环
+//                                }
+//                            }
+//                            // 如果没有找到ON状态，设置为false
+//                            if (!found) {
+//                                record.setLight(false);
+//                            }
+//                        }
+//                    }
+//                    if (device.getDeviceTypeId() == 4 || device.getDeviceTypeId() == 7 || device.getDeviceTypeId() == 10) {
+//                        //获取开关状态
+//                        Optional<Integer> count = DeviceInfo.getValueByName(device.getDeviceInfo(), "count", Integer.class);
+//                        if (count.isPresent()) {
+//                            boolean found = false;
+//                            for (int i = 0; i < count.get() && !found; i++) {
+//                                Optional<String> switchStatus = DeviceInfo.getValueByName(
+//                                        device.getDeviceInfo(),
+//                                        "switch" + (i + 1),
+//                                        String.class
+//                                );
+//                                if (switchStatus.isPresent() && switchStatus.get().equals("ON")) {
+//                                    record.setPlug(true);
+//                                    found = true; // 找到ON状态后立即跳出循环
+//                                }
+//                            }
+//                            // 如果没有找到ON状态，设置为false
+//                            if (!found) {
+//                                record.setPlug(false);
+//                            }
+//                        }
+//                    }
+//                    //5->人体感应雷达 motion
+//                    if (device.getDeviceTypeId() == 5) {
+//                        //获取开关状态
+//                        Optional<Integer> motion = DeviceInfo.getValueByName(device.getDeviceInfo(), "motion", Integer.class);
+//                        if (motion.isPresent()) {
+//                            boolean found = false;
+//                            if (motion.get() == 1) {
+//                                record.setHuman(true);
+//                                found = true; // 找到ON状态后立即跳出循环
+//                            }
+//                            // 如果没有找到ON状态，设置为false
+//                            if (!found) {
+//                                record.setHuman(false);
+//                            }
+//                        }
+//                    }
+//                    if (device.getDeviceTypeId() == 6) {
+//                        //获取开关状态
+//                        Optional<Integer> occupancy = DeviceInfo.getValueByName(device.getDeviceInfo(), "Occupancy", Integer.class);
+//                        if (occupancy.isPresent()) {
+//                            boolean found = false;
+//                            if (occupancy.get() == 1) {
+//                                record.setHuman(true);
+//                                found = true; // 找到ON状态后立即跳出循环
+//                            }
+//                            // 如果没有找到ON状态，设置为false
+//                            if (!found) {
+//                                record.setHuman(false);
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//
+//        return PageResult.success(result);
+//    }
+
     @Operation(summary = "房间管理分页列表")
     @GetMapping("/page")
     @PreAuthorize("@ss.hasPerm('room:room:query')")
     public PageResult<RoomVO> getRoomPage(RoomQuery queryParams) {
+        // 1. 获取房间分页数据
         IPage<RoomVO> result = roomService.getRoomPage(queryParams);
+
+        // 2. 批量获取所有相关设备
+        List<DeviceInfoVO> devices = deviceService.listDeviceByRoomIds(result.getRecords());
+
+        // 3. 按房间ID分组设备
+        Map<Long, List<DeviceInfoVO>> deviceMap = devices.stream()
+                .collect(Collectors.groupingBy(DeviceInfoVO::getDeviceRoom));
+
+        // 4. 为每个房间设置设备及状态
+        result.getRecords().forEach(roomVO -> {
+            List<DeviceInfoVO> roomDevices = deviceMap.getOrDefault(roomVO.getId(), new ArrayList<>());
+            roomVO.setDeviceInfo(roomDevices); // 一次性设置完整设备列表
+
+            // 初始化房间状态指标
+            initRoomStatusIndicators(roomVO, roomDevices);
+        });
+
         return PageResult.success(result);
     }
+
+    // 初始化房间状态指标的方法
+    private void initRoomStatusIndicators(RoomVO roomVO, List<DeviceInfoVO> devices) {
+        // 默认值设置
+        roomVO.setLight(false);
+        roomVO.setPlug(false);
+        roomVO.setHuman(false);
+
+        for (DeviceInfoVO device : devices) {
+            switch (device.getDeviceTypeId().intValue()) {
+                case 2: // 2->温湿度传感器
+                    DeviceInfo.getValueByName(device.getDeviceInfo(), "temperature", Double.class)
+                            .ifPresent(roomVO::setTemperature);
+                    DeviceInfo.getValueByName(device.getDeviceInfo(), "humidity", Double.class)
+                            .ifPresent(roomVO::setHumidity);
+                    DeviceInfo.getValueByName(device.getDeviceInfo(), "Illuminance", Double.class)
+                            .ifPresent(roomVO::setIlluminance);
+                    break;
+
+                case 8: // 8->灯光
+                    checkDeviceSwitchStatus(device, "power", roomVO::setLight);
+                    break;
+                case 4:
+                case 7:
+                case 10: // 4->计量插座,7->开关,10->智能插座
+                    checkDeviceSwitchStatus(device, "switch", roomVO::setPlug);
+                    break;
+
+                case 5: // 5->人体感应雷达
+                    DeviceInfo.getValueByName(device.getDeviceInfo(), "motion", Integer.class)
+                            .filter(motion -> motion == 1)
+                            .ifPresent(motion -> roomVO.setHuman(true));
+                    break;
+
+                case 6: // 6->人体存在感应
+                    DeviceInfo.getValueByName(device.getDeviceInfo(), "Occupancy", Integer.class)
+                            .filter(occupancy -> occupancy == 1)
+                            .ifPresent(occupancy -> roomVO.setHuman(true));
+                    break;
+            }
+        }
+    }
+
+    // 检查设备开关状态的通用方法
+    private void checkDeviceSwitchStatus(DeviceInfoVO device, String switchPrefix, Consumer<Boolean> statusSetter) {
+        DeviceInfo.getValueByName(device.getDeviceInfo(), "count", Integer.class)
+                .ifPresent(count -> {
+                    for (int i = 0; i < count; i++) {
+                        String switchName = switchPrefix + (i + 1);
+                        Optional<String> switchStatus = DeviceInfo.getValueByName(
+                                device.getDeviceInfo(),
+                                switchName,
+                                String.class
+                        );
+                        if (switchStatus.isPresent() && "ON".equals(switchStatus.get())) {
+                            statusSetter.accept(true);
+                            return; // 找到ON状态后立即返回
+                        }
+                    }
+                });
+    }
+
 
     @Operation(summary = "房间下拉列表")
     @GetMapping("/options")

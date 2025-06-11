@@ -28,6 +28,7 @@ import com.youlai.boot.deviceType.model.entity.DeviceType;
 import com.youlai.boot.floor.model.entity.Floor;
 import com.youlai.boot.floor.service.FloorService;
 import com.youlai.boot.room.model.entity.Room;
+import com.youlai.boot.room.model.vo.RoomVO;
 import com.youlai.boot.room.service.RoomService;
 import com.youlai.boot.system.model.entity.DictItem;
 import com.youlai.boot.system.service.DictItemService;
@@ -237,6 +238,30 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
             }
         }
         return deviceInfoVOS;
+    }
+
+    @Override
+    public List<DeviceInfoVO> listDeviceByRoomIds(List<RoomVO> records) {
+        List<Device> roomDevices = this.list(new LambdaQueryWrapper<Device>().in(Device::getDeviceRoom, records.stream().map(RoomVO::getId).toArray()));
+        List<DeviceInfoVO> deviceInfoVOS = new ArrayList<>();
+        for (Device roomDevice : roomDevices) {
+            //转VO
+            DeviceInfoVO deviceInfoVO = basicPropertyConvert(roomDevice, roomDevice.getRoomName());
+            String deviceType = DeviceTypeEnum.getNameById(roomDevice.getDeviceTypeId());
+            String communicationMode = CommunicationModeEnum.getNameById(roomDevice.getCommunicationModeItemId());
+            if (!deviceType.equals("Gateway")) {
+                DeviceInfoParser parser = DeviceInfoParserFactory.getParser(deviceType, communicationMode);
+                List<DeviceInfo> deviceInfos = parser.parse(roomDevice.getDeviceInfo());
+                deviceInfoVO.setDeviceInfo(deviceInfos);
+            }
+            deviceInfoVOS.add(deviceInfoVO);
+        }
+        return deviceInfoVOS;
+    }
+
+    @Override
+    public List<Long> listRoomDevicesIds(Long id) {
+        return this.list(new LambdaQueryWrapper<Device>().eq(Device::getDeviceRoom, id)).stream().map(Device::getDeviceTypeId).toList();
     }
 
 }
