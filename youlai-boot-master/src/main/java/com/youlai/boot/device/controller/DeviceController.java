@@ -20,6 +20,7 @@ import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.DeviceForm;
 import com.youlai.boot.device.model.query.DeviceQuery;
 import com.youlai.boot.device.model.vo.DeviceInfo;
+import com.youlai.boot.device.model.vo.DeviceInfoVO;
 import com.youlai.boot.device.model.vo.DeviceVO;
 import com.youlai.boot.device.service.DeviceInfoParser;
 import com.youlai.boot.device.service.DeviceService;
@@ -36,14 +37,12 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 import static com.youlai.boot.common.util.MacUtils.reParseMACAddress;
 import static com.youlai.boot.config.mqtt.TopicConfig.BASE_TOPIC;
 import static com.youlai.boot.config.mqtt.TopicConfig.TOPIC_LIST;
+import static com.youlai.boot.dashBoard.controller.DashBoardController.basicPropertyConvert;
 
 /**
  * 设备管理前端控制层
@@ -68,14 +67,78 @@ public class DeviceController {
     @PreAuthorize("@ss.hasPerm('device:device:query')")
     public PageResult<DeviceVO> getDevicePage(DeviceQuery queryParams) {
         IPage<DeviceVO> result = deviceService.getDevicePage(queryParams);
-        //对设备的deviceInfo赋值
-//        for (DeviceVO deviceVO : result.getRecords()) {
-//            String deviceType = DeviceTypeEnum.getNameById(deviceVO.getDeviceTypeId());
-//            String communicationMode = CommunicationModeEnum.getNameById(deviceVO.getCommunicationModeItemId());
-//            DeviceInfoParser parser = DeviceInfoParserFactory.getParser(deviceType, communicationMode);
-//            List<DeviceInfo> deviceInfos = parser.parse(deviceVO.getDeviceInfo());
-//        }
+
+        result.getRecords().forEach(item -> {
+            //使用工厂对设备具体信息转换
+            // 动态获取解析器
+            // 使用枚举获取类型名称
+            if (item.getDeviceTypeId() != 1) {
+                String deviceType = DeviceTypeEnum.getNameById(item.getDeviceTypeId());
+                String communicationMode = CommunicationModeEnum.getNameById(item.getCommunicationModeItemId());
+                DeviceInfoParser parser = DeviceInfoParserFactory.getParser(deviceType, communicationMode);
+                List<DeviceInfo> deviceInfos = parser.parse(item.getDeviceInfo());
+                item.setDeviceInfoList(deviceInfos);
+            }
+        });
+        //根据设备类型去对是否开启icon显示
+        result.getRecords().forEach(d -> {
+            d.setIsOpenIcon(false);
+            if (d.getDeviceTypeId() != null) {
+                //4->计量插座 7->开关 10->智能插座
+                if (d.getDeviceTypeId() == 4 || d.getDeviceTypeId() == 7 || d.getDeviceTypeId() == 10) {
+                    d.setIsOpenIcon(true);
+                    //获取开关状态
+                    Optional<Integer> count = DeviceInfo.getValueByName(d.getDeviceInfoList(), "count", Integer.class);
+                    if (count.isPresent()) {
+                        boolean found = false;
+                        for (int i = 0; i < count.get() && !found; i++) {
+                            Optional<String> switchStatus = DeviceInfo.getValueByName(
+                                    d.getDeviceInfoList(),
+                                    "switch" + (i + 1),
+                                    String.class
+                            );
+                            if (switchStatus.isPresent() && switchStatus.get().equals("ON")) {
+                                d.setIsOpen(true);
+                                found = true; // 找到ON状态后立即跳出循环
+                            }
+                        }
+                        // 如果没有找到ON状态，设置为false
+                        if (!found) {
+                            d.setIsOpen(false);
+                        }
+                    }
+                }
+                //8->灯光
+                if (d.getDeviceTypeId() == 8) {
+                    d.setIsOpenIcon(true);
+                    //获取开关状态
+                    Optional<Integer> count = DeviceInfo.getValueByName(d.getDeviceInfoList(), "count", Integer.class);
+                    if (count.isPresent()) {
+                        boolean found = false;
+                        for (int i = 0; i < count.get() && !found; i++) {
+                            Optional<String> switchStatus = DeviceInfo.getValueByName(
+                                    d.getDeviceInfoList(),
+                                    "power" + (i + 1),
+                                    String.class
+                            );
+                            if (switchStatus.isPresent() && switchStatus.get().equals("ON")) {
+                                d.setIsOpen(true);
+                                found = true; // 找到ON状态后立即跳出循环
+                            }
+                        }
+                        // 如果没有找到ON状态，设置为false
+                        if (!found) {
+                            d.setIsOpen(false);
+                        }
+                    }
+                }
+            }
+        });
         return PageResult.success(result);
+    }
+
+    private void convertVo(List<DeviceVO> records) {
+
     }
 
     @Operation(summary = "网关设备下拉列表")

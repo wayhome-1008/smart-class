@@ -2,8 +2,6 @@ package com.youlai.boot.device.model.vo;
 
 import com.youlai.boot.config.handler.JsonTypeHandler;
 import lombok.Data;
-import org.apache.ibatis.annotations.Result;
-import org.apache.ibatis.annotations.Results;
 
 import java.io.Serializable;
 import java.util.List;

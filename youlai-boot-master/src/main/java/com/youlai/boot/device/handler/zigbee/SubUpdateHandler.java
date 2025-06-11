@@ -27,10 +27,7 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
-import java.util.Iterator;
-import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 import static com.youlai.boot.common.util.JsonUtils.*;
 

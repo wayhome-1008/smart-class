@@ -15,6 +15,7 @@ import com.youlai.boot.device.model.influx.InfluxPlug;
 import com.youlai.boot.device.model.influx.InfluxSensor;
 import com.youlai.boot.device.model.vo.DeviceInfo;
 import com.youlai.boot.device.model.vo.DeviceInfoVO;
+import com.youlai.boot.device.model.vo.DeviceVO;
 import com.youlai.boot.device.service.DeviceInfoParser;
 import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.room.model.entity.Room;
@@ -71,7 +72,7 @@ public class DashBoardController {
         Device device = deviceService.getByCode(code);
         //根据roomId查询
         Room room = roomService.getById(device.getDeviceRoom());
-        DeviceInfoVO deviceInfoVO = basicPropertyConvert(device, room);
+        DeviceInfoVO deviceInfoVO = basicPropertyConvert(device, room.getClassroomCode());
         //使用工厂对设备具体信息转换
         // 动态获取解析器
         // 使用枚举获取类型名称
@@ -181,13 +182,29 @@ public class DashBoardController {
 
     }
 
-    public static DeviceInfoVO basicPropertyConvert(Device device, Room room) {
+    public static DeviceInfoVO basicPropertyConvert(Device device, String  roomCode) {
         DeviceInfoVO deviceInfoVO = new DeviceInfoVO();
         deviceInfoVO.setId(device.getId());
         deviceInfoVO.setDeviceName(device.getDeviceName());
         deviceInfoVO.setDeviceCode(device.getDeviceCode());
         deviceInfoVO.setDeviceRoom(device.getDeviceRoom());
-        deviceInfoVO.setRoomName(room.getClassroomCode());
+        deviceInfoVO.setRoomName(roomCode);
+        deviceInfoVO.setDeviceMac(device.getDeviceMac());
+        deviceInfoVO.setDeviceGatewayId(device.getDeviceGatewayId());
+        deviceInfoVO.setDeviceTypeId(device.getDeviceTypeId());
+        deviceInfoVO.setCommunicationModeItemId(device.getCommunicationModeItemId());
+        deviceInfoVO.setDeviceNo(device.getDeviceNo());
+        deviceInfoVO.setStatus(device.getStatus());
+        deviceInfoVO.setRemark(device.getRemark());
+        return deviceInfoVO;
+    }
+    public static DeviceInfoVO basicPropertyConvert(DeviceVO device, String  roomCode) {
+        DeviceInfoVO deviceInfoVO = new DeviceInfoVO();
+        deviceInfoVO.setId(device.getId());
+        deviceInfoVO.setDeviceName(device.getDeviceName());
+        deviceInfoVO.setDeviceCode(device.getDeviceCode());
+        deviceInfoVO.setDeviceRoom(device.getDeviceRoom());
+        deviceInfoVO.setRoomName(roomCode);
         deviceInfoVO.setDeviceMac(device.getDeviceMac());
         deviceInfoVO.setDeviceGatewayId(device.getDeviceGatewayId());
         deviceInfoVO.setDeviceTypeId(device.getDeviceTypeId());

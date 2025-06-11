@@ -201,7 +201,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
         List<DeviceInfoVO> deviceInfoVOS = new ArrayList<>();
         for (Device roomDevice : roomDevices) {
             //转VO
-            DeviceInfoVO deviceInfoVO = basicPropertyConvert(roomDevice, room);
+            DeviceInfoVO deviceInfoVO = basicPropertyConvert(roomDevice, room.getClassroomCode());
             String deviceType = DeviceTypeEnum.getNameById(roomDevice.getDeviceTypeId());
             String communicationMode = CommunicationModeEnum.getNameById(roomDevice.getCommunicationModeItemId());
             if (!deviceType.equals("Gateway")) {
@@ -224,7 +224,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
             for (Room room : roomList) {
                 if (Objects.equals(room.getId(), floorDevice.getDeviceRoom())) {
                     //转VO
-                    DeviceInfoVO deviceInfoVO = basicPropertyConvert(floorDevice, room);
+                    DeviceInfoVO deviceInfoVO = basicPropertyConvert(floorDevice, room.getClassroomCode());
                     String deviceType = DeviceTypeEnum.getNameById(floorDevice.getDeviceTypeId());
                     String communicationMode = CommunicationModeEnum.getNameById(floorDevice.getCommunicationModeItemId());
                     if (!deviceType.equals("Gateway")) {
