@@ -80,6 +80,8 @@ public class FloorController {
         floor.setPlug(false);
         floor.setHuman(false);
         floor.setIsOpen(false);
+        floor.setLightNum(0);
+        floor.setPlugNum(0);
         for (DeviceInfoVO device : floorDevices) {
             switch (device.getDeviceTypeId().intValue()) {
                 case 2: // 2->温湿度传感器
