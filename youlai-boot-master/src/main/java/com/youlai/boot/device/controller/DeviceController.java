@@ -69,7 +69,9 @@ public class DeviceController {
     @PreAuthorize("@ss.hasPerm('device:device:query')")
     public PageResult<DeviceVO> getDevicePage(DeviceQuery queryParams) {
         IPage<DeviceVO> result = deviceService.getDevicePage(queryParams);
-
+        if (result.getTotal() == 0) {
+            return PageResult.success(result);
+        }
         result.getRecords().forEach(item -> {
             //使用工厂对设备具体信息转换
             // 动态获取解析器

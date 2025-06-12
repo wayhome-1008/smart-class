@@ -164,7 +164,9 @@ public class RoomController {
     public PageResult<RoomVO> getRoomPage(RoomQuery queryParams) {
         // 1. 获取房间分页数据
         IPage<RoomVO> result = roomService.getRoomPage(queryParams);
-
+        if (result.getTotal() == 0) {
+            return PageResult.success(result);
+        }
         // 2. 批量获取所有相关设备
         List<DeviceInfoVO> devices = deviceService.listDeviceByRoomIds(result.getRecords());
 
@@ -203,12 +205,12 @@ public class RoomController {
                     break;
 
                 case 8: // 8->灯光
-                    checkDeviceSwitchStatus(device, "power", roomVO::setLight,roomVO::setIsOpen,roomVO::setLightNum);
+                    checkDeviceSwitchStatus(device, "power", roomVO::setLight, roomVO::setIsOpen, roomVO::setLightNum);
                     break;
                 case 4:
                 case 7:
                 case 10: // 4->计量插座,7->开关,10->智能插座
-                    checkDeviceSwitchStatus(device, "switch", roomVO::setPlug,roomVO::setIsOpen,roomVO::setPlugNum);
+                    checkDeviceSwitchStatus(device, "switch", roomVO::setPlug, roomVO::setIsOpen, roomVO::setPlugNum);
                     break;
 
                 case 5: // 5->人体感应雷达
@@ -259,7 +261,6 @@ public class RoomController {
                     }
                 });
     }
-
 
 
     @Operation(summary = "房间下拉列表")
