@@ -10,6 +10,7 @@ import com.youlai.boot.device.model.query.DeviceQuery;
 import com.youlai.boot.device.model.vo.DeviceInfoVO;
 import com.youlai.boot.device.model.vo.DeviceVO;
 import com.youlai.boot.floor.model.entity.Floor;
+import com.youlai.boot.floor.model.vo.FloorVO;
 import com.youlai.boot.room.model.entity.Room;
 import com.youlai.boot.room.model.vo.RoomVO;
 
@@ -84,4 +85,6 @@ public interface DeviceService extends IService<Device> {
     List<DeviceInfoVO> listDeviceByRoomIds(List<RoomVO> records);
 
     List<Long> listRoomDevicesIds(Long id);
+
+    List<DeviceInfoVO> listDeviceByFloorIds(List<FloorVO> records);
 }

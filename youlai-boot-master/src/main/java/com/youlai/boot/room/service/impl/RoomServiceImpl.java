@@ -2,6 +2,7 @@ package com.youlai.boot.room.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.youlai.boot.common.model.Option;
+import com.youlai.boot.floor.model.vo.FloorVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -106,6 +107,11 @@ public class RoomServiceImpl extends ServiceImpl<RoomMapper, Room> implements Ro
     public List<Option<Long>> listRoomOptions() {
         List<Room> list = this.list();
         return roomConverter.toOptions(list);
+    }
+
+    @Override
+    public List<Room> listRoomByFloor(List<FloorVO> records) {
+        return this.list(new LambdaQueryWrapper<Room>().in(Room::getFloorId, records.stream().map(FloorVO::getId).toArray()));
     }
 
 }

@@ -176,7 +176,6 @@ public class RoomController {
         result.getRecords().forEach(roomVO -> {
             List<DeviceInfoVO> roomDevices = deviceMap.getOrDefault(roomVO.getId(), new ArrayList<>());
             roomVO.setDeviceInfo(roomDevices); // 一次性设置完整设备列表
-
             // 初始化房间状态指标
             initRoomStatusIndicators(roomVO, roomDevices);
         });
@@ -203,12 +202,12 @@ public class RoomController {
                     break;
 
                 case 8: // 8->灯光
-                    checkDeviceSwitchStatus(device, "power", roomVO::setLight);
+                    checkDeviceSwitchStatus(device, "power", roomVO::setLight,roomVO::setIsOpen);
                     break;
                 case 4:
                 case 7:
                 case 10: // 4->计量插座,7->开关,10->智能插座
-                    checkDeviceSwitchStatus(device, "switch", roomVO::setPlug);
+                    checkDeviceSwitchStatus(device, "switch", roomVO::setPlug,roomVO::setIsOpen);
                     break;
 
                 case 5: // 5->人体感应雷达
@@ -227,7 +226,7 @@ public class RoomController {
     }
 
     // 检查设备开关状态的通用方法
-    private void checkDeviceSwitchStatus(DeviceInfoVO device, String switchPrefix, Consumer<Boolean> statusSetter) {
+    public static void checkDeviceSwitchStatus(DeviceInfoVO device, String switchPrefix, Consumer<Boolean> statusSetter, Consumer<Boolean> openSetter) {
         DeviceInfo.getValueByName(device.getDeviceInfo(), "count", Integer.class)
                 .ifPresent(count -> {
                     for (int i = 0; i < count; i++) {
@@ -239,6 +238,7 @@ public class RoomController {
                         );
                         if (switchStatus.isPresent() && "ON".equals(switchStatus.get())) {
                             statusSetter.accept(true);
+                            openSetter.accept(true);
                             return; // 找到ON状态后立即返回
                         }
                     }

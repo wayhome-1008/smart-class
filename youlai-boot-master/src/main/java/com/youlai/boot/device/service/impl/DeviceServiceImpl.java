@@ -26,6 +26,7 @@ import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.deviceType.mapper.DeviceTypeMapper;
 import com.youlai.boot.deviceType.model.entity.DeviceType;
 import com.youlai.boot.floor.model.entity.Floor;
+import com.youlai.boot.floor.model.vo.FloorVO;
 import com.youlai.boot.floor.service.FloorService;
 import com.youlai.boot.room.model.entity.Room;
 import com.youlai.boot.room.model.vo.RoomVO;
@@ -34,6 +35,7 @@ import com.youlai.boot.system.model.entity.DictItem;
 import com.youlai.boot.system.service.DictItemService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -199,45 +201,53 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     @Override
     public List<DeviceInfoVO> listDeviceByRoomId(Long roomId, Room room) {
         List<Device> roomDevices = this.list(new LambdaQueryWrapper<Device>().eq(Device::getDeviceRoom, roomId));
-        List<DeviceInfoVO> deviceInfoVOS = new ArrayList<>();
-        for (Device roomDevice : roomDevices) {
-            //转VO
-            DeviceInfoVO deviceInfoVO = basicPropertyConvert(roomDevice, room.getClassroomCode());
-            String deviceType = DeviceTypeEnum.getNameById(roomDevice.getDeviceTypeId());
-            String communicationMode = CommunicationModeEnum.getNameById(roomDevice.getCommunicationModeItemId());
-            if (!deviceType.equals("Gateway")) {
-                DeviceInfoParser parser = DeviceInfoParserFactory.getParser(deviceType, communicationMode);
-                List<DeviceInfo> deviceInfos = parser.parse(roomDevice.getDeviceInfo());
-                deviceInfoVO.setDeviceInfo(deviceInfos);
+        if (ObjectUtils.isNotEmpty(roomDevices)) {
+            List<DeviceInfoVO> deviceInfoVOS = new ArrayList<>();
+            for (Device roomDevice : roomDevices) {
+                //转VO
+                DeviceInfoVO deviceInfoVO = basicPropertyConvert(roomDevice, room.getClassroomCode());
+                String deviceType = DeviceTypeEnum.getNameById(roomDevice.getDeviceTypeId());
+                String communicationMode = CommunicationModeEnum.getNameById(roomDevice.getCommunicationModeItemId());
+                if (!deviceType.equals("Gateway")) {
+                    DeviceInfoParser parser = DeviceInfoParserFactory.getParser(deviceType, communicationMode);
+                    List<DeviceInfo> deviceInfos = parser.parse(roomDevice.getDeviceInfo());
+                    deviceInfoVO.setDeviceInfo(deviceInfos);
+                }
+                deviceInfoVOS.add(deviceInfoVO);
             }
-            deviceInfoVOS.add(deviceInfoVO);
+            return deviceInfoVOS;
+        } else {
+            return null;
         }
-        return deviceInfoVOS;
     }
 
     @Override
     public List<DeviceInfoVO> listDeviceByFloorId(Long floorId, Floor floor) {
         //1.查询该楼层有那些roomId
         List<Room> roomList = roomService.list(new LambdaQueryWrapper<Room>().eq(Room::getFloorId, floorId));
-        List<Device> floorDevices = this.list(new LambdaQueryWrapper<Device>().in(Device::getDeviceRoom, roomList.stream().map(Room::getId).toList()));
-        List<DeviceInfoVO> deviceInfoVOS = new ArrayList<>();
-        for (Device floorDevice : floorDevices) {
-            for (Room room : roomList) {
-                if (Objects.equals(room.getId(), floorDevice.getDeviceRoom())) {
-                    //转VO
-                    DeviceInfoVO deviceInfoVO = basicPropertyConvert(floorDevice, room.getClassroomCode());
-                    String deviceType = DeviceTypeEnum.getNameById(floorDevice.getDeviceTypeId());
-                    String communicationMode = CommunicationModeEnum.getNameById(floorDevice.getCommunicationModeItemId());
-                    if (!deviceType.equals("Gateway")) {
-                        DeviceInfoParser parser = DeviceInfoParserFactory.getParser(deviceType, communicationMode);
-                        List<DeviceInfo> deviceInfos = parser.parse(floorDevice.getDeviceInfo());
-                        deviceInfoVO.setDeviceInfo(deviceInfos);
+        if (ObjectUtils.isNotEmpty(roomList)) {
+            List<Device> floorDevices = this.list(new LambdaQueryWrapper<Device>().in(Device::getDeviceRoom, roomList.stream().map(Room::getId).toList()));
+            List<DeviceInfoVO> deviceInfoVOS = new ArrayList<>();
+            for (Device floorDevice : floorDevices) {
+                for (Room room : roomList) {
+                    if (Objects.equals(room.getId(), floorDevice.getDeviceRoom())) {
+                        //转VO
+                        DeviceInfoVO deviceInfoVO = basicPropertyConvert(floorDevice, room.getClassroomCode());
+                        String deviceType = DeviceTypeEnum.getNameById(floorDevice.getDeviceTypeId());
+                        String communicationMode = CommunicationModeEnum.getNameById(floorDevice.getCommunicationModeItemId());
+                        if (!deviceType.equals("Gateway")) {
+                            DeviceInfoParser parser = DeviceInfoParserFactory.getParser(deviceType, communicationMode);
+                            List<DeviceInfo> deviceInfos = parser.parse(floorDevice.getDeviceInfo());
+                            deviceInfoVO.setDeviceInfo(deviceInfos);
+                        }
+                        deviceInfoVOS.add(deviceInfoVO);
                     }
-                    deviceInfoVOS.add(deviceInfoVO);
                 }
             }
+            return deviceInfoVOS;
+        } else {
+            return null;
         }
-        return deviceInfoVOS;
     }
 
     @Override
@@ -264,4 +274,26 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
         return this.list(new LambdaQueryWrapper<Device>().eq(Device::getDeviceRoom, id)).stream().map(Device::getDeviceTypeId).toList();
     }
 
+    @Override
+    public List<DeviceInfoVO> listDeviceByFloorIds(List<FloorVO> records) {
+        List<Room> roomList = roomService.list(new LambdaQueryWrapper<Room>().in(Room::getFloorId, records.stream().map(FloorVO::getId).toArray()));
+        if (ObjectUtils.isNotEmpty(roomList)) {
+            List<Device> floorDevices = this.list(new LambdaQueryWrapper<Device>().in(Device::getDeviceRoom, roomList.stream().map(Room::getId).toList()));
+            List<DeviceInfoVO> deviceInfoVOS = new ArrayList<>();
+            for (Device floorDevice : floorDevices) {
+                //转VO
+                DeviceInfoVO deviceInfoVO = basicPropertyConvert(floorDevice, floorDevice.getRoomName());
+                String deviceType = DeviceTypeEnum.getNameById(floorDevice.getDeviceTypeId());
+                String communicationMode = CommunicationModeEnum.getNameById(floorDevice.getCommunicationModeItemId());
+                if (!deviceType.equals("Gateway")) {
+                    DeviceInfoParser parser = DeviceInfoParserFactory.getParser(deviceType, communicationMode);
+                    List<DeviceInfo> deviceInfos = parser.parse(floorDevice.getDeviceInfo());
+                    deviceInfoVO.setDeviceInfo(deviceInfos);
+                }
+                deviceInfoVOS.add(deviceInfoVO);
+            }
+            return deviceInfoVOS;
+        }
+        return null;
+    }
 }

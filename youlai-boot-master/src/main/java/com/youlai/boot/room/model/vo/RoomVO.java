@@ -45,4 +45,6 @@ public class RoomVO implements Serializable {
     private Boolean light;
     private Boolean plug;
     private Boolean human;
+    @Schema(description = "开关状态")
+    private Boolean isOpen;
 }

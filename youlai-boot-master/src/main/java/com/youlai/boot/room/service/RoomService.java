@@ -1,6 +1,7 @@
 package com.youlai.boot.room.service;
 
 import com.youlai.boot.common.model.Option;
+import com.youlai.boot.floor.model.vo.FloorVO;
 import com.youlai.boot.room.model.entity.Room;
 import com.youlai.boot.room.model.form.RoomForm;
 import com.youlai.boot.room.model.query.RoomQuery;
@@ -59,4 +60,6 @@ public interface RoomService extends IService<Room> {
     boolean deleteRooms(String ids);
 
     List<Option<Long>> listRoomOptions();
+
+    List<Room> listRoomByFloor(List<FloorVO> records);
 }

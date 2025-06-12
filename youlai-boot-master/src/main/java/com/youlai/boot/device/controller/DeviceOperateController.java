@@ -87,6 +87,7 @@ public class DeviceOperateController {
         if (ObjectUtils.isEmpty(floor)) return Result.failed("楼层不存在");
         //根据楼层id查询设备
         List<DeviceInfoVO> deviceInfoVOS = deviceService.listDeviceByFloorId(operation.getId(), floor);
+        if (ObjectUtils.isEmpty(deviceInfoVOS)) return Result.failed("该楼层没有设备");
         for (DeviceInfoVO deviceInfoVO : deviceInfoVOS) {
             Optional<Integer> tempValue = DeviceInfo.getValueByName(deviceInfoVO.getDeviceInfo(), "count", Integer.class);
             tempValue.ifPresent(
@@ -108,6 +109,7 @@ public class DeviceOperateController {
         if (ObjectUtils.isEmpty(room)) return Result.failed("房间不存在");
         //根据房间id查询设备
         List<DeviceInfoVO> deviceInfoVOS = deviceService.listDeviceByRoomId(operation.getId(), room);
+        if (ObjectUtils.isEmpty(deviceInfoVOS)) return Result.failed("该房间没有设备");
         for (DeviceInfoVO deviceInfoVO : deviceInfoVOS) {
             Optional<Integer> tempValue = DeviceInfo.getValueByName(deviceInfoVO.getDeviceInfo(), "count", Integer.class);
             tempValue.ifPresent(
