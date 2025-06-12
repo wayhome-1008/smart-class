@@ -13,7 +13,6 @@ import com.youlai.boot.device.converter.DeviceConverter;
 import com.youlai.boot.device.factory.DeviceInfoParserFactory;
 import com.youlai.boot.device.mapper.DeviceMapper;
 import com.youlai.boot.device.model.dto.event.DeviceEventParams;
-import com.youlai.boot.device.model.dto.event.SubDevicesEvent;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.DeviceForm;
 import com.youlai.boot.device.model.query.DeviceQuery;
