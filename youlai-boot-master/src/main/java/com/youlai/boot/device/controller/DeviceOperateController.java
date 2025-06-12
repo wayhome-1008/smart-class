@@ -50,33 +50,10 @@ public class DeviceOperateController {
     private final MqttProducer mqttProducer;
     private final RoomService roomService;
     private final FloorService floorService;
-
-    //    @Operation(summary = "灯光操作")
-//    @PutMapping(value = "/{id}")
-//    public Result<Void> operateDevice(
-//            @Parameter(description = "设备ID") @PathVariable Long id,
-//            @RequestBody @Validated DeviceOperate
-//                    deviceOperate
-//    ) throws MqttException {
-//        //根据设备发送mqtt
-//        Device device = deviceService.getById(id);
-//        if (ObjectUtils.isEmpty(device)) return Result.failed("设备不存在");
-//        //校验是否为灯
-//        if (device.getDeviceTypeId() != 8) return Result.failed("该设备不是灯");
-//        String deviceCode = device.getDeviceCode();
-//        //判断几路
-//        int lightCount = device.getDeviceInfo().get("count").asInt();
-//        if (lightCount == 1) {
-//            mqttProducer.send("cmnd/" + deviceCode + "/POWER", 0, false, deviceOperate.getOperate());
-//        } else {
-//            mqttProducer.send("cmnd/" + deviceCode + "/POWER" + deviceOperate.getWay(), 0, false, deviceOperate.getOperate());
-//        }
-//        return Result.success();
-//    }
     @Operation(summary = "根据楼、层、房间批量操作设备")
     @PutMapping(value = "/batch")
-    @Log( value = "批量操作设备",module = LogModuleEnum.OPERATION)
-    public Result<Void> operateDevice(@RequestBody @Validated com.youlai.boot.device.model.form.Operation operation) throws MqttException {
+    @Log(value = "批量操作设备", module = LogModuleEnum.OPERATION)
+    public Result<Void> operateDevice(@RequestBody @Validated com.youlai.boot.device.model.form.Operation operation) {
         return switch (operation.getType()) {
             case "room" -> roomOperate(operation);
             case "floor" -> floorOperate(operation);
@@ -84,7 +61,7 @@ public class DeviceOperateController {
         };
     }
 
-    private Result<Void> floorOperate(com.youlai.boot.device.model.form.Operation operation) throws MqttException {
+    private Result<Void> floorOperate(com.youlai.boot.device.model.form.Operation operation) {
         //查楼层
         Floor floor = floorService.getById(operation.getId());
         if (ObjectUtils.isEmpty(floor)) return Result.failed("楼层不存在");
@@ -94,18 +71,16 @@ public class DeviceOperateController {
         for (DeviceInfoVO deviceInfoVO : deviceInfoVOS) {
             Optional<Integer> tempValue = DeviceInfo.getValueByName(deviceInfoVO.getDeviceInfo(), "count", Integer.class);
             tempValue.ifPresent(
-                    value -> {
-                        this.operate(operation.getOperate(),
-                                "-1", value, deviceInfoVO.getDeviceCode(),
-                                deviceInfoVO.getDeviceGatewayId(),
-                                deviceInfoVO.getCommunicationModeItemId(),
-                                deviceInfoVO.getDeviceTypeId());
-                    });
+                    value -> this.operate(operation.getOperate(),
+                            "-1", value, deviceInfoVO.getDeviceCode(),
+                            deviceInfoVO.getDeviceGatewayId(),
+                            deviceInfoVO.getCommunicationModeItemId(),
+                            deviceInfoVO.getDeviceTypeId()));
         }
         return Result.success();
     }
 
-    private Result<Void> roomOperate(com.youlai.boot.device.model.form.Operation operation) throws MqttException {
+    private Result<Void> roomOperate(com.youlai.boot.device.model.form.Operation operation)  {
         //查本房间的设备
         //查询房间是否存在
         Room room = roomService.getById(operation.getId());
@@ -116,20 +91,19 @@ public class DeviceOperateController {
         for (DeviceInfoVO deviceInfoVO : deviceInfoVOS) {
             Optional<Integer> tempValue = DeviceInfo.getValueByName(deviceInfoVO.getDeviceInfo(), "count", Integer.class);
             tempValue.ifPresent(
-                    value -> {
-                        this.operate(operation.getOperate(),
-                                "-1", value, deviceInfoVO.getDeviceCode(),
-                                deviceInfoVO.getDeviceGatewayId(),
-                                deviceInfoVO.getCommunicationModeItemId(),
-                                deviceInfoVO.getDeviceTypeId());
-                    });
+                    value -> this.operate(operation.getOperate(),
+                            "-1", value, deviceInfoVO.getDeviceCode(),
+                            deviceInfoVO.getDeviceGatewayId(),
+                            deviceInfoVO.getCommunicationModeItemId(),
+                            deviceInfoVO.getDeviceTypeId()));
         }
         return Result.success();
     }
 
     @Operation(summary = "插座操作")
-    @Log( value = "设备操作",module = LogModuleEnum.OPERATION)
-    public Result<Void> operateSocket(@Parameter(description = "设备ID") @PathVariable Long id, @RequestBody @Validated DeviceOperate deviceOperate) throws MqttException {
+    @PutMapping(value = "/socket/{id}")
+    @Log(value = "设备操作", module = LogModuleEnum.OPERATION)
+    public Result<Void> operateSocket(@Parameter(description = "设备ID") @PathVariable Long id, @RequestBody @Validated DeviceOperate deviceOperate){
         //根据设备发送mqtt
         Device device = deviceService.getById(id);
         if (ObjectUtils.isEmpty(device)) return Result.failed("设备不存在");
@@ -143,15 +117,15 @@ public class DeviceOperateController {
         return switch (CommunicationModeEnum.getNameById(deviceCommunicationModeItemId)) {
             case "ZigBee" ->
                 //zigBee
-                    zigBeeDevice(deviceCode, deviceGatewayId, deviceCommunicationModeItemId, deviceTypeId, operate, way, lightCount);
+                    zigBeeDevice(deviceCode, deviceGatewayId, operate, way, lightCount);
             case "MQTT" ->
                 //mqtt
-                    mqttDevice(deviceCode, deviceGatewayId, deviceCommunicationModeItemId, deviceTypeId, operate, way, lightCount);
+                    mqttDevice(deviceCode, operate, way, lightCount);
             default -> Result.failed("暂不支持该协议");
         };
     }
 
-    private Result<Void> mqttDevice(String deviceCode, Long deviceGatewayId, Long deviceCommunicationModeItemId, Long deviceTypeId, String operate, String way, Integer lightCount) {
+    private Result<Void> mqttDevice(String deviceCode, String operate, String way, Integer lightCount) {
         //目前能控制的就只有灯的开关
         //判断几路
         if (lightCount == 1) {
@@ -179,7 +153,7 @@ public class DeviceOperateController {
         return Result.success();
     }
 
-    private Result<Void> zigBeeDevice(String deviceCode, Long deviceGatewayId, Long deviceCommunicationModeItemId, Long deviceTypeId, String operate, String way, Integer lightCount) {
+    private Result<Void> zigBeeDevice(String deviceCode, Long deviceGatewayId, String operate, String way, Integer lightCount) {
         //目前能控制的就只有计量插座和开关
         //查询该子设备的网关
         Device gateway = deviceService.getById(deviceGatewayId);
@@ -207,7 +181,6 @@ public class DeviceOperateController {
                     log.error(e.getMessage());
                 }
             }
-            return Result.success();
         } else {
             Control control = new Control();
             control.setDeviceId(deviceCode);
@@ -228,8 +201,8 @@ public class DeviceOperateController {
             } catch (MqttException e) {
                 log.error(e.getMessage());
             }
-            return Result.success();
         }
+        return Result.success();
 
     }
 }

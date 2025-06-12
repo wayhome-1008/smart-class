@@ -170,14 +170,15 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
 
     @Override
     public void updateDeviceStatusByCode(DeviceEventParams params) {
-        List<SubDevicesEvent> subDevices = params.getSubDevices();
-        for (SubDevicesEvent subDevice : subDevices) {
-            Device deviceUpdate = new Device();
+        //todo 状态处理
+//        List<SubDevicesEvent> subDevices = params.getSubDevices();
+//        for (SubDevicesEvent subDevice : subDevices) {
+//            Device deviceUpdate = new Device();
 //            if (subDevice.getOnline() != null) {
 //                deviceUpdate.setStatus(subDevice.getOnline() ? 1 : 0);
 //                this.deviceMapper.update(deviceUpdate, new LambdaQueryWrapper<Device>().eq(Device::getDeviceCode, subDevice.getDeviceId()));
 //            }
-        }
+//        }
     }
 
     @Override

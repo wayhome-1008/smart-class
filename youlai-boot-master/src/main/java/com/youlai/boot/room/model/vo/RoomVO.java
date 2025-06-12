@@ -1,7 +1,6 @@
 package com.youlai.boot.room.model.vo;
 
 import com.youlai.boot.device.model.vo.DeviceInfoVO;
-import com.youlai.boot.device.model.vo.DeviceVO;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;

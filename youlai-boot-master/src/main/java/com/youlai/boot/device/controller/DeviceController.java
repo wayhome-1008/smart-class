@@ -22,7 +22,6 @@ import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.DeviceForm;
 import com.youlai.boot.device.model.query.DeviceQuery;
 import com.youlai.boot.device.model.vo.DeviceInfo;
-import com.youlai.boot.device.model.vo.DeviceInfoVO;
 import com.youlai.boot.device.model.vo.DeviceVO;
 import com.youlai.boot.device.service.DeviceInfoParser;
 import com.youlai.boot.device.service.DeviceService;
@@ -44,7 +43,6 @@ import java.util.*;
 import static com.youlai.boot.common.util.MacUtils.reParseMACAddress;
 import static com.youlai.boot.config.mqtt.TopicConfig.BASE_TOPIC;
 import static com.youlai.boot.config.mqtt.TopicConfig.TOPIC_LIST;
-import static com.youlai.boot.dashBoard.controller.DashBoardController.basicPropertyConvert;
 
 /**
  * 设备管理前端控制层
@@ -139,10 +137,6 @@ public class DeviceController {
             }
         });
         return PageResult.success(result);
-    }
-
-    private void convertVo(List<DeviceVO> records) {
-
     }
 
     @Operation(summary = "网关设备下拉列表")

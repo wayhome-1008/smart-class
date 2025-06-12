@@ -1,27 +1,25 @@
 package com.youlai.boot.room.service.impl;
 
+import cn.hutool.core.lang.Assert;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.youlai.boot.common.model.Option;
-import com.youlai.boot.floor.model.vo.FloorVO;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.youlai.boot.common.model.Option;
+import com.youlai.boot.floor.model.vo.FloorVO;
+import com.youlai.boot.room.converter.RoomConverter;
 import com.youlai.boot.room.mapper.RoomMapper;
-import com.youlai.boot.room.service.RoomService;
 import com.youlai.boot.room.model.entity.Room;
 import com.youlai.boot.room.model.form.RoomForm;
 import com.youlai.boot.room.model.query.RoomQuery;
 import com.youlai.boot.room.model.vo.RoomVO;
-import com.youlai.boot.room.converter.RoomConverter;
+import com.youlai.boot.room.service.RoomService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
-
-import cn.hutool.core.lang.Assert;
-import cn.hutool.core.util.StrUtil;
 
 /**
  * 房间管理服务实现类
@@ -43,11 +41,10 @@ public class RoomServiceImpl extends ServiceImpl<RoomMapper, Room> implements Ro
      */
     @Override
     public IPage<RoomVO> getRoomPage(RoomQuery queryParams) {
-        Page<RoomVO> pageVO = this.baseMapper.getRoomPage(
+        return this.baseMapper.getRoomPage(
                 new Page<>(queryParams.getPageNum(), queryParams.getPageSize()),
                 queryParams
         );
-        return pageVO;
     }
 
     /**

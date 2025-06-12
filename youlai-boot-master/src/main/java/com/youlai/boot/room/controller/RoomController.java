@@ -1,33 +1,26 @@
 package com.youlai.boot.room.controller;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.youlai.boot.common.model.Option;
-import com.youlai.boot.device.Enum.CommunicationModeEnum;
-import com.youlai.boot.device.Enum.DeviceTypeEnum;
-import com.youlai.boot.device.factory.DeviceInfoParserFactory;
-import com.youlai.boot.device.model.entity.Device;
+import com.youlai.boot.common.result.PageResult;
+import com.youlai.boot.common.result.Result;
 import com.youlai.boot.device.model.vo.DeviceInfo;
 import com.youlai.boot.device.model.vo.DeviceInfoVO;
-import com.youlai.boot.device.service.DeviceInfoParser;
 import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.room.model.entity.Room;
-import com.youlai.boot.room.service.RoomService;
-import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang3.ObjectUtils;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 import com.youlai.boot.room.model.form.RoomForm;
 import com.youlai.boot.room.model.query.RoomQuery;
 import com.youlai.boot.room.model.vo.RoomVO;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.youlai.boot.common.result.PageResult;
-import com.youlai.boot.common.result.Result;
+import com.youlai.boot.room.service.RoomService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import jakarta.validation.Valid;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,8 +28,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-
-import static com.youlai.boot.dashBoard.controller.DashBoardController.basicPropertyConvert;
 
 /**
  * 房间管理前端控制层
