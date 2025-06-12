@@ -14,6 +14,7 @@ import com.youlai.boot.config.property.InfluxDBProperties;
 import com.youlai.boot.device.handler.service.MsgHandler;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.SubUpdateSensorRsp;
+import com.youlai.boot.device.model.influx.InfluxHumanRadarSensor;
 import com.youlai.boot.device.model.influx.InfluxPlug;
 import com.youlai.boot.device.model.influx.InfluxSensor;
 import com.youlai.boot.device.service.DeviceService;
@@ -300,46 +301,63 @@ public class SubUpdateHandler implements MsgHandler {
         RspMqtt(topic, mqttClient, deviceCache.getDeviceCode(), sequence);
     }
 
-    private void processHumanRadarSensor(String topic, MqttClient mqttClient, Device device, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
-        if (ObjectUtil.isNotEmpty(device)) {
-            JsonNode jsonNode = stringToJsonNode(jsonMsg);
-            //获取params
-            JsonNode params = jsonNode.get("params");
-            JsonNode mergeJson = mergeJson(Optional.ofNullable(device).map(Device::getDeviceInfo).orElse(null), jsonNode);
-            if (device != null) {
-                device.setDeviceInfo(mergeJson);
-                Device deviceCache = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, device.getDeviceCode());
-                if (deviceCache != null) {
-                    try {
-                        //并且是电量
-                        if (params.has("battery")) {
-                            //查看缓存和新的电量是否一致
-                            if (!deviceCache.getDeviceInfo().get("battery").asText().equals(params.get("battery").asText())) {
-                                deviceService.updateById(device);
-                            }
-                        }
-                        if (params.has("motion")) {
-                            //查看缓存和新的电量是否一致
-                            if (!deviceCache.getDeviceInfo().get("motion").asText().equals(params.get("motion").asText())) {
-                                deviceService.updateById(device);
-                            }
-                        }
-                        if (params.has("motion")) {
-                            //查看缓存和新的电量是否一致
-                            if (!deviceCache.getDeviceInfo().get("motion").asText().equals(params.get("motion").asText())) {
-                                deviceService.updateById(device);
-                            }
-                        }
-                    } catch (NullPointerException e) {
-                        log.error(e.getMessage());
-                        deviceService.updateById(device);
-                    } finally {
-                        redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
-                        RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
-                    }
+    private void processHumanRadarSensor(String topic, MqttClient mqttClient, Device deviceCache, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
+        //1.字符串转jsonNode
+        JsonNode jsonNode = stringToJsonNode(jsonMsg);
+        //2.获取params
+        JsonNode params = jsonNode.get("params");
+        if (ObjectUtils.isEmpty(deviceCache.getDeviceInfo())) return;
+        //3.获取旧设备数据信息-使用deepCopy创建独立拷贝
+        JsonNode oldParams = deviceCache.getDeviceInfo().get("params").deepCopy();
+
+        //接收的数据与旧数据合并
+        JsonNode mergeJson = mergeJson(deviceCache.getDeviceInfo(), jsonNode);
+        deviceCache.setDeviceInfo(mergeJson);
+
+        //获取合并后的params节点
+        JsonNode mergedParams = mergeJson.get("params");
+
+        //校验缓存与本次数据是否相同 从而判断是否更新数据库
+        boolean needUpdate = false;
+
+        if (params != null) {
+            String[] fieldsToCheck = {"battery", "motion"};
+            String matched = matchedFields(fieldsToCheck, params);
+            if (StringUtils.isNotEmpty(matched)) {
+                //对比
+                int newValue = params.get(matched).asInt();
+                int oldValue = oldParams.get(matched).asInt();
+                if (newValue != oldValue) {
+                    log.info("{}字段值有变化,{}->{}", matched, oldValue, newValue);
+                    needUpdate = true;
                 }
             }
+            if (needUpdate) {
+                deviceService.updateById(deviceCache);
+            }
         }
+        //创建influx数据
+        InfluxHumanRadarSensor point = new InfluxHumanRadarSensor();
+        //tag为设备编号
+        point.setDeviceCode(deviceCache.getDeviceCode());
+        //处理数据
+        if (mergedParams != null) {
+            if (mergedParams.has("battery") && mergedParams.get("battery").isNumber()) {
+                point.setBattery(mergedParams.get("battery").asInt());
+            }
+            if (mergedParams.has("motion") && mergedParams.get("motion").isNumber()) {
+                point.setMotion(mergedParams.get("motion").asInt());
+            }
+            influxDBClient.getWriteApiBlocking().writeMeasurement(
+                    influxProperties.getBucket(),
+                    influxProperties.getOrg(),
+                    WritePrecision.MS,
+                    point
+            );
+            redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCache.getDeviceCode(), deviceCache);
+            RspMqtt(topic, mqttClient, deviceCache.getDeviceCode(), sequence);
+        }
+
     }
 
     private void processSensor(String topic, MqttClient mqttClient, Device deviceCache, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {

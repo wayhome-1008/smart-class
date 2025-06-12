@@ -182,7 +182,7 @@ public class DashBoardController {
 
     }
 
-    public static DeviceInfoVO basicPropertyConvert(Device device, String  roomCode) {
+    public static DeviceInfoVO basicPropertyConvert(Device device, String roomCode) {
         DeviceInfoVO deviceInfoVO = new DeviceInfoVO();
         deviceInfoVO.setId(device.getId());
         deviceInfoVO.setDeviceName(device.getDeviceName());
@@ -198,7 +198,8 @@ public class DashBoardController {
         deviceInfoVO.setRemark(device.getRemark());
         return deviceInfoVO;
     }
-    public static DeviceInfoVO basicPropertyConvert(DeviceVO device, String  roomCode) {
+
+    public static DeviceInfoVO basicPropertyConvert(DeviceVO device, String roomCode) {
         DeviceInfoVO deviceInfoVO = new DeviceInfoVO();
         deviceInfoVO.setId(device.getId());
         deviceInfoVO.setDeviceName(device.getDeviceName());
