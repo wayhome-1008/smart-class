@@ -92,12 +92,12 @@ public class FloorController {
                     break;
 
                 case 8: // 8->灯光
-                    checkDeviceSwitchStatus(device, "power", floor::setLight,floor::setIsOpen);
+                    checkDeviceSwitchStatus(device, "power", floor::setLight, floor::setIsOpen, floor::setLightNum);
                     break;
                 case 4:
                 case 7:
                 case 10: // 4->计量插座,7->开关,10->智能插座
-                    checkDeviceSwitchStatus(device, "switch", floor::setPlug,floor::setIsOpen);
+                    checkDeviceSwitchStatus(device, "switch", floor::setPlug, floor::setIsOpen, floor::setPlugNum);
                     break;
 
                 case 5: // 5->人体感应雷达

@@ -189,7 +189,8 @@ public class RoomController {
         roomVO.setLight(false);
         roomVO.setPlug(false);
         roomVO.setHuman(false);
-
+        roomVO.setLightNum(0);
+        roomVO.setPlugNum(0);
         for (DeviceInfoVO device : devices) {
             switch (device.getDeviceTypeId().intValue()) {
                 case 2: // 2->温湿度传感器
@@ -202,12 +203,12 @@ public class RoomController {
                     break;
 
                 case 8: // 8->灯光
-                    checkDeviceSwitchStatus(device, "power", roomVO::setLight,roomVO::setIsOpen);
+                    checkDeviceSwitchStatus(device, "power", roomVO::setLight,roomVO::setIsOpen,roomVO::setLightNum);
                     break;
                 case 4:
                 case 7:
                 case 10: // 4->计量插座,7->开关,10->智能插座
-                    checkDeviceSwitchStatus(device, "switch", roomVO::setPlug,roomVO::setIsOpen);
+                    checkDeviceSwitchStatus(device, "switch", roomVO::setPlug,roomVO::setIsOpen,roomVO::setPlugNum);
                     break;
 
                 case 5: // 5->人体感应雷达
@@ -226,9 +227,15 @@ public class RoomController {
     }
 
     // 检查设备开关状态的通用方法
-    public static void checkDeviceSwitchStatus(DeviceInfoVO device, String switchPrefix, Consumer<Boolean> statusSetter, Consumer<Boolean> openSetter) {
+    // 检查设备开关状态的通用方法
+    public static void checkDeviceSwitchStatus(DeviceInfoVO device, String switchPrefix,
+                                               Consumer<Boolean> statusSetter, Consumer<Boolean> openSetter,
+                                               Consumer<Integer> countSetter) {
+
         DeviceInfo.getValueByName(device.getDeviceInfo(), "count", Integer.class)
                 .ifPresent(count -> {
+                    int onCount = 0;
+
                     for (int i = 0; i < count; i++) {
                         String switchName = switchPrefix + (i + 1);
                         Optional<String> switchStatus = DeviceInfo.getValueByName(
@@ -237,13 +244,22 @@ public class RoomController {
                                 String.class
                         );
                         if (switchStatus.isPresent() && "ON".equals(switchStatus.get())) {
+                            onCount++;
                             statusSetter.accept(true);
                             openSetter.accept(true);
-                            return; // 找到ON状态后立即返回
                         }
+                    }
+
+                    countSetter.accept(onCount); // 设置开启数量
+
+                    // 如果没有打开的开关，设置状态为false
+                    if (onCount == 0) {
+                        statusSetter.accept(false);
+                        openSetter.accept(false);
                     }
                 });
     }
+
 
 
     @Operation(summary = "房间下拉列表")

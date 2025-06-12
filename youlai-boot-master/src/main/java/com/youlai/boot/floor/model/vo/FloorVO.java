@@ -38,15 +38,25 @@ public class FloorVO implements Serializable {
     private LocalDateTime updateTime;
     private Long updateBy;
     private Integer isDeleted;
+    @Schema(description = "设备信息")
     private List<DeviceInfoVO> deviceInfo;
+    @Schema(description = "房间温度")
     private Double temperature;
+    @Schema(description = "房间湿度")
     private Double humidity;
+    @Schema(description = "房间光照")
     private Double Illuminance;
+    @Schema(description = "是否开灯")
     private Boolean light;
+    @Schema(description = "是否开插座")
     private Boolean plug;
+    @Schema(description = "是否有人")
     private Boolean human;
-
-    @Schema(description = "开关状态")
+    @Schema(description = "总开关状态")
     private Boolean isOpen;
+    @Schema(description = "开灯数量")
+    private Integer lightNum;
+    @Schema(description = "开插座数量")
+    private Integer plugNum;
 
 }
