@@ -1,8 +1,7 @@
 package com.youlai.boot.device.service.impl;
 
-import cn.hutool.core.lang.Assert;
-import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -27,7 +26,6 @@ import com.youlai.boot.deviceType.mapper.DeviceTypeMapper;
 import com.youlai.boot.deviceType.model.entity.DeviceType;
 import com.youlai.boot.floor.model.entity.Floor;
 import com.youlai.boot.floor.model.vo.FloorVO;
-import com.youlai.boot.floor.service.FloorService;
 import com.youlai.boot.room.model.entity.Room;
 import com.youlai.boot.room.model.vo.RoomVO;
 import com.youlai.boot.room.service.RoomService;
@@ -295,5 +293,37 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
             return deviceInfoVOS;
         }
         return null;
+    }
+
+    @Override
+    public Map<String, Long> countDevicesByStatus() {
+        QueryWrapper<Device> wrapper = new QueryWrapper<>();
+        wrapper.select("status, count(*) as count")
+                .groupBy("status");
+
+        List<Map<String, Object>> list = deviceMapper.selectMaps(wrapper);
+
+        Map<String, Long> result = new HashMap<>();
+        result.put("online", 0L);
+        result.put("offline", 0L);
+        result.put("unregistered", 0L);
+
+        for (Map<String, Object> map : list) {
+            Integer status = (Integer) map.get("status");
+            Long count = (Long) map.get("count");
+
+            switch (status) {
+                case 0:
+                    result.put("online", count);
+                    break;
+                case 1:
+                    result.put("offline", count);
+                    break;
+                case 2:
+                    result.put("unregistered", count);
+                    break;
+            }
+        }
+        return result;
     }
 }

@@ -15,6 +15,7 @@ import com.youlai.boot.room.model.entity.Room;
 import com.youlai.boot.room.model.vo.RoomVO;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 设备管理服务类
@@ -87,4 +88,6 @@ public interface DeviceService extends IService<Device> {
     List<Long> listRoomDevicesIds(Long id);
 
     List<DeviceInfoVO> listDeviceByFloorIds(List<FloorVO> records);
+
+    Map<String, Long> countDevicesByStatus();
 }

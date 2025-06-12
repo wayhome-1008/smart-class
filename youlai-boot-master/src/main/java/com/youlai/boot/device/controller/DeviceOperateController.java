@@ -1,6 +1,8 @@
 package com.youlai.boot.device.controller;
 
 import com.alibaba.fastjson.JSON;
+import com.youlai.boot.common.annotation.Log;
+import com.youlai.boot.common.enums.LogModuleEnum;
 import com.youlai.boot.common.result.Result;
 import com.youlai.boot.common.util.MacUtils;
 import com.youlai.boot.config.mqtt.MqttProducer;
@@ -73,6 +75,7 @@ public class DeviceOperateController {
 //    }
     @Operation(summary = "根据楼、层、房间批量操作设备")
     @PutMapping(value = "/batch")
+    @Log( value = "批量操作设备",module = LogModuleEnum.OPERATION)
     public Result<Void> operateDevice(@RequestBody @Validated com.youlai.boot.device.model.form.Operation operation) throws MqttException {
         return switch (operation.getType()) {
             case "room" -> roomOperate(operation);
@@ -125,7 +128,7 @@ public class DeviceOperateController {
     }
 
     @Operation(summary = "插座操作")
-    @PutMapping(value = "/socket/{id}")
+    @Log( value = "设备操作",module = LogModuleEnum.OPERATION)
     public Result<Void> operateSocket(@Parameter(description = "设备ID") @PathVariable Long id, @RequestBody @Validated DeviceOperate deviceOperate) throws MqttException {
         //根据设备发送mqtt
         Device device = deviceService.getById(id);

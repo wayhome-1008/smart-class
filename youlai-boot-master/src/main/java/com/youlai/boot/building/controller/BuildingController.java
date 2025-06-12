@@ -1,6 +1,8 @@
 package com.youlai.boot.building.controller;
 
 import com.youlai.boot.building.service.BuildingService;
+import com.youlai.boot.common.annotation.Log;
+import com.youlai.boot.common.enums.LogModuleEnum;
 import com.youlai.boot.common.model.Option;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -52,6 +54,7 @@ public class BuildingController  {
     @Operation(summary = "新增教学楼管理")
     @PostMapping
     @PreAuthorize("@ss.hasPerm('building:building:add')")
+    @Log( value = "新建楼宇",module = LogModuleEnum.BUILDING)
     public Result<Void> saveBuilding(@RequestBody @Valid BuildingForm formData ) {
         boolean result = buildingService.saveBuilding(formData);
         return Result.judge(result);
@@ -70,6 +73,7 @@ public class BuildingController  {
     @Operation(summary = "修改教学楼管理")
     @PutMapping(value = "/{id}")
     @PreAuthorize("@ss.hasPerm('building:building:edit')")
+    @Log( value = "修改楼宇",module = LogModuleEnum.BUILDING)
     public Result<Void> updateBuilding(
             @Parameter(description = "教学楼管理ID") @PathVariable Long id,
             @RequestBody @Validated BuildingForm formData
@@ -81,6 +85,7 @@ public class BuildingController  {
     @Operation(summary = "删除教学楼管理")
     @DeleteMapping("/{ids}")
     @PreAuthorize("@ss.hasPerm('building:building:delete')")
+    @Log( value = "删除楼宇",module = LogModuleEnum.BUILDING)
     public Result<Void> deleteBuildings(
         @Parameter(description = "教学楼管理ID，多个以英文逗号(,)分割") @PathVariable String ids
     ) {

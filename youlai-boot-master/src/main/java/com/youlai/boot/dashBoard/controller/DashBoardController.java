@@ -31,7 +31,9 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  *@Author: way
@@ -63,6 +65,13 @@ public class DashBoardController {
         dashCount.setDemo1Count(9344L);
         dashCount.setDemo2Count(10086L);
         return Result.success(dashCount);
+    }
+
+    @Operation(summary = "获取设备状态统计")
+    @GetMapping("/status/count")
+    public Result<Map<String, Long>> getDeviceStatusCount() {
+        Map<String, Long> statusCounts = deviceService.countDevicesByStatus();
+        return Result.success(statusCounts);
     }
 
     @Operation(summary = "根据设备code获取数据")

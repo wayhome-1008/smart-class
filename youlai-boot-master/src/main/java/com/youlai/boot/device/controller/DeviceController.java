@@ -3,7 +3,9 @@ package com.youlai.boot.device.controller;
 import cn.hutool.core.util.RandomUtil;
 import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.youlai.boot.common.annotation.Log;
 import com.youlai.boot.common.constant.RedisConstants;
+import com.youlai.boot.common.enums.LogModuleEnum;
 import com.youlai.boot.common.exception.BusinessException;
 import com.youlai.boot.common.model.Option;
 import com.youlai.boot.common.result.PageResult;
@@ -151,6 +153,7 @@ public class DeviceController {
     @Operation(summary = "新增设备管理")
     @PostMapping
     @PreAuthorize("@ss.hasPerm('device:device:add')")
+    @Log( value = "新增设备",module = LogModuleEnum.DEVICE)
     public Result<Void> saveDevice(@RequestBody @Valid DeviceForm formData) throws MqttException {
         //校验MAC是否存在
         boolean isExist = deviceService.isExistDeviceMac(formData.getDeviceMac());
@@ -200,6 +203,7 @@ public class DeviceController {
     @Operation(summary = "修改设备管理")
     @PutMapping(value = "/{id}")
     @PreAuthorize("@ss.hasPerm('device:device:edit')")
+    @Log( value = "修改设备",module = LogModuleEnum.DEVICE)
     public Result<Void> updateDevice(
             @Parameter(description = "设备管理ID") @PathVariable Long id,
             @RequestBody @Validated DeviceForm formData
@@ -229,6 +233,7 @@ public class DeviceController {
     @Operation(summary = "删除设备管理")
     @DeleteMapping("/{ids}")
     @PreAuthorize("@ss.hasPerm('device:device:delete')")
+    @Log( value = "删除设备",module = LogModuleEnum.DEVICE)
     public Result<Void> deleteDevices(
             @Parameter(description = "设备管理ID，多个以英文逗号(,)分割") @PathVariable String ids
     ) throws MqttException {
@@ -270,6 +275,7 @@ public class DeviceController {
 
     @Operation(summary = "重新录入设备")
     @GetMapping("/reEnter/{id}")
+    @Log( value = "重录入设备",module = LogModuleEnum.DEVICE)
     public Result<Void> reEnter(
             @Parameter(description = "设备ID") @PathVariable Long id) throws MqttException {
         Device device = deviceService.getById(id);
