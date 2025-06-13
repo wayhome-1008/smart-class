@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.youlai.boot.common.model.Option;
+import com.youlai.boot.core.security.util.SecurityUtils;
 import com.youlai.boot.floor.model.vo.FloorVO;
 import com.youlai.boot.room.converter.RoomConverter;
 import com.youlai.boot.room.mapper.RoomMapper;
@@ -68,6 +69,7 @@ public class RoomServiceImpl extends ServiceImpl<RoomMapper, Room> implements Ro
     @Override
     public boolean saveRoom(RoomForm formData) {
         Room entity = roomConverter.toEntity(formData);
+        entity.setCreateBy(SecurityUtils.getUserId());
         return this.save(entity);
     }
 
@@ -81,6 +83,7 @@ public class RoomServiceImpl extends ServiceImpl<RoomMapper, Room> implements Ro
     @Override
     public boolean updateRoom(Long id, RoomForm formData) {
         Room entity = roomConverter.toEntity(formData);
+        entity.setUpdateBy(SecurityUtils.getUserId());
         return this.updateById(entity);
     }
 

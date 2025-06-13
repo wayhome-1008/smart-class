@@ -14,6 +14,7 @@ import com.youlai.boot.building.model.query.BuildingQuery;
 import com.youlai.boot.building.model.vo.BuildingVO;
 import com.youlai.boot.building.service.BuildingService;
 import com.youlai.boot.common.model.Option;
+import com.youlai.boot.core.security.util.SecurityUtils;
 import com.youlai.boot.floor.service.FloorService;
 import com.youlai.boot.room.service.RoomService;
 import lombok.RequiredArgsConstructor;
@@ -71,6 +72,7 @@ public class BuildingServiceImpl extends ServiceImpl<BuildingMapper, Building> i
     @Override
     public boolean saveBuilding(BuildingForm formData) {
         Building entity = buildingConverter.toEntity(formData);
+        entity.setCreateBy(SecurityUtils.getUserId());
         return this.save(entity);
     }
 
@@ -84,6 +86,7 @@ public class BuildingServiceImpl extends ServiceImpl<BuildingMapper, Building> i
     @Override
     public boolean updateBuilding(Long id, BuildingForm formData) {
         Building entity = buildingConverter.toEntity(formData);
+        entity.setUpdateBy(SecurityUtils.getUserId());
         return this.updateById(entity);
     }
 

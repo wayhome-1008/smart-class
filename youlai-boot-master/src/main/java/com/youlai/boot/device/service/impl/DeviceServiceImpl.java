@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.common.model.Option;
+import com.youlai.boot.core.security.util.SecurityUtils;
 import com.youlai.boot.device.Enum.CommunicationModeEnum;
 import com.youlai.boot.device.Enum.DeviceTypeEnum;
 import com.youlai.boot.device.converter.DeviceConverter;
@@ -122,6 +123,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
         Device entity = deviceConverter.toEntity(formData);
         //新增设备默认状态非正常 需要handler主动修改
         entity.setStatus(2);
+        entity.setCreateBy(SecurityUtils.getUserId());
         return this.save(entity);
     }
 
@@ -135,6 +137,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     @Override
     public boolean updateDevice(Long id, DeviceForm formData) {
         Device entity = deviceConverter.toEntity(formData);
+        entity.setUpdateBy(SecurityUtils.getUserId());
         return this.updateById(entity);
     }
 

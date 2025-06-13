@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.youlai.boot.common.model.Option;
+import com.youlai.boot.core.security.util.SecurityUtils;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.vo.DeviceInfoVO;
 import com.youlai.boot.floor.converter.FloorConverter;
@@ -70,6 +71,7 @@ public class FloorServiceImpl extends ServiceImpl<FloorMapper, Floor> implements
     @Override
     public boolean saveFloor(FloorForm formData) {
         Floor entity = floorConverter.toEntity(formData);
+        entity.setCreateBy(SecurityUtils.getUserId());
         return this.save(entity);
     }
 
@@ -83,6 +85,7 @@ public class FloorServiceImpl extends ServiceImpl<FloorMapper, Floor> implements
     @Override
     public boolean updateFloor(Long id, FloorForm formData) {
         Floor entity = floorConverter.toEntity(formData);
+        entity.setUpdateBy(SecurityUtils.getUserId());
         return this.updateById(entity);
     }
 
