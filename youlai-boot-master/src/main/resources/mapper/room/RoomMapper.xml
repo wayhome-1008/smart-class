@@ -18,11 +18,17 @@
         LEFT JOIN floor f ON r.floor_id = f.id AND f.is_deleted = 0
         <where>
             AND r.is_deleted = 0
-            <if test="queryParams.classroomCode != null and queryParams.classroomCode != ''">
-                AND classroom_code LIKE CONCAT('%', #{queryParams.classroomCode}, '%')
+            <!-- 楼宇ID条件 -->
+            <if test="queryParams.buildingId != null">
+                AND r.building_id = #{queryParams.buildingId}
             </if>
+            <!-- 楼层ID条件 -->
             <if test="queryParams.floorId != null">
-                AND floor_id = #{queryParams.floorId}
+                AND r.floor_id = #{queryParams.floorId}
+            </if>
+            <!-- 房间号模糊查询 -->
+            <if test="queryParams.classroomCode != null and queryParams.classroomCode != ''">
+                AND r.classroom_code LIKE CONCAT('%', #{queryParams.classroomCode}, '%')
             </if>
         </where>
     </select>

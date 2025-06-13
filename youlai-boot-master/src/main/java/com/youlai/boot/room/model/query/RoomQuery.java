@@ -17,10 +17,14 @@ import java.util.List;
 @Getter
 @Setter
 public class RoomQuery extends BasePageQuery {
+    @Schema(description = "楼宇id")
+    private Long buildingId;
+
+    @Schema(description = "楼层id")
+    private Long floorId;
 
     @Schema(description = "房间号")
     private String classroomCode;
 
-    @Schema(description = "楼层id")
-    private Long floorId;
+
 }
