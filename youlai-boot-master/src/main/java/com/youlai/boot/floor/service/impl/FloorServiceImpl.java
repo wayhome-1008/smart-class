@@ -16,6 +16,7 @@ import com.youlai.boot.floor.model.form.FloorForm;
 import com.youlai.boot.floor.model.query.FloorQuery;
 import com.youlai.boot.floor.model.vo.FloorVO;
 import com.youlai.boot.floor.service.FloorService;
+import com.youlai.boot.room.service.RoomService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -32,12 +33,14 @@ import java.util.List;
 @RequiredArgsConstructor
 public class FloorServiceImpl extends ServiceImpl<FloorMapper, Floor> implements FloorService {
     private final FloorConverter floorConverter;
+    private final RoomService roomService;
+
     /**
-    * 获取楼层管理分页列表
-    *
-    * @param queryParams 查询参数
-    * @return {@link IPage<FloorVO>} 楼层管理分页列表
-    */
+     * 获取楼层管理分页列表
+     *
+     * @param queryParams 查询参数
+     * @return {@link IPage<FloorVO>} 楼层管理分页列表
+     */
     @Override
     public IPage<FloorVO> getFloorPage(FloorQuery queryParams) {
         Page<FloorVO> pageVO = this.baseMapper.getFloorPage(
@@ -46,7 +49,7 @@ public class FloorServiceImpl extends ServiceImpl<FloorMapper, Floor> implements
         );
         return pageVO;
     }
-    
+
     /**
      * 获取楼层管理表单数据
      *
@@ -58,7 +61,7 @@ public class FloorServiceImpl extends ServiceImpl<FloorMapper, Floor> implements
         Floor entity = this.getById(id);
         return floorConverter.toForm(entity);
     }
-    
+
     /**
      * 新增楼层管理
      *
@@ -70,7 +73,7 @@ public class FloorServiceImpl extends ServiceImpl<FloorMapper, Floor> implements
         Floor entity = floorConverter.toEntity(formData);
         return this.save(entity);
     }
-    
+
     /**
      * 更新楼层管理
      *
@@ -79,11 +82,11 @@ public class FloorServiceImpl extends ServiceImpl<FloorMapper, Floor> implements
      * @return 是否修改成功
      */
     @Override
-    public boolean updateFloor(Long id,FloorForm formData) {
+    public boolean updateFloor(Long id, FloorForm formData) {
         Floor entity = floorConverter.toEntity(formData);
         return this.updateById(entity);
     }
-    
+
     /**
      * 删除楼层管理
      *
@@ -97,13 +100,23 @@ public class FloorServiceImpl extends ServiceImpl<FloorMapper, Floor> implements
         List<Long> idList = Arrays.stream(ids.split(","))
                 .map(Long::parseLong)
                 .toList();
+        //删完房间再删楼层
+        boolean deleteRooms = roomService.deleteByFloorIds(idList);
+        if (!deleteRooms) {
+            throw new RuntimeException("删除楼层失败");
+        }
         return this.removeByIds(idList);
     }
 
     @Override
     public List<Option<Long>> listFloorOptionsByBuildingId(Long buildingId) {
         List<Floor> list = this.list(new LambdaQueryWrapper<Floor>().eq(Floor::getBuildingId, buildingId));
-            return floorConverter.toOptions(list);
+        return floorConverter.toOptions(list);
+    }
+
+    @Override
+    public boolean deleteByBuildingIds(List<Long> buildingId) {
+        return this.remove(new LambdaQueryWrapper<Floor>().in(Floor::getBuildingId, buildingId));
     }
 
 }

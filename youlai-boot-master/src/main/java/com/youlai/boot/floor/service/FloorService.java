@@ -60,4 +60,6 @@ public interface FloorService extends IService<Floor> {
     boolean deleteFloors(String ids);
 
     List<Option<Long>> listFloorOptionsByBuildingId(Long buildingId);
+
+    boolean deleteByBuildingIds(List<Long> buildingId);
 }

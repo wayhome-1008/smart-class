@@ -111,4 +111,14 @@ public class RoomServiceImpl extends ServiceImpl<RoomMapper, Room> implements Ro
         return this.list(new LambdaQueryWrapper<Room>().in(Room::getFloorId, records.stream().map(FloorVO::getId).toArray()));
     }
 
+    @Override
+    public boolean deleteByBuildingIds(List<Long> buildingIds) {
+        return this.remove(new LambdaQueryWrapper<Room>().in(Room::getBuildingId, buildingIds));
+    }
+
+    @Override
+    public boolean deleteByFloorIds(List<Long> floorIds) {
+        return this.remove(new LambdaQueryWrapper<Room>().in(Room::getFloorId, floorIds));
+    }
+
 }

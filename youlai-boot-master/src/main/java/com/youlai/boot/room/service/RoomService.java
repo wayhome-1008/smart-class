@@ -62,4 +62,8 @@ public interface RoomService extends IService<Room> {
     List<Option<Long>> listRoomOptions();
 
     List<Room> listRoomByFloor(List<FloorVO> records);
+
+    boolean deleteByBuildingIds(List<Long> buildingIds);
+
+    boolean deleteByFloorIds(List<Long> floorIds);
 }

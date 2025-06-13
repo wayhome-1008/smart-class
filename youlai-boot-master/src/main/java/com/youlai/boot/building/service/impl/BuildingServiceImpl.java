@@ -1,26 +1,26 @@
 package com.youlai.boot.building.service.impl;
 
+import cn.hutool.core.lang.Assert;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.youlai.boot.common.model.Option;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.youlai.boot.building.converter.BuildingConverter;
 import com.youlai.boot.building.mapper.BuildingMapper;
-import com.youlai.boot.building.service.BuildingService;
 import com.youlai.boot.building.model.entity.Building;
 import com.youlai.boot.building.model.form.BuildingForm;
 import com.youlai.boot.building.model.query.BuildingQuery;
 import com.youlai.boot.building.model.vo.BuildingVO;
-import com.youlai.boot.building.converter.BuildingConverter;
+import com.youlai.boot.building.service.BuildingService;
+import com.youlai.boot.common.model.Option;
+import com.youlai.boot.floor.service.FloorService;
+import com.youlai.boot.room.service.RoomService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
-
-import cn.hutool.core.lang.Assert;
-import cn.hutool.core.util.StrUtil;
 
 /**
  * 教学楼管理服务实现类
@@ -33,13 +33,15 @@ import cn.hutool.core.util.StrUtil;
 public class BuildingServiceImpl extends ServiceImpl<BuildingMapper, Building> implements BuildingService {
 
     private final BuildingConverter buildingConverter;
+    private final RoomService roomService;
+    private final FloorService floorService;
 
     /**
-    * 获取教学楼管理分页列表
-    *
-    * @param queryParams 查询参数
-    * @return {@link IPage<BuildingVO>} 教学楼管理分页列表
-    */
+     * 获取教学楼管理分页列表
+     *
+     * @param queryParams 查询参数
+     * @return {@link IPage<BuildingVO>} 教学楼管理分页列表
+     */
     @Override
     public IPage<BuildingVO> getBuildingPage(BuildingQuery queryParams) {
         return this.baseMapper.getBuildingPage(
@@ -47,7 +49,7 @@ public class BuildingServiceImpl extends ServiceImpl<BuildingMapper, Building> i
                 queryParams
         );
     }
-    
+
     /**
      * 获取教学楼管理表单数据
      *
@@ -59,7 +61,7 @@ public class BuildingServiceImpl extends ServiceImpl<BuildingMapper, Building> i
         Building entity = this.getById(id);
         return buildingConverter.toForm(entity);
     }
-    
+
     /**
      * 新增教学楼管理
      *
@@ -71,7 +73,7 @@ public class BuildingServiceImpl extends ServiceImpl<BuildingMapper, Building> i
         Building entity = buildingConverter.toEntity(formData);
         return this.save(entity);
     }
-    
+
     /**
      * 更新教学楼管理
      *
@@ -80,11 +82,11 @@ public class BuildingServiceImpl extends ServiceImpl<BuildingMapper, Building> i
      * @return 是否修改成功
      */
     @Override
-    public boolean updateBuilding(Long id,BuildingForm formData) {
+    public boolean updateBuilding(Long id, BuildingForm formData) {
         Building entity = buildingConverter.toEntity(formData);
         return this.updateById(entity);
     }
-    
+
     /**
      * 删除教学楼管理
      *
@@ -98,6 +100,15 @@ public class BuildingServiceImpl extends ServiceImpl<BuildingMapper, Building> i
         List<Long> idList = Arrays.stream(ids.split(","))
                 .map(Long::parseLong)
                 .toList();
+        boolean roomDelete = roomService.deleteByBuildingIds(idList);
+        if (!roomDelete) {
+            throw new RuntimeException("请先删除该教学楼下的楼层");
+        }
+        boolean floorDelete = floorService.deleteByBuildingIds(idList);
+        if (!floorDelete) {
+            throw new RuntimeException("请先删除该教学楼下的楼层");
+        }
+        //先删房间 再删楼层   最后删教学楼
         return this.removeByIds(idList);
     }
 
