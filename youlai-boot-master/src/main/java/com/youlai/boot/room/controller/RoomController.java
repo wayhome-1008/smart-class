@@ -115,9 +115,8 @@ public class RoomController {
     }
 
     // 检查设备开关状态的通用方法
-    // 检查设备开关状态的通用方法
     public static void checkDeviceSwitchStatus(DeviceInfoVO device, String switchPrefix,
-                                               Consumer<Boolean> statusSetter, Consumer<Boolean> openSetter,
+                                               Consumer<Boolean> lightOrPlug, Consumer<Boolean> openSetter,
                                                Consumer<Integer> countSetter) {
 
         DeviceInfo.getValueByName(device.getDeviceInfo(), "count", Integer.class)
@@ -133,18 +132,19 @@ public class RoomController {
                         );
                         if (switchStatus.isPresent() && "ON".equals(switchStatus.get())) {
                             onCount++;
-                            statusSetter.accept(true);
+                            lightOrPlug.accept(true);
                             openSetter.accept(true);
+                            countSetter.accept(onCount); // 设置开启数量
                         }
                     }
 
-                    countSetter.accept(onCount); // 设置开启数量
+
 
                     // 如果没有打开的开关，设置状态为false
-                    if (onCount == 0) {
-                        statusSetter.accept(false);
-                        openSetter.accept(false);
-                    }
+//                    if (onCount == 0) {
+//                        lightOrPlug.accept(false);
+//                        openSetter.accept(false);
+//                    }
                 });
     }
 
