@@ -18,8 +18,9 @@
         b.building_name  <!-- 新增字段 -->
         FROM
         floor f
-        LEFT JOIN building b ON f.building_id = b.id  <!-- 关联 building 表 -->
+        LEFT JOIN building b ON f.building_id = b.id  AND b.is_deleted = 0<!-- 关联 building 表 -->
         <where>
+            AND f.is_deleted = 0
             <if test="queryParams.floorNumber != null">
                 AND f.floor_number LIKE CONCAT('%', #{queryParams.floorNumber}, '%')
             </if>

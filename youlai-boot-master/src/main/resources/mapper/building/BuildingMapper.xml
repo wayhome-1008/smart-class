@@ -19,6 +19,7 @@
         LEFT JOIN room r ON r.building_id = b.id AND r.is_deleted = 0
         LEFT JOIN device d ON d.device_room = r.id AND d.is_deleted = 0
         <where>
+            b.is_deleted = 0
             <if test="queryParams.buildingCode != null and queryParams.buildingCode != ''">
                 AND building_code LIKE CONCAT('%', #{queryParams.buildingCode}, '%')
             </if>

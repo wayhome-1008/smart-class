@@ -43,11 +43,10 @@ public class FloorServiceImpl extends ServiceImpl<FloorMapper, Floor> implements
      */
     @Override
     public IPage<FloorVO> getFloorPage(FloorQuery queryParams) {
-        Page<FloorVO> pageVO = this.baseMapper.getFloorPage(
+        return this.baseMapper.getFloorPage(
                 new Page<>(queryParams.getPageNum(), queryParams.getPageSize()),
                 queryParams
         );
-        return pageVO;
     }
 
     /**
