@@ -93,7 +93,7 @@ public class BuildingController {
             @Parameter(description = "教学楼管理ID，多个以英文逗号(,)分割") @PathVariable String ids
     ) {
         Long devicesCount = deviceService.listDevicesCount("building", ids);
-        if (devicesCount == 0) {
+        if (devicesCount != 0) {
             return Result.failed("该楼宇下有设备，请先删除设备");
         }
         boolean result = buildingService.deleteBuildings(ids);

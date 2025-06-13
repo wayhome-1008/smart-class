@@ -185,7 +185,7 @@ public class RoomController {
     @PreAuthorize("@ss.hasPerm('room:room:delete')")
     public Result<Void> deleteRooms(@Parameter(description = "房间管理ID，多个以英文逗号(,)分割") @PathVariable String ids) {
         Long devicesCount = deviceService.listDevicesCount("room", ids);
-        if (devicesCount == 0) {
+        if (devicesCount != 0) {
             return Result.failed("该房间下有设备，请先删除设备");
         }
         boolean result = roomService.deleteRooms(ids);

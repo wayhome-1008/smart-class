@@ -162,7 +162,7 @@ public class FloorController {
             @Parameter(description = "楼层管理ID，多个以英文逗号(,)分割") @PathVariable String ids
     ) {
         Long devicesCount = deviceService.listDevicesCount("floor", ids);
-        if (devicesCount == 0) {
+        if (devicesCount != 0) {
             return Result.failed("该楼层下有设备，请先删除设备");
         }
         boolean result = floorService.deleteFloors(ids);
