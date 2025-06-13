@@ -1,5 +1,6 @@
 package com.youlai.boot.room.model.entity;
 
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import lombok.Getter;
 import lombok.Setter;
 import java.time.LocalDateTime;
@@ -48,5 +49,6 @@ public class Room extends BaseEntity {
     /**
      * 逻辑删除标识(0-未删除 1-已删除)
      */
+    @TableLogic(value = "0", delval = "1")
     private Integer isDeleted;
 }
