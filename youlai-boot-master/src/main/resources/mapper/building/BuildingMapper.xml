@@ -5,13 +5,19 @@
     <!-- 获取教学楼管理分页列表 -->
     <select id="getBuildingPage" resultType="com.youlai.boot.building.model.vo.BuildingVO">
         SELECT
-                id,
-                building_code,
-                building_name,
-                status,
-                remark
+        b.id,
+        b.building_code,
+        b.building_name,
+        b.status,
+        b.remark,
+        COUNT(DISTINCT f.id) AS floorCount,
+        COUNT(DISTINCT r.id) AS roomCount,
+        COUNT(DISTINCT d.id) AS deviceCount
         FROM
-            building
+        building b
+        LEFT JOIN floor f ON f.building_id = b.id AND f.is_deleted = 0
+        LEFT JOIN room r ON r.building_id = b.id AND r.is_deleted = 0
+        LEFT JOIN device d ON d.device_room = r.id AND d.is_deleted = 0
         <where>
             <if test="queryParams.buildingCode != null and queryParams.buildingCode != ''">
                 AND building_code LIKE CONCAT('%', #{queryParams.buildingCode}, '%')
@@ -23,6 +29,7 @@
                 AND status = #{queryParams.status}
             </if>
         </where>
+        GROUP BY b.id
     </select>
 
 </mapper>

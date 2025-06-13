@@ -42,11 +42,10 @@ public class BuildingServiceImpl extends ServiceImpl<BuildingMapper, Building> i
     */
     @Override
     public IPage<BuildingVO> getBuildingPage(BuildingQuery queryParams) {
-        Page<BuildingVO> pageVO = this.baseMapper.getBuildingPage(
+        return this.baseMapper.getBuildingPage(
                 new Page<>(queryParams.getPageNum(), queryParams.getPageSize()),
                 queryParams
         );
-        return pageVO;
     }
     
     /**
