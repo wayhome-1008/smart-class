@@ -17,7 +17,7 @@ import static com.youlai.boot.dashBoard.controller.DashBoardController.basicProp
 /**
  *@Author: way
  *@CreateTime: 2025-06-13  14:09
- *@Description: TODO
+ *@Description: 设备转换工具类
  */
 public class DeviceUtils {
     @NotNull
@@ -25,16 +25,19 @@ public class DeviceUtils {
         List<DeviceInfoVO> deviceInfoVOS = new ArrayList<>();
         for (Device roomDevice : roomDevices) {
             //转VO
-            DeviceInfoVO deviceInfoVO = basicPropertyConvert(roomDevice, roomDevice.getRoomName());
-            String deviceType = DeviceTypeEnum.getNameById(roomDevice.getDeviceTypeId());
-            String communicationMode = CommunicationModeEnum.getNameById(roomDevice.getCommunicationModeItemId());
-            if (!deviceType.equals("Gateway")) {
-                DeviceInfoParser parser = DeviceInfoParserFactory.getParser(deviceType, communicationMode);
+            DeviceInfoVO deviceInfoVO = getDeviceInfoVO(roomDevice);
+            if (!DeviceTypeEnum.getNameById(roomDevice.getDeviceTypeId()).equals("Gateway")) {
+                DeviceInfoParser parser = DeviceInfoParserFactory.getParser(DeviceTypeEnum.getNameById(roomDevice.getDeviceTypeId()), CommunicationModeEnum.getNameById(roomDevice.getCommunicationModeItemId()));
                 List<DeviceInfo> deviceInfos = parser.parse(roomDevice.getDeviceInfo());
                 deviceInfoVO.setDeviceInfo(deviceInfos);
             }
             deviceInfoVOS.add(deviceInfoVO);
         }
         return deviceInfoVOS;
+    }
+
+    @NotNull
+    private static DeviceInfoVO getDeviceInfoVO(Device roomDevice) {
+        return basicPropertyConvert(roomDevice, roomDevice.getRoomName());
     }
 }

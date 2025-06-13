@@ -64,14 +64,14 @@ public class RoomController {
         result.getRecords().forEach(roomVO -> {
             List<DeviceInfoVO> roomDevices = deviceMap.getOrDefault(roomVO.getId(), new ArrayList<>());
             roomVO.setDeviceInfo(roomDevices); // 一次性设置完整设备列表
-            // 初始化房间状态指标
+            // 初始化房间的状态指标
             initRoomStatusIndicators(roomVO, roomDevices);
         });
 
         return PageResult.success(result);
     }
 
-    // 初始化房间状态指标的方法
+    // 初始化房间的状态指标的方法
     private void initRoomStatusIndicators(RoomVO roomVO, List<DeviceInfoVO> devices) {
         // 默认值设置
         roomVO.setLight(false);
