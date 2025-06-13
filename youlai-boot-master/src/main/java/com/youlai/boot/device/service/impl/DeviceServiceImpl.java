@@ -33,6 +33,7 @@ import com.youlai.boot.system.service.DictItemService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -325,5 +326,57 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
             }
         }
         return result;
+    }
+
+    @Override
+    public Long listDevicesCount(String type, String ids) {
+        if (StringUtils.isBlank(ids)) {
+            return 0L;
+        }
+
+        List<Long> idList = Arrays.stream(ids.split(","))
+                .map(Long::parseLong)
+                .collect(Collectors.toList());
+
+        LambdaQueryWrapper<Device> queryWrapper = new LambdaQueryWrapper<Device>()
+                .eq(Device::getIsDeleted, 0);
+
+        switch (type) {
+            case "building":
+                // 查询建筑下的设备数量（通过房间关联）
+                List<Room> rooms = roomService.list(
+                        new LambdaQueryWrapper<Room>()
+                                .in(Room::getBuildingId, idList)
+                                .eq(Room::getIsDeleted, 0)
+                );
+                if (ObjectUtils.isEmpty(rooms)) {
+                    return 0L;
+                }
+                queryWrapper.in(Device::getDeviceRoom, rooms.stream().map(Room::getId).collect(Collectors.toList()));
+                break;
+
+            case "floor":
+                // 查询楼层下的设备数量（通过房间关联）
+                List<Room> floorRooms = roomService.list(
+                        new LambdaQueryWrapper<Room>()
+                                .in(Room::getFloorId, idList)
+                                .eq(Room::getIsDeleted, 0)
+                );
+                if (ObjectUtils.isEmpty(floorRooms)) {
+                    return 0L;
+                }
+                queryWrapper.in(Device::getDeviceRoom, floorRooms.stream().map(Room::getId).collect(Collectors.toList()));
+                break;
+
+            case "room":
+                // 直接查询房间下的设备数量
+                queryWrapper.in(Device::getDeviceRoom, idList);
+                break;
+
+            default:
+                return 0L;
+        }
+
+        return this.count(queryWrapper);
     }
 }

@@ -90,4 +90,6 @@ public interface DeviceService extends IService<Device> {
     List<DeviceInfoVO> listDeviceByFloorIds(List<FloorVO> records);
 
     Map<String, Long> countDevicesByStatus();
+
+    Long  listDevicesCount(String type,String ids);
 }
