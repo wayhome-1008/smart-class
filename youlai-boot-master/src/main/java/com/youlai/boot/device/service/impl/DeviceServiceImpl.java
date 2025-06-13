@@ -41,6 +41,7 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.youlai.boot.common.util.DeviceUtils.devicesToInfoVos;
 import static com.youlai.boot.dashBoard.controller.DashBoardController.basicPropertyConvert;
 
 /**
@@ -252,21 +253,9 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     @Override
     public List<DeviceInfoVO> listDeviceByRoomIds(List<RoomVO> records) {
         List<Device> roomDevices = this.list(new LambdaQueryWrapper<Device>().in(Device::getDeviceRoom, records.stream().map(RoomVO::getId).toArray()));
-        List<DeviceInfoVO> deviceInfoVOS = new ArrayList<>();
-        for (Device roomDevice : roomDevices) {
-            //转VO
-            DeviceInfoVO deviceInfoVO = basicPropertyConvert(roomDevice, roomDevice.getRoomName());
-            String deviceType = DeviceTypeEnum.getNameById(roomDevice.getDeviceTypeId());
-            String communicationMode = CommunicationModeEnum.getNameById(roomDevice.getCommunicationModeItemId());
-            if (!deviceType.equals("Gateway")) {
-                DeviceInfoParser parser = DeviceInfoParserFactory.getParser(deviceType, communicationMode);
-                List<DeviceInfo> deviceInfos = parser.parse(roomDevice.getDeviceInfo());
-                deviceInfoVO.setDeviceInfo(deviceInfos);
-            }
-            deviceInfoVOS.add(deviceInfoVO);
-        }
-        return deviceInfoVOS;
+        return devicesToInfoVos(roomDevices);
     }
+
 
     @Override
     public List<Long> listRoomDevicesIds(Long id) {
@@ -278,20 +267,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
         List<Room> roomList = roomService.list(new LambdaQueryWrapper<Room>().in(Room::getFloorId, records.stream().map(FloorVO::getId).toArray()));
         if (ObjectUtils.isNotEmpty(roomList)) {
             List<Device> floorDevices = this.list(new LambdaQueryWrapper<Device>().in(Device::getDeviceRoom, roomList.stream().map(Room::getId).toList()));
-            List<DeviceInfoVO> deviceInfoVOS = new ArrayList<>();
-            for (Device floorDevice : floorDevices) {
-                //转VO
-                DeviceInfoVO deviceInfoVO = basicPropertyConvert(floorDevice, floorDevice.getRoomName());
-                String deviceType = DeviceTypeEnum.getNameById(floorDevice.getDeviceTypeId());
-                String communicationMode = CommunicationModeEnum.getNameById(floorDevice.getCommunicationModeItemId());
-                if (!deviceType.equals("Gateway")) {
-                    DeviceInfoParser parser = DeviceInfoParserFactory.getParser(deviceType, communicationMode);
-                    List<DeviceInfo> deviceInfos = parser.parse(floorDevice.getDeviceInfo());
-                    deviceInfoVO.setDeviceInfo(deviceInfos);
-                }
-                deviceInfoVOS.add(deviceInfoVO);
-            }
-            return deviceInfoVOS;
+            return devicesToInfoVos(floorDevices);
         }
         return null;
     }

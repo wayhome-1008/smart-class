@@ -51,6 +51,9 @@ public class FloorController {
     public PageResult<FloorVO> getFloorPage(FloorQuery queryParams) {
         // 1. 获取楼层分页数据
         IPage<FloorVO> result = floorService.getFloorPage(queryParams);
+        if (result.getRecords().isEmpty()) {
+            return PageResult.success(result);
+        }
         // 2. 获取这些楼层中的所有设备
         List<DeviceInfoVO> devices = deviceService.listDeviceByFloorIds(result.getRecords());
         //3.获取楼层得房间
@@ -158,6 +161,10 @@ public class FloorController {
     public Result<Void> deleteFloors(
             @Parameter(description = "楼层管理ID，多个以英文逗号(,)分割") @PathVariable String ids
     ) {
+        Long devicesCount = deviceService.listDevicesCount("floor", ids);
+        if (devicesCount == 0) {
+            return Result.failed("该楼层下有设备，请先删除设备");
+        }
         boolean result = floorService.deleteFloors(ids);
         return Result.judge(result);
     }
