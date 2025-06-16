@@ -152,15 +152,37 @@ public class MqttCallback implements MqttCallbackExtended {
      **/
     @Override
     public void deliveryComplete(IMqttDeliveryToken iMqttDeliveryToken) {
-//        log.info("消息成功发布:{}", iMqttDeliveryToken.isComplete());
     }
 
+    /**
+     * 提供给ZigBee网关及MQTT独立设备新增时 动态订阅主题 当服务重启时会对全部设备进行订阅
+     * @author: way
+     * @date: 2025/6/16 9:33
+     * @param: [topic]
+     **/
     public void subscribeTopic(String topic) {
         try {
             mqttClient.subscribe(topic, 2);
             log.info("动态订阅主题: {}", topic);
         } catch (MqttException e) {
             log.error("动态订阅主题失败", e);
+        }
+    }
+
+    /**
+     * 动态取消订阅主题
+     * @author: way
+     * @date: 2025/6/16 9:33
+     * @param topic 要取消订阅的MQTT主题
+     */
+    public void unsubscribeTopic(String topic) {
+        try {
+            if (mqttClient != null && mqttClient.isConnected()) {
+                mqttClient.unsubscribe(topic);
+                log.info("动态取消订阅主题: {}", topic);
+            }
+        } catch (MqttException e) {
+            log.error("动态取消订阅主题失败", e);
         }
     }
 
@@ -178,8 +200,7 @@ public class MqttCallback implements MqttCallbackExtended {
                 //根据设备MAC转换为topic
                 for (Device device : deviceList) {
                     if (device.getDeviceTypeId() == 1) {
-                        String deviceMac = device.getDeviceMac();
-                        deviceMac = deviceMac.replace(":", "");
+                        String deviceMac = MacUtils.reParseMACAddress(device.getDeviceMac());
                         for (String consumerTopic : TOPIC_LIST) {
                             mqttClient.subscribe(BASE_TOPIC + deviceMac + consumerTopic, 2);
                             log.info("订阅主题:{}", BASE_TOPIC + deviceMac + consumerTopic);

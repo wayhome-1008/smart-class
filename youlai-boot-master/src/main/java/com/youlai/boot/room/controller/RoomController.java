@@ -137,14 +137,6 @@ public class RoomController {
                             countSetter.accept(onCount); // 设置开启数量
                         }
                     }
-
-
-
-                    // 如果没有打开的开关，设置状态为false
-//                    if (onCount == 0) {
-//                        lightOrPlug.accept(false);
-//                        openSetter.accept(false);
-//                    }
                 });
     }
 

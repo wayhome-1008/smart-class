@@ -10,6 +10,7 @@ import com.youlai.boot.common.exception.BusinessException;
 import com.youlai.boot.common.model.Option;
 import com.youlai.boot.common.result.PageResult;
 import com.youlai.boot.common.result.Result;
+import com.youlai.boot.common.util.MacUtils;
 import com.youlai.boot.config.mqtt.MqttCallback;
 import com.youlai.boot.config.mqtt.MqttProducer;
 import com.youlai.boot.device.Enum.CommunicationModeEnum;
@@ -33,6 +34,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.eclipse.paho.client.mqttv3.MqttException;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -149,7 +151,7 @@ public class DeviceController {
     @Operation(summary = "新增设备管理")
     @PostMapping
     @PreAuthorize("@ss.hasPerm('device:device:add')")
-    @Log( value = "新增设备",module = LogModuleEnum.DEVICE)
+    @Log(value = "新增设备", module = LogModuleEnum.DEVICE)
     public Result<Void> saveDevice(@RequestBody @Valid DeviceForm formData) throws MqttException {
         //校验MAC是否存在
         boolean isExist = deviceService.isExistDeviceMac(formData.getDeviceMac());
@@ -199,7 +201,7 @@ public class DeviceController {
     @Operation(summary = "修改设备管理")
     @PutMapping(value = "/{id}")
     @PreAuthorize("@ss.hasPerm('device:device:edit')")
-    @Log( value = "修改设备",module = LogModuleEnum.DEVICE)
+    @Log(value = "修改设备", module = LogModuleEnum.DEVICE)
     public Result<Void> updateDevice(
             @Parameter(description = "设备管理ID") @PathVariable Long id,
             @RequestBody @Validated DeviceForm formData
@@ -229,7 +231,7 @@ public class DeviceController {
     @Operation(summary = "删除设备管理")
     @DeleteMapping("/{ids}")
     @PreAuthorize("@ss.hasPerm('device:device:delete')")
-    @Log( value = "删除设备",module = LogModuleEnum.DEVICE)
+    @Log(value = "删除设备", module = LogModuleEnum.DEVICE)
     public Result<Void> deleteDevices(
             @Parameter(description = "设备管理ID，多个以英文逗号(,)分割") @PathVariable String ids
     ) throws MqttException {
@@ -271,7 +273,7 @@ public class DeviceController {
 
     @Operation(summary = "重新录入设备")
     @GetMapping("/reEnter/{id}")
-    @Log( value = "重录入设备",module = LogModuleEnum.DEVICE)
+    @Log(value = "重录入设备", module = LogModuleEnum.DEVICE)
     public Result<Void> reEnter(
             @Parameter(description = "设备ID") @PathVariable Long id) throws MqttException {
         Device device = deviceService.getById(id);
@@ -291,11 +293,23 @@ public class DeviceController {
     private void mqttDeviceDel(Device device) {
         //删缓存
         redisTemplate.opsForHash().delete(RedisConstants.Device.DEVICE, device.getDeviceCode());
+        mqttCallback.unsubscribeTopic("tele/" + device.getDeviceCode() + "/SENSOR");
+        log.info("动态取消订阅主题\"tele/\" + device.getDeviceCode() + \"/SENSOR\"");
+        mqttCallback.unsubscribeTopic("tele/" + device.getDeviceCode() + "/INFO3");
+        log.info("动态取消订阅主题\"tele/\" + device.getDeviceCode() + \"/INFO3\"");
+        mqttCallback.unsubscribeTopic("tele/" + device.getDeviceCode() + "/STATE");
+        log.info("动态取消订阅主题\"tele/\" + device.getDeviceCode() + \"/STATE\"");
     }
 
     private void zigBeeGateWayDelDel(Device device) {
         //删缓存
         redisTemplate.opsForHash().delete(RedisConstants.Device.DEVICE, device.getDeviceCode());
+        //实时取消订阅
+        String deviceMac = MacUtils.reParseMACAddress(device.getDeviceMac());
+        for (String consumerTopic : TOPIC_LIST) {
+            mqttCallback.unsubscribeTopic(BASE_TOPIC + deviceMac + consumerTopic);
+            log.info("动态取消订阅主题: {}", BASE_TOPIC + deviceMac + consumerTopic);
+        }
     }
 
     private void wifiDeviceDel(Device device) {
@@ -313,11 +327,19 @@ public class DeviceController {
     private void gatewayDeviceDelMqtt(Device device) throws MqttException {
         //查询网关
         Device gateway = deviceService.getById(device.getDeviceGatewayId());
+        if (ObjectUtils.isEmpty(gateway)) return;
+        //给网关发送删除子设备消息
+        HashMap<String, Object> rootMap = sendDelToGatewayData(device);
+        mqttProducer.send("/zbgw/" + gateway.getDeviceCode() + "/manage", 2, false, JSON.toJSONString(rootMap));
+    }
+
+    @NotNull
+    private static HashMap<String, Object> sendDelToGatewayData(Device device) {
         //1.构造消息
         // 构建最外层HashMap
         HashMap<String, Object> rootMap = new HashMap<>();
         // 设置sequence字段（Integer类型）
-        rootMap.put("sequence", 123);
+        rootMap.put("sequence", (int) System.currentTimeMillis());
         // 设置cmd字段（String类型）
         rootMap.put("cmd", "delsubdevice");
         // 构建params内层HashMap
@@ -332,7 +354,7 @@ public class DeviceController {
         paramsMap.put("devices", devicesList);
         // 将paramsMap放入最外层rootMap
         rootMap.put("params", paramsMap);
-        mqttProducer.send("/zbgw/" + gateway.getDeviceCode() + "/manage", 2, false, JSON.toJSONString(rootMap));
+        return rootMap;
     }
 
     private void wifiDevice(@Valid DeviceForm formData) {
