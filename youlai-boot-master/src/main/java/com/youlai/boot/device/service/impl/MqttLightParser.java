@@ -6,6 +6,7 @@ import com.youlai.boot.device.service.DeviceInfoParser;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  *@Author: way
@@ -17,16 +18,18 @@ public class MqttLightParser implements DeviceInfoParser {
     public List<DeviceInfo> parse(JsonNode deviceInfo) {
         List<DeviceInfo> properties = new ArrayList<>();
         //灯光路数
-        if (deviceInfo.has("count")) {
-            int lightCount = deviceInfo.get("count").asInt();
-            properties.add(new DeviceInfo("count", lightCount));
-            if (lightCount == 1) {
-                properties.add(new DeviceInfo("power1", deviceInfo.get("POWER").asText()));
-            } else {
-                for (int i = 1; i <= lightCount; i++) {
-                    //灯状态
-                    if (deviceInfo.has("POWER" + i)) {
-                        properties.add(new DeviceInfo("power" + i, deviceInfo.get("POWER" + i).asText()));
+        if (Objects.nonNull(deviceInfo)) {
+            if (deviceInfo.has("count")) {
+                int lightCount = deviceInfo.get("count").asInt();
+                properties.add(new DeviceInfo("count", lightCount));
+                if (lightCount == 1) {
+                    properties.add(new DeviceInfo("power1", deviceInfo.get("POWER").asText()));
+                } else {
+                    for (int i = 1; i <= lightCount; i++) {
+                        //灯状态
+                        if (deviceInfo.has("POWER" + i)) {
+                            properties.add(new DeviceInfo("power" + i, deviceInfo.get("POWER" + i).asText()));
+                        }
                     }
                 }
             }

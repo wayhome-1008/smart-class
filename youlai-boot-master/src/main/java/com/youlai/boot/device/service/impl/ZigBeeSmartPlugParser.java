@@ -15,14 +15,17 @@ import java.util.List;
 public class ZigBeeSmartPlugParser implements DeviceInfoParser {
     @Override
     public List<DeviceInfo> parse(JsonNode deviceInfo) {
-        List<DeviceInfo> properties = new ArrayList<>();
-        if (deviceInfo.has("outlet1")) {
-            properties.add(new DeviceInfo("outlet1", deviceInfo.get("outlet1").asInt()));
-            properties.add(new DeviceInfo("count", 1));
+        if (deviceInfo!=null){
+            List<DeviceInfo> properties = new ArrayList<>();
+            if (deviceInfo.has("outlet1")) {
+                properties.add(new DeviceInfo("outlet1", deviceInfo.get("outlet1").asInt()));
+                properties.add(new DeviceInfo("count", 1));
+            }
+            if (deviceInfo.has("switch1")) {
+                properties.add(new DeviceInfo("switch1", deviceInfo.get("switch1").asText().equals("on") ? "ON" : "OFF"));
+            }
+            return properties;
         }
-        if (deviceInfo.has("switch1")) {
-            properties.add(new DeviceInfo("switch1", deviceInfo.get("switch1").asText().equals("on") ? "ON" : "OFF"));
-        }
-        return properties;
+        return null;
     }
 }

@@ -19,23 +19,26 @@ import java.util.Map;
 public class ZigBeeSwitchParser implements DeviceInfoParser {
     @Override
     public List<DeviceInfo> parse(JsonNode deviceInfo) {
-        List<DeviceInfo> properties = new ArrayList<>();
-        int count = 0;
-        if (deviceInfo != null && !deviceInfo.isMissingNode()) {
-            Iterator<Map.Entry<String, JsonNode>> fields = deviceInfo.fields();
-            while (fields.hasNext()) {
-                Map.Entry<String, JsonNode> entry = fields.next();
-                properties.add(new DeviceInfo(entry.getKey(), entry.getValue().asText()));
-                count++;
+        if (deviceInfo != null) {
+            List<DeviceInfo> properties = new ArrayList<>();
+            int count = 0;
+            if (deviceInfo != null && !deviceInfo.isMissingNode()) {
+                Iterator<Map.Entry<String, JsonNode>> fields = deviceInfo.fields();
+                while (fields.hasNext()) {
+                    Map.Entry<String, JsonNode> entry = fields.next();
+                    properties.add(new DeviceInfo(entry.getKey(), entry.getValue().asText()));
+                    count++;
+                }
             }
+            try {
+                count = count / 2;
+            } catch (Exception e) {
+                log.error("解析zigbee开关数据异常", e);
+            } finally {
+                properties.add(new DeviceInfo("count", count));
+            }
+            return properties;
         }
-        try {
-            count = count / 2;
-        } catch (Exception e) {
-            log.error("解析zigbee开关数据异常", e);
-        } finally {
-            properties.add(new DeviceInfo("count", count));
-        }
-        return properties;
+        return null;
     }
 }

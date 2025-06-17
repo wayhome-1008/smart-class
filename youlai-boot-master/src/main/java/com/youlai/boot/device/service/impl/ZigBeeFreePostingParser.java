@@ -18,24 +18,27 @@ import java.util.List;
 public class ZigBeeFreePostingParser implements DeviceInfoParser {
     @Override
     public List<DeviceInfo> parse(JsonNode deviceInfo) {
-        List<DeviceInfo> properties = new ArrayList<>();
-        //电量
-        if (deviceInfo.has("battery")) {
-            properties.add(new DeviceInfo("battery", deviceInfo.get("battery").asInt()));
-        }
-        ObjectNode switches = JsonNodeFactory.instance.objectNode();
-        Iterator<String> fieldNames = deviceInfo.fieldNames();
-        int count = 0;
-        while (fieldNames.hasNext()) {
-            String fieldName = fieldNames.next();
-            if (fieldName.startsWith("switch")) {
-                count++;
-                String freePostingStatus = deviceInfo.get(fieldName).asText();
-                switches.put(fieldName, freePostingStatus);
-                properties.add(new DeviceInfo(fieldName, freePostingStatus));
-            }
-        }
-        properties.add(new DeviceInfo("count", count));
-        return properties;
+      if (deviceInfo!= null){
+          List<DeviceInfo> properties = new ArrayList<>();
+          //电量
+          if (deviceInfo.has("battery")) {
+              properties.add(new DeviceInfo("battery", deviceInfo.get("battery").asInt()));
+          }
+          ObjectNode switches = JsonNodeFactory.instance.objectNode();
+          Iterator<String> fieldNames = deviceInfo.fieldNames();
+          int count = 0;
+          while (fieldNames.hasNext()) {
+              String fieldName = fieldNames.next();
+              if (fieldName.startsWith("switch")) {
+                  count++;
+                  String freePostingStatus = deviceInfo.get(fieldName).asText();
+                  switches.put(fieldName, freePostingStatus);
+                  properties.add(new DeviceInfo(fieldName, freePostingStatus));
+              }
+          }
+          properties.add(new DeviceInfo("count", count));
+          return properties;
+      }
+      return null;
     }
 }

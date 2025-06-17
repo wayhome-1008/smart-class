@@ -15,18 +15,21 @@ import java.util.List;
 public class ZigBeeHumanRadarSensorParser implements DeviceInfoParser {
     @Override
     public List<DeviceInfo> parse(JsonNode deviceInfo) {
-        List<DeviceInfo> properties = new ArrayList<>();
-        if (deviceInfo.has("params")) {
-            JsonNode sensorData = deviceInfo.get("params");
-            //电量
-            if (sensorData.has("battery")) {
-                properties.add(new DeviceInfo("battery", sensorData.get("battery").asInt()));
-            }
-            //是否有人
-            if (sensorData.has("motion")) {
-                properties.add(new DeviceInfo("motion", sensorData.get("motion").asInt()));
-            }
-        }
-        return properties;
+       if (deviceInfo!=null){
+           List<DeviceInfo> properties = new ArrayList<>();
+           if (deviceInfo.has("params")) {
+               JsonNode sensorData = deviceInfo.get("params");
+               //电量
+               if (sensorData.has("battery")) {
+                   properties.add(new DeviceInfo("battery", sensorData.get("battery").asInt()));
+               }
+               //是否有人
+               if (sensorData.has("motion")) {
+                   properties.add(new DeviceInfo("motion", sensorData.get("motion").asInt()));
+               }
+           }
+           return properties;
+       }
+       return null;
     }
 }

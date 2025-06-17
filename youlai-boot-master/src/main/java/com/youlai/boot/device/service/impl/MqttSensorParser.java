@@ -15,6 +15,7 @@ import java.util.List;
 public class MqttSensorParser implements DeviceInfoParser {
     @Override
     public List<DeviceInfo> parse(JsonNode deviceInfo) {
+    if (deviceInfo!=null){
         List<DeviceInfo> properties = new ArrayList<>();
         if (deviceInfo.has("DHT11")) {
             JsonNode data = deviceInfo.get("DHT11");
@@ -28,5 +29,7 @@ public class MqttSensorParser implements DeviceInfoParser {
             }
         }
         return properties;
+    }
+    return null;
     }
 }

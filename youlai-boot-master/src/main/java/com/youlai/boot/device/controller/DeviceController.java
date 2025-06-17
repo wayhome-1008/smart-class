@@ -267,7 +267,6 @@ public class DeviceController {
                     break;
             }
         }
-
         return Result.judge(result);
     }
 
