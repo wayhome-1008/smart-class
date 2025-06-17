@@ -50,7 +50,7 @@ public class ApiMonitorService {
         }
     }
 
-    @Scheduled(fixedRate = 30000)
+    @Scheduled(fixedRate = 60000)
     public void offLine() {
         for (Map.Entry<String, Device> stringWashDeviceEntry : deviceRequestTimeMap.entrySet()) {
             //定时去发manage
