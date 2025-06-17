@@ -16,9 +16,9 @@ import java.util.Objects;
 public class MqttLightParser implements DeviceInfoParser {
     @Override
     public List<DeviceInfo> parse(JsonNode deviceInfo) {
-        List<DeviceInfo> properties = new ArrayList<>();
-        //灯光路数
-        if (Objects.nonNull(deviceInfo)) {
+        if (deviceInfo != null) {
+            List<DeviceInfo> properties = new ArrayList<>();
+            //灯光路数
             if (deviceInfo.has("count")) {
                 int lightCount = deviceInfo.get("count").asInt();
                 properties.add(new DeviceInfo("count", lightCount));
@@ -33,7 +33,8 @@ public class MqttLightParser implements DeviceInfoParser {
                     }
                 }
             }
+            return properties;
         }
-        return properties;
+        return null;
     }
 }

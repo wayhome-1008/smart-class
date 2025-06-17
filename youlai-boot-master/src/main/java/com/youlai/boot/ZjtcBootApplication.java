@@ -6,6 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * 应用启动类
@@ -15,6 +16,7 @@ import org.springframework.context.annotation.ComponentScan;
 @SpringBootApplication()
 @ConfigurationPropertiesScan // 开启配置属性绑定
 @EnableConfigurationProperties(MqttProperties.class)
+@EnableScheduling
 public class ZjtcBootApplication {
 
     public static void main(String[] args) {

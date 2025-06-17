@@ -67,6 +67,7 @@ public class LightHandler implements MsgHandler {
                 Device deviceCache = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
                 if (deviceCache != null) {
                     // 双写：Redis缓存 + 数据库
+                    device.setStatus(1);
                     redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
                     deviceService.updateById(device);
                 } else {

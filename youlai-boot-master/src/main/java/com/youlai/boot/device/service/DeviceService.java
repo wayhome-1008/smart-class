@@ -92,4 +92,10 @@ public interface DeviceService extends IService<Device> {
     Map<String, Long> countDevicesByStatus();
 
     Long  listDevicesCount(String type,String ids);
+
+    boolean isExistDeviceNo(String deviceNo);
+
+    List<Device> getGateway();
+
+    List<Device> listGatewaySubDevices(Long gatewayId);
 }

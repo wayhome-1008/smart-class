@@ -14,6 +14,7 @@ import com.youlai.boot.device.converter.DeviceConverter;
 import com.youlai.boot.device.factory.DeviceInfoParserFactory;
 import com.youlai.boot.device.mapper.DeviceMapper;
 import com.youlai.boot.device.model.dto.event.DeviceEventParams;
+import com.youlai.boot.device.model.dto.event.SubDevicesEvent;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.DeviceForm;
 import com.youlai.boot.device.model.query.DeviceQuery;
@@ -84,10 +85,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
      */
     @Override
     public IPage<DeviceVO> getDevicePage(DeviceQuery queryParams) {
-        return this.baseMapper.getDevicePage(
-                new Page<>(queryParams.getPageNum(), queryParams.getPageSize()),
-                queryParams
-        );
+        return this.baseMapper.getDevicePage(new Page<>(queryParams.getPageNum(), queryParams.getPageSize()), queryParams);
     }
 
     /**
@@ -159,7 +157,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
 
     @Override
     public List<Device> getDeviceList() {
-        return this.deviceMapper.selectList(new LambdaQueryWrapper<Device>().eq(Device::getIsDeleted, 0));
+        return this.deviceMapper.selectList(new LambdaQueryWrapper<Device>().eq(Device::getStatus, 1));
     }
 
     @Override
@@ -175,14 +173,14 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     @Override
     public void updateDeviceStatusByCode(DeviceEventParams params) {
         //todo 状态处理
-//        List<SubDevicesEvent> subDevices = params.getSubDevices();
-//        for (SubDevicesEvent subDevice : subDevices) {
-//            Device deviceUpdate = new Device();
-//            if (subDevice.getOnline() != null) {
-//                deviceUpdate.setStatus(subDevice.getOnline() ? 1 : 0);
-//                this.deviceMapper.update(deviceUpdate, new LambdaQueryWrapper<Device>().eq(Device::getDeviceCode, subDevice.getDeviceId()));
-//            }
-//        }
+        List<SubDevicesEvent> subDevices = params.getSubDevices();
+        for (SubDevicesEvent subDevice : subDevices) {
+            Device deviceUpdate = new Device();
+            if (subDevice.getOnline() != null) {
+                deviceUpdate.setStatus(subDevice.getOnline() ? 1 : 3);
+                this.deviceMapper.update(deviceUpdate, new LambdaQueryWrapper<Device>().eq(Device::getDeviceCode, subDevice.getDeviceId()));
+            }
+        }
     }
 
     @Override
@@ -203,7 +201,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
 
     @Override
     public List<DeviceInfoVO> listDeviceByRoomId(Long roomId, Room room) {
-        List<Device> roomDevices = this.list(new LambdaQueryWrapper<Device>().eq(Device::getDeviceRoom, roomId));
+        List<Device> roomDevices = this.list(new LambdaQueryWrapper<Device>().eq(Device::getDeviceRoom, roomId).eq(Device::getStatus, 1));
         if (ObjectUtils.isNotEmpty(roomDevices)) {
             List<DeviceInfoVO> deviceInfoVOS = new ArrayList<>();
             for (Device roomDevice : roomDevices) {
@@ -278,29 +276,31 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     @Override
     public Map<String, Long> countDevicesByStatus() {
         QueryWrapper<Device> wrapper = new QueryWrapper<>();
-        wrapper.select("status, count(*) as count")
-                .groupBy("status");
+        wrapper.select("status, count(*) as count").groupBy("status");
 
         List<Map<String, Object>> list = deviceMapper.selectMaps(wrapper);
 
         Map<String, Long> result = new HashMap<>();
+        result.put("disable", 0L);
         result.put("online", 0L);
-        result.put("offline", 0L);
         result.put("unregistered", 0L);
-
+        result.put("offline", 0L);
         for (Map<String, Object> map : list) {
             Integer status = (Integer) map.get("status");
             Long count = (Long) map.get("count");
 
             switch (status) {
                 case 0:
-                    result.put("online", count);
+                    result.put("disable", count);
                     break;
                 case 1:
-                    result.put("offline", count);
+                    result.put("online", count);
                     break;
                 case 2:
                     result.put("unregistered", count);
+                    break;
+                case 3:
+                    result.put("offline", count);
                     break;
             }
         }
@@ -313,21 +313,14 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
             return 0L;
         }
 
-        List<Long> idList = Arrays.stream(ids.split(","))
-                .map(Long::parseLong)
-                .collect(Collectors.toList());
+        List<Long> idList = Arrays.stream(ids.split(",")).map(Long::parseLong).collect(Collectors.toList());
 
-        LambdaQueryWrapper<Device> queryWrapper = new LambdaQueryWrapper<Device>()
-                .eq(Device::getIsDeleted, 0);
+        LambdaQueryWrapper<Device> queryWrapper = new LambdaQueryWrapper<Device>().eq(Device::getIsDeleted, 0);
 
         switch (type) {
             case "building":
                 // 查询建筑下的设备数量（通过房间关联）
-                List<Room> rooms = roomService.list(
-                        new LambdaQueryWrapper<Room>()
-                                .in(Room::getBuildingId, idList)
-                                .eq(Room::getIsDeleted, 0)
-                );
+                List<Room> rooms = roomService.list(new LambdaQueryWrapper<Room>().in(Room::getBuildingId, idList).eq(Room::getIsDeleted, 0));
                 if (ObjectUtils.isEmpty(rooms)) {
                     return 0L;
                 }
@@ -336,11 +329,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
 
             case "floor":
                 // 查询楼层下的设备数量（通过房间关联）
-                List<Room> floorRooms = roomService.list(
-                        new LambdaQueryWrapper<Room>()
-                                .in(Room::getFloorId, idList)
-                                .eq(Room::getIsDeleted, 0)
-                );
+                List<Room> floorRooms = roomService.list(new LambdaQueryWrapper<Room>().in(Room::getFloorId, idList).eq(Room::getIsDeleted, 0));
                 if (ObjectUtils.isEmpty(floorRooms)) {
                     return 0L;
                 }
@@ -357,5 +346,20 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
         }
 
         return this.count(queryWrapper);
+    }
+
+    @Override
+    public boolean isExistDeviceNo(String deviceNo) {
+        return deviceMapper.selectCount(new LambdaQueryWrapper<Device>().eq(Device::getDeviceNo, deviceNo)) > 0;
+    }
+
+    @Override
+    public List<Device> getGateway() {
+        return deviceMapper.selectList(new LambdaQueryWrapper<Device>().eq(Device::getDeviceTypeId, 1));
+    }
+
+    @Override
+    public List<Device> listGatewaySubDevices(Long gatewayId) {
+        return deviceMapper.selectList(new LambdaQueryWrapper<Device>().eq(Device::getDeviceGatewayId, gatewayId));
     }
 }

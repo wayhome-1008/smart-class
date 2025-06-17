@@ -11,6 +11,7 @@ import lombok.Setter;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.Date;
 
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.youlai.boot.common.base.BaseEntity;
@@ -94,4 +95,7 @@ public class Device extends BaseEntity {
      */
     @TableLogic(value = "0", delval = "1")
     private Integer isDeleted;
+
+    @TableField(exist = false)
+    private Date deviceLastDate;
 }

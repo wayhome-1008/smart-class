@@ -153,9 +153,14 @@ public class DeviceController {
     @PreAuthorize("@ss.hasPerm('device:device:add')")
     @Log(value = "新增设备", module = LogModuleEnum.DEVICE)
     public Result<Void> saveDevice(@RequestBody @Valid DeviceForm formData) throws MqttException {
+        //校验编码是否重复
+        boolean isExistCode = deviceService.isExistDeviceNo(formData.getDeviceNo());
+        if (isExistCode) {
+            return Result.failed("设备编码已存在");
+        }
         //校验MAC是否存在
-        boolean isExist = deviceService.isExistDeviceMac(formData.getDeviceMac());
-        if (isExist) {
+        boolean isExistMac = deviceService.isExistDeviceMac(formData.getDeviceMac());
+        if (isExistMac) {
             return Result.failed("设备已存在");
         }
         boolean result = false;

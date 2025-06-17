@@ -22,7 +22,7 @@ public class ZigBeeSwitchParser implements DeviceInfoParser {
         if (deviceInfo != null) {
             List<DeviceInfo> properties = new ArrayList<>();
             int count = 0;
-            if (deviceInfo != null && !deviceInfo.isMissingNode()) {
+            if (!deviceInfo.isMissingNode()) {
                 Iterator<Map.Entry<String, JsonNode>> fields = deviceInfo.fields();
                 while (fields.hasNext()) {
                     Map.Entry<String, JsonNode> entry = fields.next();

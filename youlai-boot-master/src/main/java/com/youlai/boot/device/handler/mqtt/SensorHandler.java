@@ -46,6 +46,7 @@ public class SensorHandler implements MsgHandler {
                 device.setDeviceInfo(mergeJson);
                 Device deviceCache = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
                 if (ObjectUtils.isNotEmpty(deviceCache)) {
+                    device.setStatus(1);
                     redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
                     deviceService.updateById(device);
                 } else {

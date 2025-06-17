@@ -50,6 +50,7 @@ public class DeviceOperateController {
     private final MqttProducer mqttProducer;
     private final RoomService roomService;
     private final FloorService floorService;
+
     @Operation(summary = "根据楼、层、房间批量操作设备")
     @PutMapping(value = "/batch")
     @Log(value = "批量操作设备", module = LogModuleEnum.OPERATION)
@@ -70,17 +71,12 @@ public class DeviceOperateController {
         if (ObjectUtils.isEmpty(deviceInfoVOS)) return Result.failed("该楼层没有设备");
         for (DeviceInfoVO deviceInfoVO : deviceInfoVOS) {
             Optional<Integer> tempValue = DeviceInfo.getValueByName(deviceInfoVO.getDeviceInfo(), "count", Integer.class);
-            tempValue.ifPresent(
-                    value -> this.operate(operation.getOperate(),
-                            "-1", value, deviceInfoVO.getDeviceCode(),
-                            deviceInfoVO.getDeviceGatewayId(),
-                            deviceInfoVO.getCommunicationModeItemId(),
-                            deviceInfoVO.getDeviceTypeId()));
+            tempValue.ifPresent(value -> this.operate(operation.getOperate(), "-1", value, deviceInfoVO.getDeviceCode(), deviceInfoVO.getDeviceGatewayId(), deviceInfoVO.getCommunicationModeItemId(), deviceInfoVO.getDeviceTypeId()));
         }
         return Result.success();
     }
 
-    private Result<Void> roomOperate(com.youlai.boot.device.model.form.Operation operation)  {
+    private Result<Void> roomOperate(com.youlai.boot.device.model.form.Operation operation) {
         //查本房间的设备
         //查询房间是否存在
         Room room = roomService.getById(operation.getId());
@@ -90,12 +86,7 @@ public class DeviceOperateController {
         if (ObjectUtils.isEmpty(deviceInfoVOS)) return Result.failed("该房间没有设备");
         for (DeviceInfoVO deviceInfoVO : deviceInfoVOS) {
             Optional<Integer> tempValue = DeviceInfo.getValueByName(deviceInfoVO.getDeviceInfo(), "count", Integer.class);
-            tempValue.ifPresent(
-                    value -> this.operate(operation.getOperate(),
-                            "-1", value, deviceInfoVO.getDeviceCode(),
-                            deviceInfoVO.getDeviceGatewayId(),
-                            deviceInfoVO.getCommunicationModeItemId(),
-                            deviceInfoVO.getDeviceTypeId()));
+            tempValue.ifPresent(value -> this.operate(operation.getOperate(), "-1", value, deviceInfoVO.getDeviceCode(), deviceInfoVO.getDeviceGatewayId(), deviceInfoVO.getCommunicationModeItemId(), deviceInfoVO.getDeviceTypeId()));
         }
         return Result.success();
     }
@@ -103,10 +94,12 @@ public class DeviceOperateController {
     @Operation(summary = "插座操作")
     @PutMapping(value = "/socket/{id}")
     @Log(value = "设备操作", module = LogModuleEnum.OPERATION)
-    public Result<Void> operateSocket(@Parameter(description = "设备ID") @PathVariable Long id, @RequestBody @Validated DeviceOperate deviceOperate){
+    public Result<Void> operateSocket(@Parameter(description = "设备ID") @PathVariable Long id, @RequestBody @Validated DeviceOperate deviceOperate) {
         //根据设备发送mqtt
         Device device = deviceService.getById(id);
         if (ObjectUtils.isEmpty(device)) return Result.failed("设备不存在");
+        //状态
+        if (device.getStatus() != 1) return Result.failed("该设备非正常状态，无法操作");
         return operate(deviceOperate.getOperate(), deviceOperate.getWay(), deviceOperate.getCount(), device.getDeviceCode(), device.getDeviceGatewayId(), device.getCommunicationModeItemId(), device.getDeviceTypeId());
     }
 
