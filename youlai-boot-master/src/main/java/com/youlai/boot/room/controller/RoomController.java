@@ -92,12 +92,12 @@ public class RoomController {
                     break;
 
                 case 8: // 8->灯光
-                    checkDeviceSwitchStatus(device, "power", roomVO::setLight, roomVO::setIsOpen, roomVO::setLightNum);
+                    checkDeviceLightStatus(device, roomVO);
                     break;
                 case 4:
                 case 7:
                 case 10: // 4->计量插座,7->开关,10->智能插座
-                    checkDeviceSwitchStatus(device, "switch", roomVO::setPlug, roomVO::setIsOpen, roomVO::setPlugNum);
+                    checkDeviceSwitchStatus(device, roomVO);
                     break;
 
                 case 5: // 5->人体感应雷达
@@ -115,27 +115,50 @@ public class RoomController {
         }
     }
 
-    // 检查设备开关状态的通用方法
-    public static void checkDeviceSwitchStatus(DeviceInfoVO device, String switchPrefix,
-                                               Consumer<Boolean> lightOrPlug, Consumer<Boolean> openSetter,
-                                               Consumer<Integer> countSetter) {
-
+    private void checkDeviceLightStatus(DeviceInfoVO device, RoomVO roomVO) {
         DeviceInfo.getValueByName(device.getDeviceInfo(), "count", Integer.class)
                 .ifPresent(count -> {
                     int onCount = 0;
-
                     for (int i = 0; i < count; i++) {
-                        String switchName = switchPrefix + (i + 1);
+                        String switchName = "power" + (i + 1);
                         Optional<String> switchStatus = DeviceInfo.getValueByName(
                                 device.getDeviceInfo(),
                                 switchName,
                                 String.class
                         );
                         if (switchStatus.isPresent() && "ON".equals(switchStatus.get())) {
-                            onCount++;
-                            lightOrPlug.accept(true);
-                            openSetter.accept(true);
-                            countSetter.accept(onCount); // 设置开启数量
+                            //有灯
+                            roomVO.setLight(true);
+                            //开
+                            roomVO.setIsOpen(true);
+                            //灯光路数
+                            roomVO.setLightNum(roomVO.getLightNum() + 1); // 设置开启数量
+                        }
+                    }
+                });
+    }
+
+    // 检查设备开关状态的通用方法
+    public static void checkDeviceSwitchStatus(DeviceInfoVO device, RoomVO roomVO) {
+
+        DeviceInfo.getValueByName(device.getDeviceInfo(), "count", Integer.class)
+                .ifPresent(count -> {
+
+                    for (int i = 0; i < count; i++) {
+                        String switchName = "switch" + (i + 1);
+                        Optional<String> switchStatus = DeviceInfo.getValueByName(
+                                device.getDeviceInfo(),
+                                switchName,
+                                String.class
+                        );
+                        if (switchStatus.isPresent() && "ON".equals(switchStatus.get())) {
+                            //有插座
+                            roomVO.setPlug(true);
+
+                            //开
+                            roomVO.setIsOpen(true);
+                            //插座路数
+                            roomVO.setPlugNum(roomVO.getPlugNum() + 1); // 设置开启数量
                         }
                     }
                 });

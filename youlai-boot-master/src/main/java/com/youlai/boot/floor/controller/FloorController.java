@@ -12,12 +12,14 @@ import com.youlai.boot.floor.model.query.FloorQuery;
 import com.youlai.boot.floor.model.vo.FloorVO;
 import com.youlai.boot.floor.service.FloorService;
 import com.youlai.boot.room.model.entity.Room;
+import com.youlai.boot.room.model.vo.RoomVO;
 import com.youlai.boot.room.service.RoomService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static com.youlai.boot.room.controller.RoomController.checkDeviceSwitchStatus;
@@ -56,7 +59,7 @@ public class FloorController {
         }
         // 2. 获取这些楼层中的所有设备
         List<DeviceInfoVO> devices = deviceService.listDeviceByFloorIds(result.getRecords());
-        if (devices.isEmpty()) {
+        if (ObjectUtils.isEmpty(devices)) {
             return PageResult.success(result);
         }
         //3.获取楼层得房间
@@ -97,12 +100,12 @@ public class FloorController {
                     break;
 
                 case 8: // 8->灯光
-                    checkDeviceSwitchStatus(device, "power", floor::setLight, floor::setIsOpen, floor::setLightNum);
+                    checkDeviceSwitchStatus(device, floor);
                     break;
                 case 4:
                 case 7:
                 case 10: // 4->计量插座,7->开关,10->智能插座
-                    checkDeviceSwitchStatus(device, "switch", floor::setPlug, floor::setIsOpen, floor::setPlugNum);
+                    checkDeviceSwitchStatus(device, floor);
                     break;
 
                 case 5: // 5->人体感应雷达
@@ -118,6 +121,55 @@ public class FloorController {
                     break;
             }
         }
+    }
+
+    private void checkDeviceLightStatus(DeviceInfoVO device, FloorVO floor) {
+        DeviceInfo.getValueByName(device.getDeviceInfo(), "count", Integer.class)
+                .ifPresent(count -> {
+                    int onCount = 0;
+                    for (int i = 0; i < count; i++) {
+                        String switchName = "power" + (i + 1);
+                        Optional<String> switchStatus = DeviceInfo.getValueByName(
+                                device.getDeviceInfo(),
+                                switchName,
+                                String.class
+                        );
+                        if (switchStatus.isPresent() && "ON".equals(switchStatus.get())) {
+                            //有灯
+                            floor.setLight(true);
+                            //开
+                            floor.setIsOpen(true);
+                            //灯光路数
+                            floor.setLightNum(floor.getLightNum() + 1); // 设置开启数量
+                        }
+                    }
+                });
+    }
+
+    // 检查设备开关状态的通用方法
+    public static void checkDeviceSwitchStatus(DeviceInfoVO device, FloorVO floor) {
+
+        DeviceInfo.getValueByName(device.getDeviceInfo(), "count", Integer.class)
+                .ifPresent(count -> {
+
+                    for (int i = 0; i < count; i++) {
+                        String switchName = "switch" + (i + 1);
+                        Optional<String> switchStatus = DeviceInfo.getValueByName(
+                                device.getDeviceInfo(),
+                                switchName,
+                                String.class
+                        );
+                        if (switchStatus.isPresent() && "ON".equals(switchStatus.get())) {
+                            //有插座
+                            floor.setPlug(true);
+
+                            //开
+                            floor.setIsOpen(true);
+                            //插座路数
+                            floor.setPlugNum(floor.getPlugNum() + 1); // 设置开启数量
+                        }
+                    }
+                });
     }
 
     @Operation(summary = "新增楼层管理")

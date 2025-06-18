@@ -73,7 +73,20 @@ public class MqttCallback implements MqttCallbackExtended {
                     finalTopic = "/SENSOR3ON1";
                 }
             }
-
+        }
+        if (topic.startsWith("stat")) {
+            //从缓存去设备
+            String deviceCode = getCodeByTopic(topic);
+            Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
+            if (device == null) {
+                device = deviceService.getByCode(deviceCode);
+            }
+            if (device != null) {
+                //灯光
+                if (device.getDeviceTypeId() == 8) {
+                    finalTopic = "/RESULT";
+                }
+            }
         }
         if (StringUtils.isNotEmpty(finalTopic)) {
             HandlerType type = null;
@@ -122,6 +135,9 @@ public class MqttCallback implements MqttCallbackExtended {
                     break;
                 case "/SENSOR3ON1":
                     type = HandlerType.SENSOR3ON1;
+                    break;
+                case "/RESULT":
+                    type = HandlerType.RESULT;
                     break;
                 default:
                     break;
@@ -211,6 +227,8 @@ public class MqttCallback implements MqttCallbackExtended {
                         mqttClient.subscribe("tele/" + device.getDeviceCode() + "/SENSOR", 2);
                         mqttClient.subscribe("tele/" + device.getDeviceCode() + "/INFO3", 2);
                         mqttClient.subscribe("tele/" + device.getDeviceCode() + "/STATE", 2);
+//                        mqttClient.subscribe("stat/" + device.getDeviceCode() + "/POWER", 2);
+                        mqttClient.subscribe("stat/" + device.getDeviceCode() + "/RESULT", 2);
                     }
                 }
             } catch (MqttException e) {
