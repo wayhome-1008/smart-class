@@ -104,7 +104,7 @@ public class DeviceOperateController {
     }
 
     private Result<Void> operate(String operate, String way, Integer lightCount, String deviceCode, Long deviceGatewayId, Long deviceCommunicationModeItemId, Long deviceTypeId) {
-        if (deviceTypeId != 3 && deviceTypeId != 4 && deviceTypeId != 7 && deviceTypeId != 10 && deviceTypeId != 8)
+        if (deviceTypeId != 4 && deviceTypeId != 7 && deviceTypeId != 10 && deviceTypeId != 8)
             return Result.failed("该设备暂无操作");
         //根据通信协议去发送不同协议报文
         return switch (CommunicationModeEnum.getNameById(deviceCommunicationModeItemId)) {

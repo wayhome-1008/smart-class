@@ -125,6 +125,7 @@ public class SubUpdateHandler implements MsgHandler {
         if (device != null) {
             JsonNode mergeJson = mergeJson(Optional.of(device).map(Device::getDeviceInfo).orElse(null), allSwitchStates);
             device.setDeviceInfo(mergeJson);
+            device.setStatus(1);
             redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
             deviceService.updateById(device);
             RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
@@ -164,6 +165,7 @@ public class SubUpdateHandler implements MsgHandler {
             if (device != null) {
                 JsonNode mergeJson = mergeJson(Optional.of(device).map(Device::getDeviceInfo).orElse(null), allSwitchStates);
                 device.setDeviceInfo(mergeJson);
+                device.setStatus(1);
                 redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
                 deviceService.updateById(device);
                 RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
@@ -207,6 +209,7 @@ public class SubUpdateHandler implements MsgHandler {
                         }
                     } catch (NullPointerException e) {
                         log.error(e.getMessage());
+                        device.setStatus(1);
                         deviceService.updateById(device);
                     }
                 }
@@ -255,6 +258,7 @@ public class SubUpdateHandler implements MsgHandler {
 
             }
             if (needUpdate) {
+                deviceCache.setStatus(1);
                 deviceService.updateById(deviceCache);
             }
         }
@@ -339,6 +343,7 @@ public class SubUpdateHandler implements MsgHandler {
                 }
             }
             if (needUpdate) {
+                deviceCache.setStatus(1);
                 deviceService.updateById(deviceCache);
             }
         }
@@ -397,6 +402,7 @@ public class SubUpdateHandler implements MsgHandler {
                 }
             }
             if (needUpdate) {
+                deviceCache.setStatus(1);
                 deviceService.updateById(deviceCache);
             }
         }
