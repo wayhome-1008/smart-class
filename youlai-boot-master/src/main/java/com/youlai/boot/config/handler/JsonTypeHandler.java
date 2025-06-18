@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 /**
  *@Author: way
  *@CreateTime: 2025-05-22  12:53
- *@Description: TODO
+ *@Description: Device实体 JsonNode属性处理器
  */
 public class JsonTypeHandler extends AbstractJsonTypeHandler<JsonNode> {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();

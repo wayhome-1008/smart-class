@@ -55,18 +55,19 @@ public class RoomController {
         }
         // 2. 批量获取所有相关设备
         List<DeviceInfoVO> devices = deviceService.listDeviceByRoomIds(result.getRecords());
+        if (ObjectUtils.isNotEmpty(devices)) {
+            // 3. 按房间ID分组设备
+            Map<Long, List<DeviceInfoVO>> deviceMap = devices.stream()
+                    .collect(Collectors.groupingBy(DeviceInfoVO::getDeviceRoom));
 
-        // 3. 按房间ID分组设备
-        Map<Long, List<DeviceInfoVO>> deviceMap = devices.stream()
-                .collect(Collectors.groupingBy(DeviceInfoVO::getDeviceRoom));
-
-        // 4. 为每个房间设置设备及状态
-        result.getRecords().forEach(roomVO -> {
-            List<DeviceInfoVO> roomDevices = deviceMap.getOrDefault(roomVO.getId(), new ArrayList<>());
-            roomVO.setDeviceInfo(roomDevices); // 一次性设置完整设备列表
-            // 初始化房间的状态指标
-            initRoomStatusIndicators(roomVO, roomDevices);
-        });
+            // 4. 为每个房间设置设备及状态
+            result.getRecords().forEach(roomVO -> {
+                List<DeviceInfoVO> roomDevices = deviceMap.getOrDefault(roomVO.getId(), new ArrayList<>());
+                roomVO.setDeviceInfo(roomDevices); // 一次性设置完整设备列表
+                // 初始化房间的状态指标
+                initRoomStatusIndicators(roomVO, roomDevices);
+            });
+        }
 
         return PageResult.success(result);
     }

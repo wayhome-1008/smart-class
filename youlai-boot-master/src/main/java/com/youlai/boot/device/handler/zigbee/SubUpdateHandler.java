@@ -55,8 +55,8 @@ public class SubUpdateHandler implements MsgHandler {
             Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, originalMac);
             if (ObjectUtils.isEmpty(device)) {
                 device = deviceService.getByCode(originalMac);
-                device.setStatus(1);
             }
+            device.setStatus(1);
             if (ObjectUtil.isNotEmpty(device)) {
                 //传感器
                 if (device.getDeviceTypeId() == 2 || device.getDeviceTypeId() == 5) {
@@ -237,7 +237,7 @@ public class SubUpdateHandler implements MsgHandler {
         //校验缓存与本次数据是否相同,从而判断是否需要更新数据库
         boolean needUpdate = false;
         if (params != null) {
-            String[] fieldTiCheck = {"activePowerA", "activePowerB", "activePowerC", "RMS_VoltageA", "RMS_VoltageB", "RMS_VoltageC", "RMS_CurrentA", "RMS_CurrentB", "RMS_CurrentC", "electricalEnergy"};
+            String[] fieldTiCheck = {"switch","activePowerA", "activePowerB", "activePowerC", "RMS_VoltageA", "RMS_VoltageB", "RMS_VoltageC", "RMS_CurrentA", "RMS_CurrentB", "RMS_CurrentC", "electricalEnergy"};
             String matched = matchedFields(fieldTiCheck, params);
             if (StringUtils.isNotEmpty(matched)) {
                 //已知传入的字段 再根据oldParams比对

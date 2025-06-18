@@ -56,6 +56,9 @@ public class FloorController {
         }
         // 2. 获取这些楼层中的所有设备
         List<DeviceInfoVO> devices = deviceService.listDeviceByFloorIds(result.getRecords());
+        if (devices.isEmpty()) {
+            return PageResult.success(result);
+        }
         //3.获取楼层得房间
         List<Room> roomList = roomService.listRoomByFloor(result.getRecords());
         // 4. 构建房间ID到楼层ID的映射

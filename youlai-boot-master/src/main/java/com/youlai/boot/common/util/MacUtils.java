@@ -3,7 +3,7 @@ package com.youlai.boot.common.util;
 /**
  *@Author: way
  *@CreateTime: 2025-04-25  17:36
- *@Description: TODO
+ *@Description: 处理主题与设备编号转换
  */
 public class MacUtils {
     /**
@@ -88,6 +88,7 @@ public class MacUtils {
         // 返回第二段路径（索引为1）
         return parts[1];
     }
+
     /**
      * 方案一：基于字符串索引提取
      * @param url 输入字符串（如：/zbgw/9454c5ee7c68/add_subdevice）

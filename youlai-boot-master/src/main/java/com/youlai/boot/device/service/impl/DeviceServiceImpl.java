@@ -253,7 +253,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
 
     @Override
     public List<DeviceInfoVO> listDeviceByRoomIds(List<RoomVO> records) {
-        List<Device> roomDevices = this.list(new LambdaQueryWrapper<Device>().in(Device::getDeviceRoom, records.stream().map(RoomVO::getId).toArray()));
+        List<Device> roomDevices = this.list(new LambdaQueryWrapper<Device>().in(Device::getDeviceRoom, records.stream().map(RoomVO::getId).toArray()).eq(Device::getStatus, 1));
         return devicesToInfoVos(roomDevices);
     }
 
@@ -267,7 +267,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     public List<DeviceInfoVO> listDeviceByFloorIds(List<FloorVO> records) {
         List<Room> roomList = roomService.list(new LambdaQueryWrapper<Room>().in(Room::getFloorId, records.stream().map(FloorVO::getId).toArray()));
         if (ObjectUtils.isNotEmpty(roomList)) {
-            List<Device> floorDevices = this.list(new LambdaQueryWrapper<Device>().in(Device::getDeviceRoom, roomList.stream().map(Room::getId).toList()));
+            List<Device> floorDevices = this.list(new LambdaQueryWrapper<Device>().in(Device::getDeviceRoom, roomList.stream().map(Room::getId).toList()).eq(Device::getStatus, 1));
             return devicesToInfoVos(floorDevices);
         }
         return null;

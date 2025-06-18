@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 /**
  *@Author: way
  *@CreateTime: 2025-06-06  10:55
- *@Description: TODO
+ *@Description: 封装InfluxDB 查询语句构造工具类
  */
 public class InfluxQueryBuilder {
     // InfluxDB 支持的时间单位（严格匹配：s-秒/m-分/h-时/d-天/w-周/M-月/y-年）
@@ -35,6 +35,7 @@ public class InfluxQueryBuilder {
     private boolean pivot;               // 是否透视（默认 false）
     private String sortColumn = "_time";  // 默认排序字段
     private boolean sortDesc = true;      // 默认降序
+
     private InfluxQueryBuilder() {
         this.extraFilters = new ArrayList<>();
         // 默认不设置聚合函数（用户需显式调用 aggregate() 才会添加）
@@ -128,6 +129,7 @@ public class InfluxQueryBuilder {
         this.pivot = true;
         return this;
     }
+
     /**
      * 设置排序（可选，默认按 _time 降序）
      * @param column 排序字段（默认 "_time"）
@@ -145,6 +147,7 @@ public class InfluxQueryBuilder {
     public InfluxQueryBuilder sort() {
         return sort(null, true);
     }
+
     /**
      * 构建 Flux 查询字符串
      * @return 符合 InfluxDB 规范的 Flux 查询语句
