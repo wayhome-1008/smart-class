@@ -194,7 +194,8 @@ public class MqttCallback implements MqttCallbackExtended {
     @Override
     public void connectComplete(boolean reconnect, String serverURI) {
         //获取设备
-        List<Device> deviceList = deviceService.getDeviceList();
+//        List<Device> deviceList = deviceService.getDeviceList();
+        List<Device> deviceList = deviceService.list();
         if (ObjectUtils.isNotEmpty(deviceList)) {
             try {
                 //根据设备MAC转换为topic

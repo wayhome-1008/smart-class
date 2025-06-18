@@ -17,6 +17,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 
+import static com.youlai.boot.device.schedule.ApiMonitorService.deviceRequestTimeMap;
+
 /**
  *@Author: way
  *@CreateTime: 2025-04-25  11:46
@@ -49,7 +51,7 @@ public class GateWayRegisterHandler implements MsgHandler {
             Device deviceCache = new Device();
             deviceCache.setDeviceMac(macAddress);
             deviceCache.setDeviceCode(originalMac);
-            deviceCache.setStatus(0);
+            deviceCache.setStatus(1);
             redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, originalMac, deviceCache);
         }
     }

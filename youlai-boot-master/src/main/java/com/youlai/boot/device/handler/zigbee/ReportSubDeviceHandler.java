@@ -22,6 +22,8 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.youlai.boot.common.util.MacUtils.extractFromTopic;
+import static com.youlai.boot.device.schedule.ApiMonitorService.deviceRequestTimeMap;
 import static com.youlai.boot.device.topic.HandlerType.REPORT_SUBDEVICE;
 
 /**
@@ -39,12 +41,22 @@ public class ReportSubDeviceHandler implements MsgHandler {
     @Override
     public void process(String topic, String jsonMsg, MqttClient mqttClient) {
         try {
-            log.info("[接收到网关请求添加子设备消息:{}]", jsonMsg);
+            log.info("[网关上线后上报子设备:{}]", jsonMsg);
             //网关上线后上报子设备
             ReportSubDevice reportSubDevice = JSON.parseObject(jsonMsg, ReportSubDevice.class);
             List<SubDevice> reportSubDevices = reportSubDevice.getParams().getSubDevices();
             ReportSubDeviceRsp reportSubDeviceRsp = getReportSubDeviceRsp(reportSubDevice, reportSubDevices);
             mqttClient.publish(topic + "_rsp", JSON.toJSONString(reportSubDeviceRsp).getBytes(), 2, false);
+            //更新网关map
+            String deviceCode = extractFromTopic(topic);
+            Device gateway = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
+            if (gateway != null) {
+                gateway.setStatus(1);
+                redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, gateway);
+                deviceService.updateById(gateway);
+                gateway.setDeviceLastDate(new java.util.Date());
+                deviceRequestTimeMap.put(deviceCode, gateway);
+            }
             //对网关报道的设备设置在线 其余离线
             for (SubDevice subDevice : reportSubDevices) {
                 String originalMac = subDevice.getDeviceId();

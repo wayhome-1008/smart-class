@@ -50,7 +50,7 @@ public class ApiMonitorService {
         }
     }
 
-    @Scheduled(fixedRate = 60000)
+    @Scheduled(fixedRate = 45000)
     public void offLine() {
         for (Map.Entry<String, Device> stringWashDeviceEntry : deviceRequestTimeMap.entrySet()) {
             //定时去发manage
@@ -60,7 +60,6 @@ public class ApiMonitorService {
             backup.put("params", "");
             try {
                 String topic = "/zbgw/" + stringWashDeviceEntry.getValue().getDeviceCode() + "/manage";
-                log.info("发送主题{},内容{}", topic, backup);
                 mqttProducer.send(topic, 0, false, JSON.toJSONString(backup));
             } catch (MqttException e) {
                 log.error("发失败啦 ~~~~~~~", e);

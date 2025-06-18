@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import static com.youlai.boot.common.util.MacUtils.extractFromTopic;
 import static com.youlai.boot.device.schedule.ApiMonitorService.deviceRequestTimeMap;
@@ -37,7 +38,7 @@ public class ManageStatusHandler implements MsgHandler {
         //从map获取
         Device device = deviceRequestTimeMap.get(deviceCode);
         if (ObjectUtils.isNotEmpty(device)) {
-            log.info("设备{}已上线", device.getDeviceCode());
+            log.info("{}网关设备为在线", device.getDeviceName());
             //重置 时间
             device.setDeviceLastDate(new Date());
             deviceRequestTimeMap.put(device.getDeviceCode(), device);
@@ -45,27 +46,33 @@ public class ManageStatusHandler implements MsgHandler {
                 //说明重新上线
                 device.setStatus(1);
                 deviceService.updateById(device);
-                log.info("网关设备{}已重新上线", device.getDeviceCode());
-                //todo 子设备需要在updateHandler里处理状态
+                //重置 时间
+                device.setDeviceLastDate(new Date());
+                deviceRequestTimeMap.put(device.getDeviceCode(), device);
+                log.info("{}网关设备重新上线", device.getDeviceName());
+                //重新上线的话 按理说网关会自动发同步子设备消息 我会在那里处理子设备的状态问题
             }
         }
         //同时查询其余map中得时间是否过一分钟
         for (Map.Entry<String, Device> stringWashDeviceEntry : deviceRequestTimeMap.entrySet()) {
-            if (stringWashDeviceEntry.getValue().getDeviceLastDate().getTime() < System.currentTimeMillis() - 40000) {
-                log.info("网关设备{}已离线", stringWashDeviceEntry.getValue().getDeviceCode());
-                //说明离线 则网关及子设备需设置离线
-                Device updateStatus = new Device();
-                updateStatus.setStatus(3);
-                updateStatus.setId(stringWashDeviceEntry.getValue().getId());
-                deviceService.updateById(updateStatus);
-                //同时把离线得网关put到map中
-                deviceRequestTimeMap.put(stringWashDeviceEntry.getValue().getDeviceCode(), updateStatus);
-                //查子设备
-                List<Device> subDevices = deviceService.listGatewaySubDevices(stringWashDeviceEntry.getValue().getId());
-                for (Device subDevice : subDevices) {
-                    log.info("子设备{}已离线", subDevice.getDeviceCode());
-                    subDevice.setStatus(3);
-                    deviceService.updateById(subDevice);
+            if (!Objects.equals(stringWashDeviceEntry.getValue().getDeviceCode(), deviceCode)) {
+                if (stringWashDeviceEntry.getValue().getDeviceLastDate().getTime() < System.currentTimeMillis() - 60000) {
+                    log.info("{}网关设备已离线", device.getDeviceName());
+                    //说明离线 则网关及子设备需设置离线
+                    Device updateStatus = new Device();
+                    updateStatus.setStatus(3);
+                    updateStatus.setId(stringWashDeviceEntry.getValue().getId());
+                    deviceService.updateById(updateStatus);
+                    //同时把离线得网关put到map中
+                    stringWashDeviceEntry.getValue().setStatus(3);
+                    deviceRequestTimeMap.put(stringWashDeviceEntry.getValue().getDeviceCode(), stringWashDeviceEntry.getValue());
+                    //查子设备
+                    List<Device> subDevices = deviceService.listGatewaySubDevices(stringWashDeviceEntry.getValue().getId());
+                    for (Device subDevice : subDevices) {
+                        log.info("{}网关设备的子设备{}已离线", device.getDeviceName(), subDevice.getDeviceName());
+                        subDevice.setStatus(3);
+                        deviceService.updateById(subDevice);
+                    }
                 }
             }
         }
