@@ -117,7 +117,6 @@ public class RoomController {
     private void checkDeviceLightStatus(DeviceInfoVO device, RoomVO roomVO) {
         DeviceInfo.getValueByName(device.getDeviceInfo(), "count", Integer.class)
                 .ifPresent(count -> {
-                    int onCount = 0;
                     for (int i = 0; i < count; i++) {
                         String switchName = "power" + (i + 1);
                         Optional<String> switchStatus = DeviceInfo.getValueByName(
