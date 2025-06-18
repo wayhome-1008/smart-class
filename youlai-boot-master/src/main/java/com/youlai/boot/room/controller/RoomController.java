@@ -26,7 +26,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -139,7 +138,7 @@ public class RoomController {
     }
 
     // 检查设备开关状态的通用方法
-    public static void checkDeviceSwitchStatus(DeviceInfoVO device, RoomVO roomVO) {
+    private  void checkDeviceSwitchStatus(DeviceInfoVO device, RoomVO roomVO) {
 
         DeviceInfo.getValueByName(device.getDeviceInfo(), "count", Integer.class)
                 .ifPresent(count -> {

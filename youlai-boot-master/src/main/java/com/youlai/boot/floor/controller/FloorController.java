@@ -12,7 +12,6 @@ import com.youlai.boot.floor.model.query.FloorQuery;
 import com.youlai.boot.floor.model.vo.FloorVO;
 import com.youlai.boot.floor.service.FloorService;
 import com.youlai.boot.room.model.entity.Room;
-import com.youlai.boot.room.model.vo.RoomVO;
 import com.youlai.boot.room.service.RoomService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -29,8 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
-import static com.youlai.boot.room.controller.RoomController.checkDeviceSwitchStatus;
 
 /**
  * 楼层管理前端控制层
@@ -100,7 +97,7 @@ public class FloorController {
                     break;
 
                 case 8: // 8->灯光
-                    checkDeviceSwitchStatus(device, floor);
+                    checkDeviceLightStatus(device, floor);
                     break;
                 case 4:
                 case 7:
@@ -126,7 +123,6 @@ public class FloorController {
     private void checkDeviceLightStatus(DeviceInfoVO device, FloorVO floor) {
         DeviceInfo.getValueByName(device.getDeviceInfo(), "count", Integer.class)
                 .ifPresent(count -> {
-                    int onCount = 0;
                     for (int i = 0; i < count; i++) {
                         String switchName = "power" + (i + 1);
                         Optional<String> switchStatus = DeviceInfo.getValueByName(
@@ -147,11 +143,10 @@ public class FloorController {
     }
 
     // 检查设备开关状态的通用方法
-    public static void checkDeviceSwitchStatus(DeviceInfoVO device, FloorVO floor) {
+    private void checkDeviceSwitchStatus(DeviceInfoVO device, FloorVO floor) {
 
         DeviceInfo.getValueByName(device.getDeviceInfo(), "count", Integer.class)
                 .ifPresent(count -> {
-
                     for (int i = 0; i < count; i++) {
                         String switchName = "switch" + (i + 1);
                         Optional<String> switchStatus = DeviceInfo.getValueByName(
@@ -162,7 +157,6 @@ public class FloorController {
                         if (switchStatus.isPresent() && "ON".equals(switchStatus.get())) {
                             //有插座
                             floor.setPlug(true);
-
                             //开
                             floor.setIsOpen(true);
                             //插座路数
