@@ -362,4 +362,9 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     public List<Device> listGatewaySubDevices(Long gatewayId) {
         return deviceMapper.selectList(new LambdaQueryWrapper<Device>().eq(Device::getDeviceGatewayId, gatewayId));
     }
+
+    @Override
+    public List<Device> listMqttDevices() {
+        return deviceMapper.selectList(new LambdaQueryWrapper<Device>().eq(Device::getCommunicationModeItemId, 4));
+    }
 }

@@ -41,10 +41,11 @@ public class EventHandler implements MsgHandler {
         DeviceEvent deviceEvent = JSON.parseObject(jsonMsg, DeviceEvent.class);
         if (deviceEvent != null) {
             String event = Optional.of(deviceEvent).map(DeviceEvent::getEvent).orElse(null);
-            if (StringUtils.isEmpty(event)) {
-                //更新子设备状态
-                deviceService.updateDeviceStatusByCode(deviceEvent.getParams());
-            } else {
+            if (StringUtils.isNotEmpty(event)) {
+                if (event.equals("onoffline")) {
+                    //更新子设备状态
+                    deviceService.updateDeviceStatusByCode(deviceEvent.getParams());
+                }
                 if (event.equals("leave")) {
                     //说明该设备被重置 按理说我该删除或给警报 先给个状态2吧。。。
                     Device updateDevice = new Device();

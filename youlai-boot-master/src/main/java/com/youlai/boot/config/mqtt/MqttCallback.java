@@ -229,6 +229,7 @@ public class MqttCallback implements MqttCallbackExtended {
                         mqttClient.subscribe("tele/" + device.getDeviceCode() + "/STATE", 2);
 //                        mqttClient.subscribe("stat/" + device.getDeviceCode() + "/POWER", 2);
                         mqttClient.subscribe("stat/" + device.getDeviceCode() + "/RESULT", 2);
+                        mqttClient.subscribe("stat/" + device.getDeviceCode() + "/STATUS8", 2);
                     }
                 }
             } catch (MqttException e) {

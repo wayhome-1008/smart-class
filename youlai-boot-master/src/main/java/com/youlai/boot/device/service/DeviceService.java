@@ -98,4 +98,6 @@ public interface DeviceService extends IService<Device> {
     List<Device> getGateway();
 
     List<Device> listGatewaySubDevices(Long gatewayId);
+
+    List<Device> listMqttDevices();
 }
