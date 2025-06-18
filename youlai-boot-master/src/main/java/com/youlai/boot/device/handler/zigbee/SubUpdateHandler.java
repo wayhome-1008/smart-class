@@ -10,7 +10,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.domain.WritePrecision;
 import com.youlai.boot.common.constant.RedisConstants;
-import com.youlai.boot.common.util.MacUtils;
 import com.youlai.boot.config.property.InfluxDBProperties;
 import com.youlai.boot.device.handler.service.MsgHandler;
 import com.youlai.boot.device.model.entity.Device;
@@ -32,7 +31,6 @@ import org.springframework.stereotype.Component;
 import java.util.Optional;
 
 import static com.youlai.boot.common.util.JsonUtils.*;
-import static com.youlai.boot.device.schedule.ApiMonitorService.deviceRequestTimeMap;
 
 /**
  *@Author: way

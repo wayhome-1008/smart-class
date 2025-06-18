@@ -17,8 +17,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 
-import static com.youlai.boot.device.schedule.ApiMonitorService.deviceRequestTimeMap;
-
 /**
  *@Author: way
  *@CreateTime: 2025-04-25  11:46

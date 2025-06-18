@@ -2,7 +2,6 @@ package com.youlai.boot.device.handler.zigbee;
 
 import com.alibaba.fastjson.JSON;
 import com.youlai.boot.common.constant.RedisConstants;
-import com.youlai.boot.common.util.MacUtils;
 import com.youlai.boot.device.handler.service.MsgHandler;
 import com.youlai.boot.device.model.dto.reportSubDevice.ReportSubDevice;
 import com.youlai.boot.device.model.dto.reportSubDevice.SubDevice;
@@ -24,7 +23,6 @@ import java.util.List;
 
 import static com.youlai.boot.common.util.MacUtils.extractFromTopic;
 import static com.youlai.boot.device.schedule.ApiMonitorService.deviceRequestTimeMap;
-import static com.youlai.boot.device.topic.HandlerType.REPORT_SUBDEVICE;
 
 /**
  *@Author: way
