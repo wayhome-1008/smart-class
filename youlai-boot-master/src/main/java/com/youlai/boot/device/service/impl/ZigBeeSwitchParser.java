@@ -1,6 +1,8 @@
 package com.youlai.boot.device.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.youlai.boot.device.model.vo.DeviceInfo;
 import com.youlai.boot.device.service.DeviceInfoParser;
 import lombok.extern.slf4j.Slf4j;
@@ -21,22 +23,19 @@ public class ZigBeeSwitchParser implements DeviceInfoParser {
     public List<DeviceInfo> parse(JsonNode deviceInfo) {
         if (deviceInfo != null) {
             List<DeviceInfo> properties = new ArrayList<>();
-            int count = 0;
-            if (!deviceInfo.isMissingNode()) {
-                Iterator<Map.Entry<String, JsonNode>> fields = deviceInfo.fields();
-                while (fields.hasNext()) {
-                    Map.Entry<String, JsonNode> entry = fields.next();
-                    properties.add(new DeviceInfo(entry.getKey(), entry.getValue().asText()));
-                    count++;
+            ObjectNode switches = JsonNodeFactory.instance.objectNode();
+            Iterator<String> fieldNames = deviceInfo.fieldNames();
+            int switchCount = 0;
+            while (fieldNames.hasNext()) {
+                String fieldName = fieldNames.next();
+                if (fieldName.startsWith("switch")) {
+                    switchCount++;
+                    String freePostingStatus = deviceInfo.get(fieldName).asText();
+                    switches.put(fieldName, freePostingStatus);
+                    properties.add(new DeviceInfo(fieldName, freePostingStatus));
                 }
             }
-            try {
-                count = count / 2;
-            } catch (Exception e) {
-                log.error("解析zigbee开关数据异常", e);
-            } finally {
-                properties.add(new DeviceInfo("count", count));
-            }
+            properties.add(new DeviceInfo("count", switchCount));
             return properties;
         }
         return null;

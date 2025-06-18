@@ -167,7 +167,6 @@ public class DeviceOperateController {
                 control.setParams(controlParams);
                 String deviceMac = gateway.getDeviceMac();
                 String gateWayTopic = MacUtils.reParseMACAddress(deviceMac);
-                log.info(control.toString());
                 try {
                     mqttProducer.send("/zbgw/" + gateWayTopic + "/sub/control", 0, false, JSON.toJSONString(control));
                 } catch (MqttException e) {

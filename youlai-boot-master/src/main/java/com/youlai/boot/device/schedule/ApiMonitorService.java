@@ -27,6 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 public class ApiMonitorService {
     public static ConcurrentHashMap<String, Device> deviceRequestTimeMap = new ConcurrentHashMap<>();
+    public static ConcurrentHashMap<String, Device> deviceMqttRequestTimeMap = new ConcurrentHashMap<>();
     private final DeviceService deviceService;
     private final MqttProducer mqttProducer;
 
@@ -59,5 +60,9 @@ public class ApiMonitorService {
                 log.error("发失败啦 ~~~~~~~", e);
             }
         }
+    }
+    @Scheduled(fixedRate = 45000)
+    public void demo(){
+
     }
 }
