@@ -137,12 +137,22 @@ public class SubUpdateHandler implements MsgHandler {
      * @author: way
      * @date: 2025/5/27 17:36
      **/
-    private void processThreeWaySwitch(String topic, MqttClient mqttClient, Device device, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
-        if (ObjectUtil.isNotEmpty(device)) {
-            JsonNode jsonNode = stringToJsonNode(jsonMsg);
-            //获取params
-            JsonNode params = jsonNode.get("params");
-            JsonNode switchesArray = params.get("switches");
+    private void processThreeWaySwitch(String topic, MqttClient mqttClient, Device deviceCache, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
+        JsonNode jsonNode = stringToJsonNode(jsonMsg);
+        //获取params
+        JsonNode params = jsonNode.get("params");
+        if (ObjectUtils.isEmpty(deviceCache.getDeviceInfo())) return;
+
+        //接收数据与旧数据合并
+        JsonNode mergeJson = mergeJson(deviceCache.getDeviceInfo(), jsonNode);
+        deviceCache.setDeviceInfo(mergeJson);
+
+        //获取合并后params节点
+        JsonNode mergeParams = mergeJson.get("params");
+
+        //校验是否需要更新数据库
+        if (params != null) {
+            JsonNode switchesArray = mergeParams.get("switches");
             // 1. 准备存储所有开关状态的对象
             ObjectNode allSwitchStates = JsonNodeFactory.instance.objectNode();
             // 2. 遍历switches数组
@@ -161,14 +171,10 @@ public class SubUpdateHandler implements MsgHandler {
                     allSwitchStates.put("switch" + outletNum, switchState);
                 }
             }
-            if (device != null) {
-                JsonNode mergeJson = mergeJson(Optional.of(device).map(Device::getDeviceInfo).orElse(null), allSwitchStates);
-                device.setDeviceInfo(mergeJson);
-                redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
-                deviceService.updateById(device);
-                RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
-            }
         }
+        redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCache.getDeviceCode(), deviceCache);
+        deviceService.updateById(deviceCache);
+        RspMqtt(topic, mqttClient, deviceCache.getDeviceCode(), sequence);
     }
 
     /**
@@ -237,16 +243,22 @@ public class SubUpdateHandler implements MsgHandler {
         //校验缓存与本次数据是否相同,从而判断是否需要更新数据库
         boolean needUpdate = false;
         if (params != null) {
-            String[] fieldTiCheck = {"switch","activePowerA", "activePowerB", "activePowerC", "RMS_VoltageA", "RMS_VoltageB", "RMS_VoltageC", "RMS_CurrentA", "RMS_CurrentB", "RMS_CurrentC", "electricalEnergy"};
+            String[] fieldTiCheck = {"switches", "activePowerA", "activePowerB", "activePowerC", "RMS_VoltageA", "RMS_VoltageB", "RMS_VoltageC", "RMS_CurrentA", "RMS_CurrentB", "RMS_CurrentC", "electricalEnergy"};
             String matched = matchedFields(fieldTiCheck, params);
             if (StringUtils.isNotEmpty(matched)) {
-                //已知传入的字段 再根据oldParams比对
-                double newValue = params.get(matched).asDouble();
-                double oldValue = oldParams.get(matched).asDouble();
-                if (newValue != oldValue) {
-                    log.info("字段:{}不同,需要更新数据库,改前为{},改后为{}", matched, oldValue, newValue);
+                //开关单独处理
+                if (matched.equals("switches")) {
                     needUpdate = true;
+                } else {
+                    //已知传入的字段 再根据oldParams比对
+                    double newValue = params.get(matched).asDouble();
+                    double oldValue = oldParams.get(matched).asDouble();
+                    if (newValue != oldValue) {
+                        log.info("字段:{}不同,需要更新数据库,改前为{},改后为{}", matched, oldValue, newValue);
+                        needUpdate = true;
+                    }
                 }
+
             }
             if (needUpdate) {
                 deviceService.updateById(deviceCache);

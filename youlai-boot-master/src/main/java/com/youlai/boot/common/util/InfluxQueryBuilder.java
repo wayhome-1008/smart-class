@@ -30,7 +30,7 @@ public class InfluxQueryBuilder {
     private String timeUnit;             // 必选：时间单位（如 "h"）
     private String measurement;          // 必选：测量点名称
     private String deviceCode;           // 设备编码过滤值（可选）
-    private List<String> extraFilters;   // 额外过滤条件（可选）
+    private final List<String> extraFilters;   // 额外过滤条件（可选）
     private String aggregateFunction;    // 聚合函数（可选，如 "last()", "mean()"）
     private boolean pivot;               // 是否透视（默认 false）
     private String sortColumn = "_time";  // 默认排序字段
@@ -55,7 +55,7 @@ public class InfluxQueryBuilder {
     }
 
     /**
-     * 创建新的构建器实例
+     * 创建新构建器实例
      */
     public static InfluxQueryBuilder newBuilder() {
         return new InfluxQueryBuilder();

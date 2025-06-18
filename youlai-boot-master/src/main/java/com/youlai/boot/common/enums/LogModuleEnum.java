@@ -27,7 +27,8 @@ public enum LogModuleEnum {
     DEVICE("设备"),
     FLOOR("楼层"),
     ROOM("房间"),
-    OPERATION("操作");
+    OPERATION("操作"),
+    WARNING("告警");
     @JsonValue
     private final String moduleName;
 
