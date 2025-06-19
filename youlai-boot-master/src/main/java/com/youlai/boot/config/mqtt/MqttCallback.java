@@ -42,121 +42,174 @@ public class MqttCallback implements MqttCallbackExtended {
      * 接收mqtt服务端消息
      * 进行业务处理，业务处理完成后，手动确认消息
      */
+//    @Override
+//    public void messageArrived(String topic, MqttMessage message) throws MqttException {
+//        //返回消息统一在这里
+//        log.info("【接收到主题{}的消息{}】", topic, message.toString());
+//        String finalTopic = "";
+//        HandlerType type = null;
+//        //zbgw
+//        if (topic.startsWith("/zbgw")) {
+//            finalTopic = MacUtils.removeZbgwMacPart(topic);
+//        }
+//        //tele
+//        if (topic.contains("tasmota")) {
+//            //获取最后功能
+//            String function = MacUtils.getFinalByTopic(topic);
+//            switch (function) {
+//                case "STATE":
+//                    type = HandlerType.STATE;
+//                    break;
+//                case "RESULT":
+//                    type = HandlerType.RESULT;
+//                    break;
+//                case "STATUS8":
+//                    type = HandlerType.STATUS8;
+//                    break;
+//                default:
+//                    break;
+//            }
+//        }
+////        if (topic.startsWith("stat")) {
+////            //从缓存去设备
+////            String deviceCode = getCodeByTopic(topic);
+////            Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
+////            if (device == null) {
+////                device = deviceService.getByCode(deviceCode);
+////            }
+////            if (device != null) {
+////                //灯光
+////                if (device.getDeviceTypeId() == 8) {
+////                    finalTopic = "/RESULT";
+////                }
+////            }
+////        }
+//        if (StringUtils.isNotEmpty(finalTopic)) {
+//            switch (finalTopic) {
+//                case "/register":
+//                    type = HandlerType.REGISTER;
+//                    break;
+//                case "/report_subdevice":
+//                    type = HandlerType.REPORT_SUBDEVICE;
+//                    break;
+//                case "/add_subdevice":
+//                    type = HandlerType.ADD_SUB_DEVICE;
+//                    break;
+//                case "/event":
+//                    type = HandlerType.EVENT;
+//                    break;
+//                case "/sub/update":
+//                    type = HandlerType.SUB_UPDATE;
+//                    break;
+//                case "/sub/attribute_rsp":
+//                    type = HandlerType.SUB_ATTRIBUTE_RSP;
+//                    break;
+//                case "/sub/control_rsp":
+//                    type = HandlerType.SUB_CONTROL_RSP;
+//                    break;
+//                case "/sub/things_rsp":
+//                    type = HandlerType.SUB_THINGS_RSP;
+//                    break;
+//                case "/manage_rsp":
+//                    type = HandlerType.MANAGE_RSP;
+//                    break;
+//                case "/request":
+//                    type = HandlerType.REQUEST;
+//                    break;
+//                case "/sub/get_rsp":
+//                    type = HandlerType.SUB_GET_RSP;
+//                    break;
+//                case "/ota_rsp":
+//                    type = HandlerType.OTA_RSP;
+//                    break;
+//                case "/SENSOR":
+//                    type = HandlerType.SENSOR;
+//                    break;
+//                case "/LIGHT":
+//                    type = HandlerType.LIGHT;
+//                    break;
+//                case "/SENSOR3ON1":
+//                    type = HandlerType.SENSOR3ON1;
+//                    break;
+//                case "/RESULT":
+//                    type = HandlerType.RESULT;
+//                    break;
+//                default:
+//                    break;
+//            }
+//            MsgHandler handler = factory.getHandler(type);
+//            if (handler != null) {
+//                //注册消息处理
+//                String parseMessage = new String(message.getPayload());
+//                try {
+//                    handler.process(topic, parseMessage, mqttClient);
+//                } catch (JsonProcessingException e) {
+//                    throw new RuntimeException(e);
+//                }
+//            }
+//            //        mqttService.processMessage(mac, StrUtils.removeFirstTwoParts(topic), message, mqttClient);
+//            //处理成功后确认消息
+//            mqttClient.messageArrivedComplete(message.getId(), message.getQos());
+//        }
+//
+//    }
     @Override
     public void messageArrived(String topic, MqttMessage message) throws MqttException {
-        //返回消息统一在这里
         log.info("【接收到主题{}的消息{}】", topic, message.toString());
-        String finalTopic = "";
-        //zbgw
-        if (topic.startsWith("/zbgw")) {
-            finalTopic = MacUtils.removeZbgwMacPart(topic);
-        }
-        //tele
-        if (topic.startsWith("tele")) {
-            //从缓存去设备
-            String deviceCode = getCodeByTopic(topic);
-            Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
-            if (device == null) {
-                device = deviceService.getByCode(deviceCode);
-            }
-            if (device != null) {
-                //温湿度传感器
-                if (device.getDeviceTypeId() == 2) {
-                    finalTopic = "/SENSOR";
-                }
-                //灯光
-                if (device.getDeviceTypeId() == 8) {
-                    finalTopic = "/LIGHT";
-                }
-                //三合一传感器
-                if (device.getDeviceTypeId() == 9) {
-                    finalTopic = "/SENSOR3ON1";
-                }
-            }
-        }
-        if (topic.startsWith("stat")) {
-            //从缓存去设备
-            String deviceCode = getCodeByTopic(topic);
-            Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
-            if (device == null) {
-                device = deviceService.getByCode(deviceCode);
-            }
-            if (device != null) {
-                //灯光
-                if (device.getDeviceTypeId() == 8) {
-                    finalTopic = "/RESULT";
-                }
-            }
-        }
-        if (StringUtils.isNotEmpty(finalTopic)) {
-            HandlerType type = null;
-            switch (finalTopic) {
-                case "/register":
-                    type = HandlerType.REGISTER;
-                    break;
-                case "/report_subdevice":
-                    type = HandlerType.REPORT_SUBDEVICE;
-                    break;
-                case "/add_subdevice":
-                    type = HandlerType.ADD_SUB_DEVICE;
-                    break;
-                case "/event":
-                    type = HandlerType.EVENT;
-                    break;
-                case "/sub/update":
-                    type = HandlerType.SUB_UPDATE;
-                    break;
-                case "/sub/attribute_rsp":
-                    type = HandlerType.SUB_ATTRIBUTE_RSP;
-                    break;
-                case "/sub/control_rsp":
-                    type = HandlerType.SUB_CONTROL_RSP;
-                    break;
-                case "/sub/things_rsp":
-                    type = HandlerType.SUB_THINGS_RSP;
-                    break;
-                case "/manage_rsp":
-                    type = HandlerType.MANAGE_RSP;
-                    break;
-                case "/request":
-                    type = HandlerType.REQUEST;
-                    break;
-                case "/sub/get_rsp":
-                    type = HandlerType.SUB_GET_RSP;
-                    break;
-                case "/ota_rsp":
-                    type = HandlerType.OTA_RSP;
-                    break;
-                case "/SENSOR":
-                    type = HandlerType.SENSOR;
-                    break;
-                case "/LIGHT":
-                    type = HandlerType.LIGHT;
-                    break;
-                case "/SENSOR3ON1":
-                    type = HandlerType.SENSOR3ON1;
-                    break;
-                case "/RESULT":
-                    type = HandlerType.RESULT;
-                    break;
-                default:
-                    break;
-            }
+
+        // 统一处理路径
+        String normalizedTopic = normalizeTopic(topic);
+        HandlerType type = determineHandlerType(normalizedTopic);
+
+        if (type != null) {
             MsgHandler handler = factory.getHandler(type);
             if (handler != null) {
-                //注册消息处理
-                String parseMessage = new String(message.getPayload());
                 try {
-                    handler.process(topic, parseMessage, mqttClient);
+                    handler.process(topic, new String(message.getPayload()), mqttClient);
                 } catch (JsonProcessingException e) {
                     throw new RuntimeException(e);
                 }
             }
-            //        mqttService.processMessage(mac, StrUtils.removeFirstTwoParts(topic), message, mqttClient);
-            //处理成功后确认消息
             mqttClient.messageArrivedComplete(message.getId(), message.getQos());
         }
+    }
 
+    // 标准化 topic 路径
+    private String normalizeTopic(String topic) {
+        if (topic.startsWith("/zbgw")) {
+            return MacUtils.removeZbgwMacPart(topic); // 示例: "/zbgw/abc123/manage" -> "/manage"
+        } else if (topic.contains("tasmota")) {
+            return MacUtils.getFinalByTopic(topic);   // 示例: "tele/tasmota_abc/STATE" -> "STATE"
+        }
+        return topic;
+    }
+
+    // 统一判断 HandlerType
+    private HandlerType determineHandlerType(String normalizedTopic) {
+        return switch (normalizedTopic) {
+            // 处理 tasmota 相关功能
+            case "STATE" -> HandlerType.STATE;
+            case "RESULT" -> HandlerType.RESULT;
+            case "STATUS8" -> HandlerType.STATUS8;
+
+            // 处理通用路径
+            case "/register" -> HandlerType.REGISTER;
+            case "/report_subdevice" -> HandlerType.REPORT_SUBDEVICE;
+            case "/add_subdevice" -> HandlerType.ADD_SUB_DEVICE;
+            case "/event" -> HandlerType.EVENT;
+            case "/sub/update" -> HandlerType.SUB_UPDATE;
+            case "/sub/attribute_rsp" -> HandlerType.SUB_ATTRIBUTE_RSP;
+            case "/sub/control_rsp" -> HandlerType.SUB_CONTROL_RSP;
+            case "/sub/things_rsp" -> HandlerType.SUB_THINGS_RSP;
+            case "/manage_rsp" -> HandlerType.MANAGE_RSP;
+            case "/request" -> HandlerType.REQUEST;
+            case "/sub/get_rsp" -> HandlerType.SUB_GET_RSP;
+            case "/ota_rsp" -> HandlerType.OTA_RSP;
+            case "/SENSOR" -> HandlerType.SENSOR;
+            case "/LIGHT" -> HandlerType.LIGHT;
+            case "/SENSOR3ON1" -> HandlerType.SENSOR3ON1;
+            default -> null;
+        };
     }
 
     /**

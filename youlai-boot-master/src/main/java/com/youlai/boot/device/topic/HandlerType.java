@@ -29,5 +29,6 @@ public enum HandlerType {
     //MQTT直连设备
     SENSOR, //温湿度传感器
     LIGHT,
-    RESULT, SENSOR3ON1
+    STATE,
+    RESULT, SENSOR3ON1,STATUS8;
 }

@@ -29,12 +29,33 @@ import static com.youlai.boot.common.util.MacUtils.getCodeByTopic;
 @Component
 @Slf4j
 @RequiredArgsConstructor
-public class LightHandler implements MsgHandler {
+public class StateHandler implements MsgHandler {
     private final RedisTemplate<String, Object> redisTemplate;
     private final DeviceService deviceService;
 
     @Override
     public void process(String topic, String jsonMsg, MqttClient mqttClient) {
+        //从缓存去设备
+        String deviceCode = getCodeByTopic(topic);
+        Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
+        if (device == null) {
+            device = deviceService.getByCode(deviceCode);
+        }
+        //温湿度传感器
+        if (device.getDeviceTypeId() == 2) {
+            handlerSensor(topic, jsonMsg);
+        }
+        //灯光
+        if (device.getDeviceTypeId() == 8) {
+            handlerLight(topic, jsonMsg);
+        }
+        //三合一传感器
+        if (device.getDeviceTypeId() == 9) {
+            handlerSensor3On1(topic, jsonMsg);
+        }
+    }
+
+    private void handlerLight(String topic, String jsonMsg) {
         try {
             // 1. 转换消息为JSON
             JsonNode jsonNode = stringToJsonNode(jsonMsg);
@@ -83,8 +104,66 @@ public class LightHandler implements MsgHandler {
         }
     }
 
+    private void handlerSensor(String topic, String jsonMsg) {
+        try {
+            //topic是code 唯一的
+            //截取code
+            String deviceCode = getCodeByTopic(topic);
+            //从设备缓存获取看是否存在
+            Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
+            if (ObjectUtils.isEmpty(device)) {
+                device = deviceService.getByCode(deviceCode);
+            }
+            if (ObjectUtils.isNotEmpty(device)) {
+                JsonNode jsonNode = stringToJsonNode(jsonMsg);
+                JsonNode mergeJson = mergeJson(device.getDeviceInfo(), jsonNode);
+                device.setDeviceInfo(mergeJson);
+                Device deviceCache = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
+                if (ObjectUtils.isNotEmpty(deviceCache)) {
+                    device.setStatus(1);
+                    redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
+                    deviceService.updateById(device);
+                } else {
+                    device.setStatus(1);
+                    deviceService.updateById(device);
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void handlerSensor3On1(String topic, String jsonMsg) {
+        try {
+            //topic是code 唯一的
+            //截取code
+            String deviceCode = getCodeByTopic(topic);
+            //从设备缓存获取看是否存在
+            Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
+            if (ObjectUtils.isEmpty(device)) {
+                device = deviceService.getByCode(deviceCode);
+            }
+            if (ObjectUtils.isNotEmpty(device)) {
+                JsonNode jsonNode = stringToJsonNode(jsonMsg);
+                JsonNode mergeJson = mergeJson(device.getDeviceInfo(), jsonNode);
+                device.setDeviceInfo(mergeJson);
+                Device deviceCache = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
+                if (ObjectUtils.isNotEmpty(deviceCache)) {
+                    device.setStatus(1);
+                    redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
+                    deviceService.updateById(device);
+                } else {
+                    device.setStatus(1);
+                    deviceService.updateById(device);
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @Override
     public HandlerType getType() {
-        return HandlerType.LIGHT;
+        return HandlerType.STATE;
     }
 }

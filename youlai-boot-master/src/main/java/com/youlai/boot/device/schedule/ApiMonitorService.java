@@ -45,7 +45,8 @@ public class ApiMonitorService {
         }
         List<Device> mqttDevicesList = deviceService.listMqttDevices();
         for (Device device : mqttDevicesList) {
-            device.setDeviceLastDate(new Date());
+            device.setStatus(0);
+            deviceService.updateById(device);
             deviceMqttRequestTimeMap.put(device.getDeviceCode(), device);
         }
     }
@@ -70,12 +71,12 @@ public class ApiMonitorService {
     @Scheduled(fixedRate = 45000)
     public void demo() {
         //统一发STATE
-        for (Map.Entry<String, Device> stringWashDeviceEntry : deviceRequestTimeMap.entrySet()) {
+        for (Map.Entry<String, Device> stringWashDeviceEntry : deviceMqttRequestTimeMap.entrySet()) {
             try {
                 stringWashDeviceEntry.getValue().setDeviceLastDate(new Date());
                 String topic = "cmnd/" + stringWashDeviceEntry.getValue().getDeviceCode() + "/STATUS";
                 mqttProducer.send(topic, 0, false, "8");
-                deviceRequestTimeMap.put(stringWashDeviceEntry.getValue().getDeviceCode(), stringWashDeviceEntry.getValue());
+                deviceMqttRequestTimeMap.put(stringWashDeviceEntry.getValue().getDeviceCode(), stringWashDeviceEntry.getValue());
             } catch (MqttException e) {
                 log.error("发失败啦 ~~~~~~~", e);
             }

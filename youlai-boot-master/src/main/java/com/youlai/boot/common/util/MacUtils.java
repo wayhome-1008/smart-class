@@ -90,6 +90,28 @@ public class MacUtils {
     }
 
     /**
+     * 从类似 "tele/aaaa/bbbb" 的路径格式中提取第三段路径（索引为2）
+     * @param path 输入的路径字符串
+     * @return 提取的第三段路径值，如果无法提取则返回空字符串
+     */
+    public static String getFinalByTopic(String path) {
+        if (path == null || path.isEmpty()) {
+            return "";
+        }
+
+        // 使用斜杠分割字符串
+        String[] parts = path.split("/");
+
+        // 检查数组长度是否足够
+        if (parts.length < 3) {
+            return "";
+        }
+
+        // 返回第二段路径（索引为1）
+        return parts[2];
+    }
+
+    /**
      * 方案一：基于字符串索引提取
      * @param url 输入字符串（如：/zbgw/9454c5ee7c68/add_subdevice）
      * @return 提取的目标字符串（如：9454c5ee7c68），无匹配返回null

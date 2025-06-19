@@ -33,33 +33,10 @@ public class Sensor3On1Handler implements MsgHandler {
 
     @Override
     public void process(String topic, String jsonMsg, MqttClient mqttClient) throws MqttException, JsonProcessingException {
-        try {
-            //topic是code 唯一的
-            //截取code
-            String deviceCode = getCodeByTopic(topic);
-            //从设备缓存获取看是否存在
-            Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
-            if (ObjectUtils.isEmpty(device)) {
-                device = deviceService.getByCode(deviceCode);
-            }
-            if (ObjectUtils.isNotEmpty(device)) {
-                JsonNode jsonNode = stringToJsonNode(jsonMsg);
-                JsonNode mergeJson = mergeJson(device.getDeviceInfo(), jsonNode);
-                device.setDeviceInfo(mergeJson);
-                Device deviceCache = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
-                if (ObjectUtils.isNotEmpty(deviceCache)) {
-                    device.setStatus(1);
-                    redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
-                    deviceService.updateById(device);
-                } else {
-                    device.setStatus(1);
-                    deviceService.updateById(device);
-                }
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+
     }
+
+
 
     @Override
     public HandlerType getType() {
