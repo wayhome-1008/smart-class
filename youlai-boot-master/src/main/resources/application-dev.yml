@@ -256,7 +256,7 @@ captcha:
   expire-seconds: 120
 
 # 微信小程配置
-wx:
-  miniapp:
-    app-id: xxxxxx
-    app-secret: xxxxxx
+#wx:
+#  miniapp:
+#    app-id: xxxxxx
+#    app-secret: xxxxxx
