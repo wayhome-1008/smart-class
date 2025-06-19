@@ -2,6 +2,8 @@ package com.youlai.boot.device.handler.zigbee;
 
 import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.youlai.boot.common.enums.LogModuleEnum;
+import com.youlai.boot.core.log.LogHelper;
 import com.youlai.boot.device.handler.service.MsgHandler;
 import com.youlai.boot.device.model.dto.event.DeviceEvent;
 import com.youlai.boot.device.model.dto.event.SubDevicesEvent;
@@ -33,6 +35,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class EventHandler implements MsgHandler {
     private final DeviceService deviceService;
+    private final LogHelper logHelper;
 
     @Override
     public void process(String topic, String jsonMsg, MqttClient mqttClient) throws MqttException {
@@ -45,12 +48,16 @@ public class EventHandler implements MsgHandler {
                 if (event.equals("onoffline")) {
                     //更新子设备状态
                     deviceService.updateDeviceStatusByCode(deviceEvent.getParams());
+                    //log
+                    logHelper.recordMethodLog(LogModuleEnum.WARNING, "网关子设备离线", "子设备离线", deviceEvent, null, 0);
                 }
                 if (event.equals("leave")) {
                     //说明该设备被重置 按理说我该删除或给警报 先给个状态2吧。。。
                     Device updateDevice = new Device();
                     updateDevice.setStatus(2);
                     deviceService.update(updateDevice, new LambdaQueryWrapper<Device>().eq(Device::getDeviceCode, deviceEvent.getParams().getSubDevices().get(0).getDeviceId()));
+                    logHelper.recordMethodLog(LogModuleEnum.WARNING, "网关子设备重置", "子设备重置", deviceEvent, null, 0);
+
                 }
             }
             //组返回数据

@@ -3,6 +3,7 @@ package com.youlai.boot.device.handler.zigbee;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.youlai.boot.common.annotation.Log;
 import com.youlai.boot.common.enums.LogModuleEnum;
+import com.youlai.boot.core.log.LogHelper;
 import com.youlai.boot.device.handler.service.MsgHandler;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.service.DeviceService;
@@ -32,6 +33,7 @@ import static com.youlai.boot.device.schedule.ApiMonitorService.deviceRequestTim
 @RequiredArgsConstructor
 public class ManageStatusHandler implements MsgHandler {
     private final DeviceService deviceService;
+    private final LogHelper logHelper;
 
     @Override
     public void process(String topic, String jsonMsg, MqttClient mqttClient) throws MqttException, JsonProcessingException {
@@ -57,6 +59,7 @@ public class ManageStatusHandler implements MsgHandler {
 
     @Log(value = "网关设备已离线", module = LogModuleEnum.WARNING)
     public void deviceOffline(Map.Entry<String, Device> stringWashDeviceEntry, Device device) {
+        long startTime = System.currentTimeMillis();
         log.info("{}网关设备已离线", device.getDeviceName());
         //说明离线 则网关及子设备需设置离线
         Device updateStatus = new Device();
@@ -73,6 +76,17 @@ public class ManageStatusHandler implements MsgHandler {
             subDevice.setStatus(3);
             deviceService.updateById(subDevice);
         }
+        logHelper.recordMethodLog(
+                LogModuleEnum.WARNING,
+                "网关设备已离线",
+                "deviceOffline",
+                Map.of(
+                        "gateway", device.getDeviceName(),
+                        "offlineDevice", subDevices
+                ),
+                null,
+                System.currentTimeMillis() - startTime
+        );
     }
 
     @Log(value = "网关设备重新上线", module = LogModuleEnum.WARNING)

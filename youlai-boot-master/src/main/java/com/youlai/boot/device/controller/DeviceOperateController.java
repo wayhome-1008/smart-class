@@ -93,7 +93,7 @@ public class DeviceOperateController {
 
     @Operation(summary = "单设备操作")
     @PutMapping(value = "/{id}")
-    @Log(value = "设备操作", module = LogModuleEnum.OPERATION)
+    @Log(value = "对单设备操作", module = LogModuleEnum.OPERATION)
     public Result<Void> operateSocket(@Parameter(description = "设备ID") @PathVariable Long id, @RequestBody @Validated DeviceOperate deviceOperate) {
         //根据设备发送mqtt
         Device device = deviceService.getById(id);

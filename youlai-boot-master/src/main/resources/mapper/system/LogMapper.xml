@@ -12,6 +12,7 @@
             t1.content,
             t1.request_uri,
             t1.ip,
+            t1.request_params,
             CONCAT(t1.province," ", t1.city) AS region,
             t1.execution_time,
             CONCAT(t1.browser," ", t1.browser_version) AS browser,
@@ -31,6 +32,9 @@
                     OR
                     t2.nickname LIKE concat('%',#{queryParams.keywords},'%')
                 )
+            </if>
+            <if test="queryParams.type !=null and queryParams.type!=''">
+                AND t1.module = #{queryParams.type}
             </if>
             <if test="queryParams.createTime != null and queryParams.createTime.size > 0">
                 <if test="queryParams.createTime[0] != null and queryParams.createTime[0] != ''">

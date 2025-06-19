@@ -30,6 +30,10 @@ public class LogPageVO implements Serializable {
     @Schema(description = "请求路径")
     private String requestUri;
 
+    @Schema(description = "参数")
+    private String requestParams;
+
+
     @Schema(description = "请求方法")
     private String method;
 

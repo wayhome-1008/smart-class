@@ -197,6 +197,7 @@ springdoc:
         - com.youlai.boot.shared.file.controller
         - com.youlai.boot.shared.codegen.controller
         - com.youlai.boot.shared.system.controller
+        - com.youlai.boot.system.system.controller
   default-flat-param-object: true
 
 # knife4j 接口文档配置
@@ -256,7 +257,7 @@ captcha:
   expire-seconds: 120
 
 # 微信小程配置
-#wx:
-#  miniapp:
-#    app-id: xxxxxx
-#    app-secret: xxxxxx
+wx:
+  miniapp:
+    app-id: xxxxxx
+    app-secret: xxxxxx

@@ -23,4 +23,7 @@ public class LogPageQuery extends BasePageQuery {
     @Schema(description="操作时间范围")
     List<String> createTime;
 
+    @Schema(description="日志类型")
+    private String type;
+
 }
