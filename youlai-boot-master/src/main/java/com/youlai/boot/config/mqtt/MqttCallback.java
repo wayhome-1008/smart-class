@@ -1,7 +1,6 @@
 package com.youlai.boot.config.mqtt;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.common.util.MacUtils;
 import com.youlai.boot.device.factory.MsgHandlerFactory;
 import com.youlai.boot.device.handler.service.MsgHandler;
@@ -11,7 +10,6 @@ import com.youlai.boot.device.topic.HandlerType;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.eclipse.paho.client.mqttv3.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -19,7 +17,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-import static com.youlai.boot.common.util.MacUtils.getCodeByTopic;
 import static com.youlai.boot.config.mqtt.TopicConfig.BASE_TOPIC;
 import static com.youlai.boot.config.mqtt.TopicConfig.TOPIC_LIST;
 

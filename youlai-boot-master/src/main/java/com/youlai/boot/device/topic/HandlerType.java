@@ -30,5 +30,5 @@ public enum HandlerType {
     SENSOR, //温湿度传感器
     LIGHT,
     STATE,
-    RESULT, SENSOR3ON1,STATUS8;
+    RESULT, SENSOR3ON1,STATUS8
 }
