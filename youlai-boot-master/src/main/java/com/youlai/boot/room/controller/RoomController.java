@@ -80,36 +80,39 @@ public class RoomController {
         roomVO.setLightNum(0);
         roomVO.setPlugNum(0);
         for (DeviceInfoVO device : devices) {
-            switch (device.getDeviceTypeId().intValue()) {
-                case 2: // 2->温湿度传感器
-                    DeviceInfo.getValueByName(device.getDeviceInfo(), "temperature", Double.class)
-                            .ifPresent(roomVO::setTemperature);
-                    DeviceInfo.getValueByName(device.getDeviceInfo(), "humidity", Double.class)
-                            .ifPresent(roomVO::setHumidity);
-                    DeviceInfo.getValueByName(device.getDeviceInfo(), "Illuminance", Double.class)
-                            .ifPresent(roomVO::setIlluminance);
-                    break;
+            if (device.getStatus() == 1) {
+                switch (device.getDeviceTypeId().intValue()) {
+                    case 2: // 2->温湿度传感器
+                        DeviceInfo.getValueByName(device.getDeviceInfo(), "temperature", Double.class)
+                                .ifPresent(roomVO::setTemperature);
+                        DeviceInfo.getValueByName(device.getDeviceInfo(), "humidity", Double.class)
+                                .ifPresent(roomVO::setHumidity);
+                        DeviceInfo.getValueByName(device.getDeviceInfo(), "Illuminance", Double.class)
+                                .ifPresent(roomVO::setIlluminance);
+                        break;
 
-                case 8: // 8->灯光
-                    checkDeviceLightStatus(device, roomVO);
-                    break;
-                case 4:
-                case 7:
-                case 10: // 4->计量插座,7->开关,10->智能插座
-                    checkDeviceSwitchStatus(device, roomVO);
-                    break;
+                    case 8: // 8->灯光
+                        checkDeviceLightStatus(device, roomVO);
+                        break;
+                    case 7:
+                        break;
+                    case 4:
+                    case 10: // 4->计量插座,7->开关,10->智能插座
+                        checkDeviceSwitchStatus(device, roomVO);
+                        break;
 
-                case 5: // 5->人体感应雷达
-                    DeviceInfo.getValueByName(device.getDeviceInfo(), "motion", Integer.class)
-                            .filter(motion -> motion == 1)
-                            .ifPresent(motion -> roomVO.setHuman(true));
-                    break;
+                    case 5: // 5->人体感应雷达
+                        DeviceInfo.getValueByName(device.getDeviceInfo(), "motion", Integer.class)
+                                .filter(motion -> motion == 1)
+                                .ifPresent(motion -> roomVO.setHuman(true));
+                        break;
 
-                case 6: // 6->人体存在感应
-                    DeviceInfo.getValueByName(device.getDeviceInfo(), "Occupancy", Integer.class)
-                            .filter(occupancy -> occupancy == 1)
-                            .ifPresent(occupancy -> roomVO.setHuman(true));
-                    break;
+                    case 6: // 6->人体存在感应
+                        DeviceInfo.getValueByName(device.getDeviceInfo(), "Occupancy", Integer.class)
+                                .filter(occupancy -> occupancy == 1)
+                                .ifPresent(occupancy -> roomVO.setHuman(true));
+                        break;
+                }
             }
         }
     }
@@ -118,7 +121,7 @@ public class RoomController {
         DeviceInfo.getValueByName(device.getDeviceInfo(), "count", Integer.class)
                 .ifPresent(count -> {
                     for (int i = 0; i < count; i++) {
-                        String switchName = "power" + (i + 1);
+                        String switchName = "switch" + (i + 1);
                         Optional<String> switchStatus = DeviceInfo.getValueByName(
                                 device.getDeviceInfo(),
                                 switchName,
@@ -137,7 +140,7 @@ public class RoomController {
     }
 
     // 检查设备开关状态的通用方法
-    private  void checkDeviceSwitchStatus(DeviceInfoVO device, RoomVO roomVO) {
+    private void checkDeviceSwitchStatus(DeviceInfoVO device, RoomVO roomVO) {
 
         DeviceInfo.getValueByName(device.getDeviceInfo(), "count", Integer.class)
                 .ifPresent(count -> {

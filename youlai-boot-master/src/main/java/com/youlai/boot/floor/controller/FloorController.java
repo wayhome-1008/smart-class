@@ -86,37 +86,40 @@ public class FloorController {
         floor.setLightNum(0);
         floor.setPlugNum(0);
         for (DeviceInfoVO device : floorDevices) {
-            switch (device.getDeviceTypeId().intValue()) {
-                case 2: // 2->温湿度传感器
-                    DeviceInfo.getValueByName(device.getDeviceInfo(), "temperature", Double.class)
-                            .ifPresent(floor::setTemperature);
-                    DeviceInfo.getValueByName(device.getDeviceInfo(), "humidity", Double.class)
-                            .ifPresent(floor::setHumidity);
-                    DeviceInfo.getValueByName(device.getDeviceInfo(), "Illuminance", Double.class)
-                            .ifPresent(floor::setIlluminance);
-                    break;
+            if (device.getStatus() == 1) {
+                switch (device.getDeviceTypeId().intValue()) {
+                    case 2: // 2->温湿度传感器
+                        DeviceInfo.getValueByName(device.getDeviceInfo(), "temperature", Double.class)
+                                .ifPresent(floor::setTemperature);
+                        DeviceInfo.getValueByName(device.getDeviceInfo(), "humidity", Double.class)
+                                .ifPresent(floor::setHumidity);
+                        DeviceInfo.getValueByName(device.getDeviceInfo(), "Illuminance", Double.class)
+                                .ifPresent(floor::setIlluminance);
+                        break;
 
-                case 8: // 8->灯光
-                    checkDeviceLightStatus(device, floor);
-                    break;
-                case 4:
-                case 7:
-                case 10: // 4->计量插座,7->开关,10->智能插座
-                    checkDeviceSwitchStatus(device, floor);
-                    break;
+                    case 8: // 8->灯光
+                        checkDeviceLightStatus(device, floor);
+                        break;
+                    case 4:
+                    case 7:
+                    case 10: // 4->计量插座,7->开关,10->智能插座
+                        checkDeviceSwitchStatus(device, floor);
+                        break;
 
-                case 5: // 5->人体感应雷达
-                    DeviceInfo.getValueByName(device.getDeviceInfo(), "motion", Integer.class)
-                            .filter(motion -> motion == 1)
-                            .ifPresent(motion -> floor.setHuman(true));
-                    break;
+                    case 5: // 5->人体感应雷达
+                        DeviceInfo.getValueByName(device.getDeviceInfo(), "motion", Integer.class)
+                                .filter(motion -> motion == 1)
+                                .ifPresent(motion -> floor.setHuman(true));
+                        break;
 
-                case 6: // 6->人体存在感应
-                    DeviceInfo.getValueByName(device.getDeviceInfo(), "Occupancy", Integer.class)
-                            .filter(occupancy -> occupancy == 1)
-                            .ifPresent(occupancy -> floor.setHuman(true));
-                    break;
+                    case 6: // 6->人体存在感应
+                        DeviceInfo.getValueByName(device.getDeviceInfo(), "Occupancy", Integer.class)
+                                .filter(occupancy -> occupancy == 1)
+                                .ifPresent(occupancy -> floor.setHuman(true));
+                        break;
+                }
             }
+
         }
     }
 
@@ -124,7 +127,7 @@ public class FloorController {
         DeviceInfo.getValueByName(device.getDeviceInfo(), "count", Integer.class)
                 .ifPresent(count -> {
                     for (int i = 0; i < count; i++) {
-                        String switchName = "power" + (i + 1);
+                        String switchName = "switch" + (i + 1);
                         Optional<String> switchStatus = DeviceInfo.getValueByName(
                                 device.getDeviceInfo(),
                                 switchName,

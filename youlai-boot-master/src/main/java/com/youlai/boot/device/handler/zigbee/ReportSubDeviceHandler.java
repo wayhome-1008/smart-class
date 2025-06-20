@@ -60,14 +60,14 @@ public class ReportSubDeviceHandler implements MsgHandler {
                 String originalMac = subDevice.getDeviceId();
                 Device deviceCache = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, originalMac);
                 if (deviceCache != null) {
-                    deviceCache.setStatus(1);
+                    deviceCache.setStatus(subDevice.getOnline() ? 1 : 0);
                     redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, originalMac, deviceCache);
                     deviceService.updateById(deviceCache);
                 } else {
                     //查库
                     deviceCache = deviceService.getByCode(originalMac);
                     if (deviceCache != null) {
-                        deviceCache.setStatus(1);
+                        deviceCache.setStatus(subDevice.getOnline() ? 1 : 0);
                         redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, originalMac, deviceCache);
                         deviceService.updateById(deviceCache);
                     }

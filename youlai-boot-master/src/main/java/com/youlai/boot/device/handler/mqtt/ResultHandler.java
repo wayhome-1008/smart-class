@@ -61,7 +61,7 @@ public class ResultHandler implements MsgHandler {
     private void plug(JsonNode jsonNode, Device device, String deviceCode) {
         ObjectNode lightStatus = JsonNodeFactory.instance.objectNode();
         String power = jsonNode.get("POWER").asText();
-        lightStatus.put("POWER", power);
+        lightStatus.put("switch1", power);
         lightStatus.put("count", 1);
         JsonNode mergedInfo = mergeJson(device.getDeviceInfo(), lightStatus);
         device.setDeviceInfo(mergedInfo);
@@ -78,9 +78,15 @@ public class ResultHandler implements MsgHandler {
         while (fieldNames.hasNext()) {
             String fieldName = fieldNames.next();
             if (fieldName.startsWith("POWER")) {
-                String status = jsonNode.get(fieldName).asText();
-                lightStatus.put(fieldName, status);
-                log.debug("灯光路数 {} 状态: {}", fieldName, status);
+                if (fieldName.equals("POWER")) {
+                    String status = jsonNode.get(fieldName).asText();
+                    lightStatus.put("switch1", status);
+                } else {
+                    String status = jsonNode.get(fieldName).asText();
+                    lightStatus.put(fieldName.replace("POWER", "switch"), status);
+                    log.debug("灯光路数 {} 状态: {}", fieldName, status);
+                }
+
             }
         }
         // 4. 更新设备信息

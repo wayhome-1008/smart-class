@@ -122,7 +122,7 @@ public class DeviceController {
                         for (int i = 0; i < count.get() && !found; i++) {
                             Optional<String> switchStatus = DeviceInfo.getValueByName(
                                     d.getDeviceInfoList(),
-                                    "power" + (i + 1),
+                                    "switch" + (i + 1),
                                     String.class
                             );
                             if (switchStatus.isPresent() && switchStatus.get().equals("ON")) {

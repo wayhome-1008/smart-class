@@ -2,6 +2,8 @@ package com.youlai.boot.device.handler.mqtt;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.domain.WritePrecision;
 import com.youlai.boot.common.constant.RedisConstants;
@@ -47,7 +49,7 @@ public class State8Handler implements MsgHandler {
         }
         //计量插座
         if (device.getDeviceTypeId() == 4) {
-            handlerPlug( jsonMsg, device);
+            handlerPlug(jsonMsg, device);
         } else {
             device.setStatus(1);
             redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
@@ -55,7 +57,7 @@ public class State8Handler implements MsgHandler {
         }
     }
 
-    private void handlerPlug( String jsonMsg, Device device) throws JsonProcessingException {
+    private void handlerPlug(String jsonMsg, Device device) throws JsonProcessingException {
 
         JsonNode jsonNode = stringToJsonNode(jsonMsg);
         //接受得数据与旧数据合并

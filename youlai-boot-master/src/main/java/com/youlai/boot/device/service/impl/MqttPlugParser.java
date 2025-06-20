@@ -21,7 +21,7 @@ public class MqttPlugParser implements DeviceInfoParser {
             if (deviceInfo.has("count")) {
                 int lightCount = deviceInfo.get("count").asInt();
                 properties.add(new DeviceInfo("count", lightCount));
-                properties.add(new DeviceInfo("power1", deviceInfo.get("POWER").asText()));
+                properties.add(new DeviceInfo("switch1", deviceInfo.get("switch1").asText()));
             }
             if (deviceInfo.has("StatusSNS")) {
                 JsonNode statusSNS = deviceInfo.get("StatusSNS");
@@ -37,7 +37,7 @@ public class MqttPlugParser implements DeviceInfoParser {
                     properties.add(new DeviceInfo("Yesterday", energy.get("Yesterday").asDouble()));
                     properties.add(new DeviceInfo("Total", energy.get("Total").asDouble()));
                     properties.add(new DeviceInfo("Yesterday", energy.get("Yesterday").asDouble()));
-                    properties.add(new DeviceInfo("Period", energy.get("Period").asDouble()));
+//                    properties.add(new DeviceInfo("Period", energy.get("Period").asDouble()));
                     properties.add(new DeviceInfo("Power", energy.get("Power").asInt()));
                 }
             }

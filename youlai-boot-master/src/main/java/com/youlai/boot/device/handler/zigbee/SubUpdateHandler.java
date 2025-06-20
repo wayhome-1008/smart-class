@@ -227,13 +227,12 @@ public class SubUpdateHandler implements MsgHandler {
         JsonNode params = jsonNode.get("params");
         if (ObjectUtils.isEmpty(deviceCache.getDeviceInfo())) return;
 
-        //获取旧设备数据信息- 使用deepCopy创建独立拷贝
-        JsonNode oldParams = deviceCache.getDeviceInfo().get("params").deepCopy();
-
         //接受得数据与旧数据合并
         JsonNode mergeJson = mergeJson(deviceCache.getDeviceInfo(), jsonNode);
         deviceCache.setDeviceInfo(mergeJson);
 
+        //获取旧设备数据信息- 使用deepCopy创建独立拷贝
+        JsonNode oldParams = deviceCache.getDeviceInfo().get("params").deepCopy();
         //获取合并后的params节点
         JsonNode mergeParams = mergeJson.get("params");
 
@@ -377,12 +376,13 @@ public class SubUpdateHandler implements MsgHandler {
         //2.获取params
         JsonNode params = jsonNode.get("params");
         if (ObjectUtil.isEmpty(deviceCache.getDeviceInfo())) return;
-        //3.获取旧设备数据信息-使用deepCopy创建独立拷贝
-        JsonNode oldParams = deviceCache.getDeviceInfo().get("params").deepCopy();
-
         //接收得数据于旧数据合并
         JsonNode mergeJson = mergeJson(deviceCache.getDeviceInfo(), jsonNode);
         deviceCache.setDeviceInfo(mergeJson);
+        //3.获取旧设备数据信息-使用deepCopy创建独立拷贝
+        JsonNode oldParams = deviceCache.getDeviceInfo().get("params").deepCopy();
+
+
 
         // 获取合并后的params节点
         JsonNode mergedParams = mergeJson.get("params");
