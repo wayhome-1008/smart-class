@@ -6,7 +6,6 @@ import com.youlai.boot.device.service.DeviceInfoParser;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 /**
  *@Author: way
