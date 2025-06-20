@@ -9,7 +9,7 @@ import java.time.Instant;
 /**
  *@Author: way
  *@CreateTime: 2025-06-20  10:44
- *@Description: TODO
+ *@Description: MQTT计量插座InfluxDB模型
  */
 @Data
 @Measurement(name = "device")

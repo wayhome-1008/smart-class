@@ -10,7 +10,7 @@ import java.util.List;
 /**
  *@Author: way
  *@CreateTime: 2025-06-20  10:02
- *@Description: TODO
+ *@Description: MQTT计量插座解析器
  */
 public class MqttPlugParser implements DeviceInfoParser {
     @Override
