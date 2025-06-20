@@ -44,11 +44,11 @@ public class SensorHandler implements MsgHandler {
         }
         //计量插座
         if (device.getDeviceTypeId() == 4) {
-            handlerPlug(topic, jsonMsg, device);
+            handlerPlug( jsonMsg, device);
         }
     }
 
-    private void handlerPlug(String topic, String jsonMsg, Device device) {
+    private void handlerPlug( String jsonMsg, Device device) {
         try {
             JsonNode jsonNode = stringToJsonNode(jsonMsg);
             //接受得数据与旧数据合并

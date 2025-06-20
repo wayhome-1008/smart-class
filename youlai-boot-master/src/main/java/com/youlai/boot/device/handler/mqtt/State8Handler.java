@@ -47,7 +47,7 @@ public class State8Handler implements MsgHandler {
         }
         //计量插座
         if (device.getDeviceTypeId() == 4) {
-            handlerPlug(topic, jsonMsg, device);
+            handlerPlug( jsonMsg, device);
         } else {
             device.setStatus(1);
             redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
@@ -55,7 +55,7 @@ public class State8Handler implements MsgHandler {
         }
     }
 
-    private void handlerPlug(String topic, String jsonMsg, Device device) throws JsonProcessingException {
+    private void handlerPlug( String jsonMsg, Device device) throws JsonProcessingException {
 
         JsonNode jsonNode = stringToJsonNode(jsonMsg);
         //接受得数据与旧数据合并
