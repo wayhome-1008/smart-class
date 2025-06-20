@@ -39,6 +39,8 @@ public class DeviceInfoParserFactory {
         PARSER_MAP.put("Light:MQTT", new MqttLightParser());
          //MQTT3合1传感器
         PARSER_MAP.put("Sensor3On1:MQTT", new MqttSensor3On1Parser());
+        //MQTT计量插座
+        PARSER_MAP.put("Plug:MQTT", new MqttPlugParser());
 
     }
 

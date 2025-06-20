@@ -45,30 +45,53 @@ public class ResultHandler implements MsgHandler {
             if (ObjectUtils.isEmpty(device)) {
                 device = deviceService.getByCode(deviceCode);
             }
-            // 3. 动态处理所有灯光路数
-            ObjectNode lightStatus = JsonNodeFactory.instance.objectNode();
-            Iterator<String> fieldNames = jsonNode.fieldNames();
-            while (fieldNames.hasNext()) {
-                String fieldName = fieldNames.next();
-                if (fieldName.startsWith("POWER")) {
-                    String status = jsonNode.get(fieldName).asText();
-                    lightStatus.put(fieldName, status);
-                    log.debug("灯光路数 {} 状态: {}", fieldName, status);
-                }
+            if (device.getDeviceTypeId() == 4) {
+                plug(jsonNode, device, deviceCode);
             }
-            // 4. 更新设备信息
-            if (ObjectUtils.isNotEmpty(device)) {
-                JsonNode mergedInfo = mergeJson(device.getDeviceInfo(), lightStatus);
-                device.setDeviceInfo(mergedInfo);
-                // 双写：Redis缓存 + 数据库
-                device.setStatus(1);
-                redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
-                deviceService.updateById(device);
-                log.info("设备 {} 灯光状态更新完成", deviceCode);
+            if (device.getDeviceTypeId() == 8) {
+                light(jsonNode, device, deviceCode);
             }
+
         } catch (Exception e) {
             log.error("设备 {} 处理失败: {}", topic, e.getMessage(), e);
             throw new RuntimeException("灯光状态处理异常", e);
+        }
+    }
+
+    private void plug(JsonNode jsonNode, Device device, String deviceCode) {
+        ObjectNode lightStatus = JsonNodeFactory.instance.objectNode();
+        String power = jsonNode.get("POWER").asText();
+        lightStatus.put("POWER", power);
+        lightStatus.put("count", 1);
+        JsonNode mergedInfo = mergeJson(device.getDeviceInfo(), lightStatus);
+        device.setDeviceInfo(mergedInfo);
+        // 双写：Redis缓存 + 数据库
+        device.setStatus(1);
+        redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
+        deviceService.updateById(device);
+    }
+
+    private void light(JsonNode jsonNode, Device device, String deviceCode) {
+        // 3. 动态处理所有灯光路数
+        ObjectNode lightStatus = JsonNodeFactory.instance.objectNode();
+        Iterator<String> fieldNames = jsonNode.fieldNames();
+        while (fieldNames.hasNext()) {
+            String fieldName = fieldNames.next();
+            if (fieldName.startsWith("POWER")) {
+                String status = jsonNode.get(fieldName).asText();
+                lightStatus.put(fieldName, status);
+                log.debug("灯光路数 {} 状态: {}", fieldName, status);
+            }
+        }
+        // 4. 更新设备信息
+        if (ObjectUtils.isNotEmpty(device)) {
+            JsonNode mergedInfo = mergeJson(device.getDeviceInfo(), lightStatus);
+            device.setDeviceInfo(mergedInfo);
+            // 双写：Redis缓存 + 数据库
+            device.setStatus(1);
+            redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
+            deviceService.updateById(device);
+            log.info("设备 {} 灯光状态更新完成", deviceCode);
         }
     }
 

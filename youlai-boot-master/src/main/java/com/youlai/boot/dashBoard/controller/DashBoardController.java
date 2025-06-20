@@ -11,6 +11,7 @@ import com.youlai.boot.device.Enum.CommunicationModeEnum;
 import com.youlai.boot.device.Enum.DeviceTypeEnum;
 import com.youlai.boot.device.factory.DeviceInfoParserFactory;
 import com.youlai.boot.device.model.entity.Device;
+import com.youlai.boot.device.model.influx.InfluxMqttPlug;
 import com.youlai.boot.device.model.influx.InfluxPlug;
 import com.youlai.boot.device.model.influx.InfluxSensor;
 import com.youlai.boot.device.model.vo.DeviceInfo;
@@ -169,25 +170,37 @@ public class DashBoardController {
         } catch (InfluxException e) {
             System.err.println("error：" + e.getMessage());
         }
-//            // 构建Flux查询
-//            String fluxQuery = InfluxQueryBuilder.newBuilder()
-//                    .bucket(influxDBProperties.getBucket())
-//                    .timeRange(timeAmount, timeUnit)  // 通用时间范围设置
-//                    .measurement("device")
-//                    .deviceCode(deviceCode)
-//                    .fields("temperature,humidity,illuminance,battery")  // 字段过滤（支持逗号分隔）
-////                    .statsType(statsType)  // 设置统计类型
-//                    .pivot()
-//                    .build();
-//            log.info("InfluxDB查询语句: {}", fluxQuery);
-//            List<InfluxSensor> rawData = influxDBClient.getQueryApi()
-//                    .query(fluxQuery, influxDBProperties.getOrg(), InfluxSensor.class);
-//            return Result.success(rawData);
-//        } catch (InfluxException e) {
-//            log.error("InfluxDB查询失败: {}", e.getMessage());
         return Result.failed();
-//        }
+    }
+    @Operation(summary = "查询MQTT计量插座数据")
+    @GetMapping("/plugMqtt/data")
+    public Result<List<InfluxMqttPlug>> getMqttPlugData(@Parameter(description = "设备编码", required = true)
+                                                @RequestParam String deviceCode,
 
+                                                        @Parameter(description = "时间范围值", example = "1")
+                                                @RequestParam Long timeAmount,
+
+                                                        @Parameter(description = "时间单位（y-年/M-月/d-日/h-小时）", example = "d")
+                                                @RequestParam(defaultValue = "h") String timeUnit
+
+//                                                    @Parameter(description = "统计类型（raw-原始数据/max-最大值/min-最小值/avg-平均值）", example = "raw")
+//                                                    @RequestParam(defaultValue = "raw") String statsType
+    ) {
+        try {
+            InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
+                    .bucket(influxDBProperties.getBucket())
+                    .last(timeAmount, timeUnit)
+                    .measurement("device")
+                    .deviceCode(deviceCode)
+                    .sort()
+                    .addFilter("r._field == \"Total\" or r._field == \"Yesterday\" or r._field==\"Today\" or r._field==\"Power\" or r._field==\"ApparentPower\" or r._field==\"ReactivePower\" or r._field==\"Factor\" or r._field==\"Voltage\" or r._field==\"Current\"");
+            log.info("influxdb查询计量插座语句{}", builder.pivot().build());
+            List<InfluxMqttPlug> tables = influxDBClient.getQueryApi().query(builder.pivot().build(), influxDBProperties.getOrg(), InfluxMqttPlug.class);
+            return Result.success(tables);
+        } catch (InfluxException e) {
+            System.err.println("error：" + e.getMessage());
+        }
+        return Result.failed();
     }
 
     public static DeviceInfoVO basicPropertyConvert(Device device, String roomCode) {
