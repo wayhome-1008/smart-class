@@ -51,7 +51,7 @@ public class State8Handler implements MsgHandler {
         } else {
             device.setStatus(1);
             redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
-            deviceService.updateById(device);
+//            deviceService.updateById(device);
         }
     }
 

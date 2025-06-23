@@ -227,7 +227,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
         //1.查询该楼层有那些roomId
         List<Room> roomList = roomService.list(new LambdaQueryWrapper<Room>().eq(Room::getFloorId, floorId));
         if (ObjectUtils.isNotEmpty(roomList)) {
-            List<Device> floorDevices = this.list(new LambdaQueryWrapper<Device>().in(Device::getDeviceRoom, roomList.stream().map(Room::getId).toList()));
+            List<Device> floorDevices = this.list(new LambdaQueryWrapper<Device>().in(Device::getDeviceRoom, roomList.stream().map(Room::getId).toList()).eq(Device::getStatus, 1));
             List<DeviceInfoVO> deviceInfoVOS = new ArrayList<>();
             for (Device floorDevice : floorDevices) {
                 for (Room room : roomList) {
