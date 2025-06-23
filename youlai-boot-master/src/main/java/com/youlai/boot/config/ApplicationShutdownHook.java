@@ -18,7 +18,7 @@ public class ApplicationShutdownHook implements CommandLineRunner {
     private final BatchUpdate batchUpdate;
 
     @Override
-    public void run(String... args) throws Exception {
+    public void run(String... args) {
         // 注册关闭钩子
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             log.info("应用正在关闭，正在将Redis中的数据写入数据库...");
