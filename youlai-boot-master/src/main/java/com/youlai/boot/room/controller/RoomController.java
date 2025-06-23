@@ -155,7 +155,6 @@ public class RoomController {
                         if (switchStatus.isPresent() && "ON".equals(switchStatus.get())) {
                             //有插座
                             roomVO.setPlug(true);
-
                             //开
                             roomVO.setIsOpen(true);
                             //插座路数

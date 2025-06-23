@@ -62,7 +62,7 @@ public class DashBoardController {
         dashCount.setUserCount(userService.count());
         dashCount.setLogCount(logService.count());
         dashCount.setRoomCount(roomService.count());
-        dashCount.setDemo1Count(9344L);
+        dashCount.setDemo1Count(logService.countWarning());
         dashCount.setDemo2Count(10086L);
         return Result.success(dashCount);
     }

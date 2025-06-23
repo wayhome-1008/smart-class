@@ -1,5 +1,6 @@
 package com.youlai.boot.system.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.youlai.boot.system.mapper.LogMapper;
@@ -93,7 +94,7 @@ public class LogServiceImpl extends ServiceImpl<LogMapper, Log>
 
         // 访客数统计(UV)
         VisitStatsBO uvStats = this.baseMapper.getUvStats();
-        if(uvStats!=null){
+        if (uvStats != null) {
             result.setTodayUvCount(uvStats.getTodayCount());
             result.setTotalUvCount(uvStats.getTotalCount());
             result.setUvGrowthRate(uvStats.getGrowthRate());
@@ -101,13 +102,18 @@ public class LogServiceImpl extends ServiceImpl<LogMapper, Log>
 
         // 浏览量统计(PV)
         VisitStatsBO pvStats = this.baseMapper.getPvStats();
-        if(pvStats!=null){
+        if (pvStats != null) {
             result.setTodayPvCount(pvStats.getTodayCount());
             result.setTotalPvCount(pvStats.getTotalCount());
             result.setPvGrowthRate(pvStats.getGrowthRate());
         }
 
         return result;
+    }
+
+    @Override
+    public Long countWarning() {
+       return this.count(new LambdaQueryWrapper<Log>().eq(Log::getModule, "WARNING"));
     }
 
 }
