@@ -45,6 +45,9 @@
         LEFT JOIN room r ON d.device_room = r.id
         <where>
             AND d.is_deleted = 0
+            <if test="queryParams.id != null and queryParams.id != ''">
+                AND d.id = #{queryParams.id}
+            </if>
             <if test="queryParams.deviceName != null and queryParams.deviceName != ''">
                 AND device_name LIKE CONCAT('%', #{queryParams.deviceName}, '%')
             </if>
