@@ -77,7 +77,7 @@ public class State8Handler implements MsgHandler {
         influxPlug.setCurrent(jsonNode.get("StatusSNS").get("ENERGY").get("Current").asDouble());
         device.setStatus(1);
         redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
-        deviceService.updateById(device);
+//        deviceService.updateById(device);
         influxDBClient.getWriteApiBlocking().writeMeasurement(
                 influxProperties.getBucket(),
                 influxProperties.getOrg(),

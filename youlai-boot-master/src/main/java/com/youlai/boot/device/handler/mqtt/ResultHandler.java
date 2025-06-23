@@ -68,7 +68,7 @@ public class ResultHandler implements MsgHandler {
         // 双写：Redis缓存 + 数据库
         device.setStatus(1);
         redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
-        deviceService.updateById(device);
+//        deviceService.updateById(device);
     }
 
     private void light(JsonNode jsonNode, Device device, String deviceCode) {
@@ -96,7 +96,7 @@ public class ResultHandler implements MsgHandler {
             // 双写：Redis缓存 + 数据库
             device.setStatus(1);
             redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
-            deviceService.updateById(device);
+//            deviceService.updateById(device);
             log.info("设备 {} 灯光状态更新完成", deviceCode);
         }
     }

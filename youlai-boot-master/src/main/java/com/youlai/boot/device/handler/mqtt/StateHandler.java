@@ -64,7 +64,7 @@ public class StateHandler implements MsgHandler {
             // 2. 获取设备信息（缓存优先）
             Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
             if (ObjectUtils.isEmpty(device)) {
-                device = deviceService.getByCode(deviceCode);
+//                device = deviceService.getByCode(deviceCode);
             }
             //定义灯光路数
             int lightCount = 0;
@@ -90,11 +90,11 @@ public class StateHandler implements MsgHandler {
                     // 双写：Redis缓存 + 数据库
                     device.setStatus(1);
                     redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
-                    deviceService.updateById(device);
+//                    deviceService.updateById(device);
                 } else {
                     // 单写：数据库
                     device.setStatus(1);
-                    deviceService.updateById(device);
+//                    deviceService.updateById(device);
                 }
                 log.info("设备 {} 灯光状态更新完成", deviceCode);
             }
@@ -122,10 +122,10 @@ public class StateHandler implements MsgHandler {
                 if (ObjectUtils.isNotEmpty(deviceCache)) {
                     device.setStatus(1);
                     redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
-                    deviceService.updateById(device);
+//                    deviceService.updateById(device);
                 } else {
                     device.setStatus(1);
-                    deviceService.updateById(device);
+//                    deviceService.updateById(device);
                 }
             }
         } catch (Exception e) {
@@ -151,10 +151,10 @@ public class StateHandler implements MsgHandler {
                 if (ObjectUtils.isNotEmpty(deviceCache)) {
                     device.setStatus(1);
                     redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
-                    deviceService.updateById(device);
+//                    deviceService.updateById(device);
                 } else {
                     device.setStatus(1);
-                    deviceService.updateById(device);
+//                    deviceService.updateById(device);
                 }
             }
         } catch (Exception e) {

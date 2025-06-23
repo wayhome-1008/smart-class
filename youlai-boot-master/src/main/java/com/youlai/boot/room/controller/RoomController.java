@@ -1,9 +1,11 @@
 package com.youlai.boot.room.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.common.model.Option;
 import com.youlai.boot.common.result.PageResult;
 import com.youlai.boot.common.result.Result;
+import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.vo.DeviceInfo;
 import com.youlai.boot.device.model.vo.DeviceInfoVO;
 import com.youlai.boot.device.service.DeviceService;
@@ -18,14 +20,12 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -42,6 +42,7 @@ public class RoomController {
 
     private final RoomService roomService;
     private final DeviceService deviceService;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Operation(summary = "房间管理分页列表")
     @GetMapping("/page")

@@ -69,6 +69,22 @@ public class DeviceController {
     @PreAuthorize("@ss.hasPerm('device:device:query')")
     public PageResult<DeviceVO> getDevicePage(DeviceQuery queryParams) {
         IPage<DeviceVO> result = deviceService.getDevicePage(queryParams);
+        //用redis得info替换
+        Map<Object, Object> device = redisTemplate.opsForHash().entries(RedisConstants.Device.DEVICE);
+        Map<String, Device> resultMap = new HashMap<>();
+        for (Map.Entry<Object, Object> entry : device.entrySet()) {
+            // 假设key可以安全转换为String
+            String deviceCode = entry.getKey().toString();
+            // 假设value就是Device对象，直接强制类型转换
+            Device deviceObj = (Device) entry.getValue();
+            resultMap.put(deviceCode, deviceObj);
+        }
+        result.getRecords().forEach(item -> {
+            Device deviceInfo = resultMap.get(item.getDeviceCode());
+            if (deviceInfo != null) {
+                item.setDeviceInfo(deviceInfo.getDeviceInfo());
+            }
+        });
         if (result.getTotal() == 0) {
             return PageResult.success(result);
         }

@@ -127,7 +127,7 @@ public class SubUpdateHandler implements MsgHandler {
             device.setDeviceInfo(mergeJson);
             device.setStatus(1);
             redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
-            deviceService.updateById(device);
+//            deviceService.updateById(device);
             RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
         }
 
@@ -167,7 +167,7 @@ public class SubUpdateHandler implements MsgHandler {
                 device.setDeviceInfo(mergeJson);
                 device.setStatus(1);
                 redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
-                deviceService.updateById(device);
+//                deviceService.updateById(device);
                 RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
             }
         }
@@ -204,13 +204,13 @@ public class SubUpdateHandler implements MsgHandler {
                         if (params.has("battery")) {
                             //查看缓存和新的电量是否一致
                             if (!deviceCache.getDeviceInfo().get("battery").asText().equals(params.get("battery").asText())) {
-                                deviceService.updateById(device);
+//                                deviceService.updateById(device);
                             }
                         }
                     } catch (NullPointerException e) {
                         log.error(e.getMessage());
                         device.setStatus(1);
-                        deviceService.updateById(device);
+//                        deviceService.updateById(device);
                     }
                 }
                 redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
@@ -258,7 +258,7 @@ public class SubUpdateHandler implements MsgHandler {
             }
             if (needUpdate) {
                 deviceCache.setStatus(1);
-                deviceService.updateById(deviceCache);
+//                deviceService.updateById(deviceCache);
             }
         }
 
@@ -343,7 +343,7 @@ public class SubUpdateHandler implements MsgHandler {
             }
             if (needUpdate) {
                 deviceCache.setStatus(1);
-                deviceService.updateById(deviceCache);
+//                deviceService.updateById(deviceCache);
             }
         }
         //创建influx数据
@@ -382,8 +382,6 @@ public class SubUpdateHandler implements MsgHandler {
         //3.获取旧设备数据信息-使用deepCopy创建独立拷贝
         JsonNode oldParams = deviceCache.getDeviceInfo().get("params").deepCopy();
 
-
-
         // 获取合并后的params节点
         JsonNode mergedParams = mergeJson.get("params");
 
@@ -403,7 +401,7 @@ public class SubUpdateHandler implements MsgHandler {
             }
             if (needUpdate) {
                 deviceCache.setStatus(1);
-                deviceService.updateById(deviceCache);
+//                deviceService.updateById(deviceCache);
             }
         }
 

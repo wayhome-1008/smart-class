@@ -254,6 +254,22 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     @Override
     public List<DeviceInfoVO> listDeviceByRoomIds(List<RoomVO> records) {
         List<Device> roomDevices = this.list(new LambdaQueryWrapper<Device>().in(Device::getDeviceRoom, records.stream().map(RoomVO::getId).toArray()).eq(Device::getStatus, 1));
+        Map<Object, Object> device = redisTemplate.opsForHash().entries(RedisConstants.Device.DEVICE);
+        Map<String, Device> resultMap = new HashMap<>();
+        for (Map.Entry<Object, Object> entry : device.entrySet()) {
+            // 假设key可以安全转换为String
+            String deviceCode = entry.getKey().toString();
+            // 假设value就是Device对象，直接强制类型转换
+            Device deviceObj = (Device) entry.getValue();
+            resultMap.put(deviceCode, deviceObj);
+        }
+        roomDevices
+                .forEach(item -> {
+                    Device deviceInfo = resultMap.get(item.getDeviceCode());
+                    if (deviceInfo != null) {
+                        item.setDeviceInfo(deviceInfo.getDeviceInfo());
+                    }
+                });
         return devicesToInfoVos(roomDevices);
     }
 

@@ -55,7 +55,7 @@ public class SensorHandler implements MsgHandler {
             JsonNode mergeJson = mergeJson(device.getDeviceInfo(), jsonNode);
             device.setDeviceInfo(mergeJson);
             device.setStatus(1);
-            deviceService.updateById(device);
+//            deviceService.updateById(device);
             //创建influx数据
             InfluxMqttPlug influxPlug = new InfluxMqttPlug();
             //tag为设备编号
