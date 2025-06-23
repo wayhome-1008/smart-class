@@ -14,7 +14,6 @@ import com.youlai.boot.system.model.vo.VisitTrendVO;
 import com.youlai.boot.system.service.LogService;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -48,7 +47,7 @@ public class LogServiceImpl extends ServiceImpl<LogMapper, Log>
      *
      * @param startDate 开始时间
      * @param endDate   结束时间
-     * @return
+     * @return VisitTrendVO
      */
     @Override
     public VisitTrendVO getVisitTrend(LocalDate startDate, LocalDate endDate) {
