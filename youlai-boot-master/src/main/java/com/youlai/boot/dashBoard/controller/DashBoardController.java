@@ -194,7 +194,7 @@ public class DashBoardController {
                     .deviceCode(deviceCode)
                     .sort()
                     .addFilter("r._field == \"Total\" or r._field == \"Yesterday\" or r._field==\"Today\" or r._field==\"Power\" or r._field==\"ApparentPower\" or r._field==\"ReactivePower\" or r._field==\"Factor\" or r._field==\"Voltage\" or r._field==\"Current\"");
-            log.info("influxdb查询计量插座语句{}", builder.pivot().build());
+            log.info("influxdb查询MQTT计计量插座语句{}", builder.pivot().build());
             List<InfluxMqttPlug> tables = influxDBClient.getQueryApi().query(builder.pivot().build(), influxDBProperties.getOrg(), InfluxMqttPlug.class);
             return Result.success(tables);
         } catch (InfluxException e) {

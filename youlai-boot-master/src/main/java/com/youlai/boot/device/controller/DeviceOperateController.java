@@ -26,6 +26,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.eclipse.paho.client.mqttv3.MqttException;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -69,11 +70,7 @@ public class DeviceOperateController {
         //根据楼层id查询设备
         List<DeviceInfoVO> deviceInfoVOS = deviceService.listDeviceByFloorId(operation.getId(), floor);
         if (ObjectUtils.isEmpty(deviceInfoVOS)) return Result.failed("该楼层没有设备");
-        for (DeviceInfoVO deviceInfoVO : deviceInfoVOS) {
-            Optional<Integer> tempValue = DeviceInfo.getValueByName(deviceInfoVO.getDeviceInfo(), "count", Integer.class);
-            tempValue.ifPresent(value -> this.operate(operation.getOperate(), "-1", value, deviceInfoVO.getDeviceCode(), deviceInfoVO.getDeviceGatewayId(), deviceInfoVO.getCommunicationModeItemId(), deviceInfoVO.getDeviceTypeId()));
-        }
-        return Result.success();
+        return getVoidResult(operation, deviceInfoVOS);
     }
 
     private Result<Void> roomOperate(com.youlai.boot.device.model.form.Operation operation) {
@@ -84,6 +81,11 @@ public class DeviceOperateController {
         //根据房间id查询设备
         List<DeviceInfoVO> deviceInfoVOS = deviceService.listDeviceByRoomId(operation.getId(), room);
         if (ObjectUtils.isEmpty(deviceInfoVOS)) return Result.failed("该房间没有设备");
+        return getVoidResult(operation, deviceInfoVOS);
+    }
+
+    @NotNull
+    private Result<Void> getVoidResult(com.youlai.boot.device.model.form.Operation operation, List<DeviceInfoVO> deviceInfoVOS) {
         for (DeviceInfoVO deviceInfoVO : deviceInfoVOS) {
             Optional<Integer> tempValue = DeviceInfo.getValueByName(deviceInfoVO.getDeviceInfo(), "count", Integer.class);
             tempValue.ifPresent(value -> this.operate(operation.getOperate(), "-1", value, deviceInfoVO.getDeviceCode(), deviceInfoVO.getDeviceGatewayId(), deviceInfoVO.getCommunicationModeItemId(), deviceInfoVO.getDeviceTypeId()));
@@ -154,17 +156,11 @@ public class DeviceOperateController {
         //组发送json
         if (way.equals("-1")) {
             for (int i = 0; i < lightCount; i++) {
-                Control control = new Control();
-                control.setDeviceId(deviceCode);
-                control.setSequence((int) System.currentTimeMillis());
-                Switch plug = new Switch();
-                plug.setSwitchStatus(operate.equals("ON") ? "on" : "off");
-                plug.setOutlet(i);
+                Control control = makeControl(deviceCode);
+                Switch plug = makeSwitch(operate, i);
                 List<Switch> switches = new ArrayList<>();
                 switches.add(plug);
-                ControlParams controlParams = new ControlParams();
-                controlParams.setSwitches(switches);
-                control.setParams(controlParams);
+                makeControlParams(switches, control);
                 String deviceMac = gateway.getDeviceMac();
                 String gateWayTopic = MacUtils.reParseMACAddress(deviceMac);
                 try {
@@ -174,17 +170,11 @@ public class DeviceOperateController {
                 }
             }
         } else {
-            Control control = new Control();
-            control.setDeviceId(deviceCode);
-            control.setSequence((int) System.currentTimeMillis());
-            Switch plug = new Switch();
-            plug.setSwitchStatus(operate.equals("ON") ? "on" : "off");
-            plug.setOutlet(Integer.parseInt(way) - 1);
+            Control control = makeControl(deviceCode);
+            Switch plug = makeSwitch(operate, Integer.parseInt(way) - 1);
             List<Switch> switches = new ArrayList<>();
             switches.add(plug);
-            ControlParams controlParams = new ControlParams();
-            controlParams.setSwitches(switches);
-            control.setParams(controlParams);
+            makeControlParams(switches, control);
             String deviceMac = gateway.getDeviceMac();
             String gateWayTopic = MacUtils.reParseMACAddress(deviceMac);
             log.info(control.toString());
@@ -196,5 +186,27 @@ public class DeviceOperateController {
         }
         return Result.success();
 
+    }
+
+    private static void makeControlParams(List<Switch> switches, Control control) {
+        ControlParams controlParams = new ControlParams();
+        controlParams.setSwitches(switches);
+        control.setParams(controlParams);
+    }
+
+    @NotNull
+    private static Switch makeSwitch(String operate, int i) {
+        Switch plug = new Switch();
+        plug.setSwitchStatus(operate.equals("ON") ? "on" : "off");
+        plug.setOutlet(i);
+        return plug;
+    }
+
+    @NotNull
+    private static Control makeControl(String deviceCode) {
+        Control control = new Control();
+        control.setDeviceId(deviceCode);
+        control.setSequence((int) System.currentTimeMillis());
+        return control;
     }
 }
