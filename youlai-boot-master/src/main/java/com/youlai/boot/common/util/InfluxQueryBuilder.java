@@ -34,7 +34,10 @@ public class InfluxQueryBuilder {
     private String aggregateFunction;    // 聚合函数（可选，如 "last()", "mean()"）
     private boolean pivot;               // 是否透视（默认 false）
     private String sortColumn = "_time";  // 默认排序字段
+    private String windowDuration; // 窗口时长（如 "1h"）
     private boolean sortDesc = true;      // 默认降序
+    private String windowFunction; // 窗口聚合函数（如 "mean"）
+    private String windowPeriod;   // 窗口周期（如 "1h"）
 
     private InfluxQueryBuilder() {
         this.extraFilters = new ArrayList<>();
@@ -149,6 +152,32 @@ public class InfluxQueryBuilder {
     }
 
     /**
+     * 设置时间窗口分组（可选）
+     * @param duration 窗口时长（格式示例：1h、30m）
+     */
+    public InfluxQueryBuilder window(@NonNull String duration) {
+        if (!TIME_SHIFT_PATTERN.matcher(duration).matches()) {
+            throw new IllegalArgumentException("窗口时长格式错误（示例：1h、30m）");
+        }
+        this.windowDuration = duration;
+        return this;
+    }
+
+    /**
+     * 设置聚合窗口（简化版，只保留every和fn）
+     * @param every 窗口周期（如 "1h"）
+     * @param fn 聚合函数（如 "mean", "last"）
+     */
+    public InfluxQueryBuilder aggregateWindow(@NonNull String every, @NonNull String fn) {
+        if (!TIME_SHIFT_PATTERN.matcher(every).matches()) {
+            throw new IllegalArgumentException("窗口周期格式错误（示例：1h、30m）");
+        }
+        this.windowPeriod = every;
+        this.windowFunction = fn;
+        return this;
+    }
+
+    /**
      * 构建 Flux 查询字符串
      * @return 符合 InfluxDB 规范的 Flux 查询语句
      * @throws IllegalArgumentException 参数校验失败时抛出
@@ -175,7 +204,18 @@ public class InfluxQueryBuilder {
             flux.append(extraFilterStr);
         }
         flux.append(")\n");
-
+        // 窗口聚合逻辑（优先处理）
+        if (windowPeriod != null) {
+            flux.append(String.format("  |> aggregateWindow(every: %s, fn: %s)\n",
+                    windowPeriod, windowFunction));
+        }
+        // 兼容旧版window+aggregate（如有需要）
+        else if (StringUtils.isNotBlank(windowDuration)) {
+            flux.append(String.format("  |> window(every: %s)\n", windowDuration));
+            if (StringUtils.isNotBlank(aggregateFunction)) {
+                flux.append(String.format("  |> %s\n", aggregateFunction));
+            }
+        }
         // 聚合操作（可选）
         if (StringUtils.isNotBlank(aggregateFunction)) {
             flux.append(String.format("  |> %s\n", aggregateFunction));

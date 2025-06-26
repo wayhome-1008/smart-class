@@ -17,6 +17,7 @@ import com.youlai.boot.device.model.influx.InfluxSensor;
 import com.youlai.boot.device.model.vo.DeviceInfo;
 import com.youlai.boot.device.model.vo.DeviceInfoVO;
 import com.youlai.boot.device.model.vo.DeviceVO;
+import com.youlai.boot.device.model.vo.InfluxMqttPlugVO;
 import com.youlai.boot.device.service.DeviceInfoParser;
 import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.room.model.entity.Room;
@@ -34,6 +35,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+
+import static com.youlai.boot.common.util.DateUtils.findEarliest;
+import static com.youlai.boot.common.util.DateUtils.findLatest;
 
 /**
  *@Author: way
@@ -172,16 +176,70 @@ public class DashBoardController {
         }
         return Result.failed();
     }
+
+    @Operation(summary = "查询MQTT计量插座数据图数据")
+    @GetMapping("/plugMqtt/data{id}")
+    public Result<List<InfluxMqttPlug>> getMqttPlugData(
+            @PathVariable Long id,
+
+            @Parameter(description = "时间范围值", example = "1")
+            @RequestParam Long timeAmount,
+
+            @Parameter(description = "时间单位（y-年/-月/d-日/h-小时/m-分钟）", example = "d")
+            @RequestParam(defaultValue = "h") String timeUnit
+    ) {
+        try {
+            Device device = deviceService.getById(id);
+            if (device == null) {
+                return Result.failed();
+            }
+            InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
+                    .bucket(influxDBProperties.getBucket())
+                    .last(timeAmount, timeUnit)
+                    .measurement("device")
+                    .deviceCode(device.getDeviceCode())
+                    .sort();
+            buildFlexibleQuery(builder, timeAmount, timeUnit);
+            log.info("influxdb查询MQTT计计量插座语句{}", builder.pivot().build());
+            List<InfluxMqttPlug> tables = influxDBClient.getQueryApi().query(builder.pivot().build(), influxDBProperties.getOrg(), InfluxMqttPlug.class);
+            //根据influxdb传来的数据把度数算上
+            if (timeUnit.equals("y")) {
+                //将12个月的数据转换
+
+            }
+            if (timeUnit.equals("h")) {
+                //用最新的total-最久的 total
+                Double earliestValue = findEarliest(tables)
+                        .map(InfluxMqttPlug::getTotal)
+                        .orElse(null);
+                Double latestValue = findLatest(tables)
+                        .map(InfluxMqttPlug::getTotal)
+                        .orElse(null);
+                if (earliestValue != null && latestValue != null) {
+                    //给所有tables对象的kilowattHour赋值 stream
+//                    tables.forEach(t -> t.setKilowattHour(t.getTotal() - earliestValue));
+                    double result = latestValue - earliestValue;
+                    double rounded = Math.round(result * 1000) / 1000.0;
+                    tables.get(0).setKilowattHour(rounded);
+                }
+            }
+            return Result.success(tables);
+        } catch (InfluxException e) {
+            System.err.println("error：" + e.getMessage());
+        }
+        return Result.failed();
+    }
+
     @Operation(summary = "查询MQTT计量插座数据")
     @GetMapping("/plugMqtt/data")
     public Result<List<InfluxMqttPlug>> getMqttPlugData(@Parameter(description = "设备编码", required = true)
-                                                @RequestParam String deviceCode,
+                                                        @RequestParam String deviceCode,
 
                                                         @Parameter(description = "时间范围值", example = "1")
-                                                @RequestParam Long timeAmount,
+                                                        @RequestParam Long timeAmount,
 
-                                                        @Parameter(description = "时间单位（y-年/M-月/d-日/h-小时）", example = "d")
-                                                @RequestParam(defaultValue = "h") String timeUnit
+                                                        @Parameter(description = "时间单位（y-年/M-月/d-日/h-小时/m-分钟）", example = "d")
+                                                        @RequestParam(defaultValue = "h") String timeUnit
 
 //                                                    @Parameter(description = "统计类型（raw-原始数据/max-最大值/min-最小值/avg-平均值）", example = "raw")
 //                                                    @RequestParam(defaultValue = "raw") String statsType
@@ -191,16 +249,70 @@ public class DashBoardController {
                     .bucket(influxDBProperties.getBucket())
                     .last(timeAmount, timeUnit)
                     .measurement("device")
-                    .deviceCode(deviceCode)
+                    .deviceCode(deviceCode);
+            buildFlexibleQuery(builder, timeAmount, timeUnit)
                     .sort()
                     .addFilter("r._field == \"Total\" or r._field == \"Yesterday\" or r._field==\"Today\" or r._field==\"Power\" or r._field==\"ApparentPower\" or r._field==\"ReactivePower\" or r._field==\"Factor\" or r._field==\"Voltage\" or r._field==\"Current\"");
             log.info("influxdb查询MQTT计计量插座语句{}", builder.pivot().build());
             List<InfluxMqttPlug> tables = influxDBClient.getQueryApi().query(builder.pivot().build(), influxDBProperties.getOrg(), InfluxMqttPlug.class);
+            //根据influxdb传来的数据把度数算上
+            if (timeUnit.equals("y")) {
+
+
+            }
+            if (timeUnit.equals("h")) {
+
+                //用最新的total-最久的 total
+                Double earliestValue = findEarliest(tables)
+                        .map(InfluxMqttPlug::getTotal)
+                        .orElse(null);
+
+                Double latestValue = findLatest(tables)
+                        .map(InfluxMqttPlug::getTotal)
+                        .orElse(null);
+
+                if (earliestValue != null && latestValue != null) {
+                    //给所有tables对象的kilowattHour赋值 stream
+//                    tables.forEach(t -> t.setKilowattHour(t.getTotal() - earliestValue));
+                    double result = latestValue - earliestValue;
+                    double rounded = Math.round(result * 1000) / 1000.0;
+                    tables.get(0).setKilowattHour(rounded);
+                }
+
+            }
+            if (timeUnit.equals("M")) {
+                for (InfluxMqttPlug table : tables) {
+                    table.setKilowattHour(table.getTotal());
+                }
+            }
             return Result.success(tables);
         } catch (InfluxException e) {
             System.err.println("error：" + e.getMessage());
         }
         return Result.failed();
+    }
+
+    private InfluxQueryBuilder buildFlexibleQuery(InfluxQueryBuilder builder, long timeAmount, String timeUnit) {
+        // 根据时间单位动态设置窗口
+        switch (timeUnit) {
+            case "y": // 年 -> 按月分组
+                builder.aggregateWindow("1m", "sum")// InfluxDB中"mo"表示月
+                        .addFilter("r._field == \"Total\" ");
+                break;
+            case "M": // 月 -> 按天分组
+                builder.aggregateWindow("1d", "sum").addFilter("r._field == \"Total\" ");
+                break;
+            case "d": // 日 -> 按小时分组
+                builder.aggregateWindow("1h", "sum");
+                break;
+            case "h": // 小时 -> 按分钟分组
+                builder.aggregateWindow("1m", "sum");
+                break;
+            case "m": // 分钟 -> 按秒分组（可选）
+                builder.aggregateWindow("1s", "sum");
+                break;
+        }
+        return builder;
     }
 
     public static DeviceInfoVO basicPropertyConvert(Device device, String roomCode) {

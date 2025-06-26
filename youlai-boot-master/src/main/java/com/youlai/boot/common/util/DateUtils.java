@@ -5,9 +5,13 @@ import cn.hutool.core.date.DateTime;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.ReflectUtil;
 import cn.hutool.core.util.StrUtil;
+import com.youlai.boot.device.model.influx.InfluxMqttPlug;
 import org.springframework.format.annotation.DateTimeFormat;
 
 import java.lang.reflect.Field;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * 日期工具类
@@ -57,5 +61,21 @@ public class DateUtils {
             // 转换为目标数据库日期格式
             ReflectUtil.setFieldValue(obj, fieldName, dateTime.toString(targetPattern));
         }
+    }
+
+    public static Optional<InfluxMqttPlug> findEarliest(List<InfluxMqttPlug> objects) {
+        if (objects == null || objects.isEmpty()) {
+            return Optional.empty();
+        }
+        return objects.stream()
+                .min(Comparator.comparing(InfluxMqttPlug::getTime));
+    }
+
+    public static Optional<InfluxMqttPlug> findLatest(List<InfluxMqttPlug> objects) {
+        if (objects == null || objects.isEmpty()) {
+            return Optional.empty();
+        }
+        return objects.stream()
+                .max(Comparator.comparing(InfluxMqttPlug::getTime));
     }
 }

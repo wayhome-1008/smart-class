@@ -58,4 +58,6 @@ public class InfluxMqttPlug {
 
     @Column(timestamp = true)
     private Instant time;
+
+    private Double kilowattHour;
 }
