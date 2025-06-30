@@ -11,7 +11,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
  * 任务管理服务类
  *
  * @author way
- * @since 2025-06-30 18:11
+ * @since 2025-06-30 18:27
  */
 public interface DeviceJobService extends IService<DeviceJob> {
 

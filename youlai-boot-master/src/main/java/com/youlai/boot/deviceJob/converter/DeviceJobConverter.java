@@ -9,7 +9,7 @@ import com.youlai.boot.deviceJob.model.form.DeviceJobForm;
  * 任务管理对象转换器
  *
  * @author way
- * @since 2025-06-30 18:11
+ * @since 2025-06-30 18:27
  */
 @Mapper(componentModel = "spring")
 public interface DeviceJobConverter{

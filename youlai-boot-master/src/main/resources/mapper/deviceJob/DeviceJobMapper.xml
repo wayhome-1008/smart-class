@@ -10,12 +10,7 @@
                 type_id,
                 cron,
                 status,
-                remark,
-                create_time,
-                create_by,
-                update_time,
-                update_by,
-                is_deleted
+                remark
         FROM
             device_job
         <where>

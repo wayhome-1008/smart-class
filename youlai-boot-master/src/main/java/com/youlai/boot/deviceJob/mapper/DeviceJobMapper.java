@@ -11,7 +11,7 @@ import org.apache.ibatis.annotations.Mapper;
  * 任务管理Mapper接口
  *
  * @author way
- * @since 2025-06-30 18:11
+ * @since 2025-06-30 18:27
  */
 @Mapper
 public interface DeviceJobMapper extends BaseMapper<DeviceJob> {

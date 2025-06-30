@@ -10,7 +10,7 @@ import com.youlai.boot.common.base.BaseEntity;
  * 任务管理实体对象
  *
  * @author way
- * @since 2025-06-30 18:11
+ * @since 2025-06-30 18:27
  */
 @Getter
 @Setter
