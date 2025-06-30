@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.youlai.boot.deviceJob.mapper.DeviceJobMapper">
+
+    <!-- 获取任务管理分页列表 -->
+    <select id="getDeviceJobPage" resultType="com.youlai.boot.deviceJob.model.vo.DeviceJobVO">
+        SELECT
+                id,
+                device_id,
+                type_id,
+                cron,
+                status,
+                remark,
+                create_time,
+                create_by,
+                update_time,
+                update_by,
+                is_deleted
+        FROM
+            device_job
+        <where>
+            <if test="queryParams.typeId != null">
+                AND type_id = #{queryParams.typeId}
+            </if>
+            <if test="queryParams.status != null">
+                AND status = #{queryParams.status}
+            </if>
+        </where>
+    </select>
+
+</mapper>
