@@ -33,6 +33,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -179,13 +180,13 @@ public class DashBoardController {
 
     @Operation(summary = "查询MQTT计量插座数据图数据")
     @GetMapping("/plugMqtt/data{id}")
-    public Result<List<InfluxMqttPlug>> getMqttPlugData(
+    public Result<List<InfluxMqttPlugVO>> getMqttPlugData(
             @PathVariable Long id,
 
             @Parameter(description = "时间范围值", example = "1")
             @RequestParam Long timeAmount,
 
-            @Parameter(description = "时间单位（y-年/-月/d-日/h-小时/m-分钟）", example = "d")
+            @Parameter(description = "时间单位（y-年/mo-月/d-日/h-小时/m-分钟）", example = "d")
             @RequestParam(defaultValue = "h") String timeUnit
     ) {
         try {
@@ -205,29 +206,37 @@ public class DashBoardController {
             //根据influxdb传来的数据把度数算上
             if (timeUnit.equals("y")) {
                 //将12个月的数据转换
-
+                return Result.success(makeInfluxMqttPlugVOList(tables));
+            }
+            if (timeUnit.equals("mo")) {
+                //将30天数据转换
+                return Result.success(makeInfluxMqttPlugVOList(tables));
+            }
+            if (timeUnit.equals("d")) {
+                //将24小时数据转换
+                return Result.success(makeInfluxMqttPlugVOList(tables));
             }
             if (timeUnit.equals("h")) {
-                //用最新的total-最久的 total
-                Double earliestValue = findEarliest(tables)
-                        .map(InfluxMqttPlug::getTotal)
-                        .orElse(null);
-                Double latestValue = findLatest(tables)
-                        .map(InfluxMqttPlug::getTotal)
-                        .orElse(null);
-                if (earliestValue != null && latestValue != null) {
-                    //给所有tables对象的kilowattHour赋值 stream
-//                    tables.forEach(t -> t.setKilowattHour(t.getTotal() - earliestValue));
-                    double result = latestValue - earliestValue;
-                    double rounded = Math.round(result * 1000) / 1000.0;
-                    tables.get(0).setKilowattHour(rounded);
-                }
+                return Result.success(makeInfluxMqttPlugVOList(tables));
             }
-            return Result.success(tables);
+            if (timeUnit.equals("m")) {
+                return Result.success(makeInfluxMqttPlugVOList(tables));
+            }
         } catch (InfluxException e) {
             System.err.println("error：" + e.getMessage());
         }
         return Result.failed();
+    }
+
+    private List<InfluxMqttPlugVO> makeInfluxMqttPlugVOList(List<InfluxMqttPlug> tables) {
+        List<InfluxMqttPlugVO> influxMqttPlugVOList = new ArrayList<>();
+        for (InfluxMqttPlug table : tables) {
+            InfluxMqttPlugVO influxMqttPlugVO = new InfluxMqttPlugVO();
+            influxMqttPlugVO.setTime(table.getTime().toString());
+            influxMqttPlugVO.setValue(table.getTotal());
+            influxMqttPlugVOList.add(influxMqttPlugVO);
+        }
+        return influxMqttPlugVOList;
     }
 
     @Operation(summary = "查询MQTT计量插座数据")
@@ -296,20 +305,20 @@ public class DashBoardController {
         // 根据时间单位动态设置窗口
         switch (timeUnit) {
             case "y": // 年 -> 按月分组
-                builder.aggregateWindow("1m", "sum")// InfluxDB中"mo"表示月
+                builder.aggregateWindow("1mo", "sum")// InfluxDB中"mo"表示月
                         .addFilter("r._field == \"Total\" ");
                 break;
-            case "M": // 月 -> 按天分组
+            case "mo": // 月 -> 按天分组
                 builder.aggregateWindow("1d", "sum").addFilter("r._field == \"Total\" ");
                 break;
             case "d": // 日 -> 按小时分组
-                builder.aggregateWindow("1h", "sum");
+                builder.aggregateWindow("1h", "sum").addFilter("r._field == \"Total\" ");
                 break;
             case "h": // 小时 -> 按分钟分组
-                builder.aggregateWindow("1m", "sum");
+                builder.aggregateWindow("1m", "sum").addFilter("r._field == \"Total\" ");
                 break;
             case "m": // 分钟 -> 按秒分组（可选）
-                builder.aggregateWindow("1s", "sum");
+                builder.aggregateWindow("1s", "sum").addFilter("r._field == \"Total\" ");
                 break;
         }
         return builder;

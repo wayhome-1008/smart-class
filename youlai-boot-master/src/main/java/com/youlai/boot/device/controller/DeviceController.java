@@ -276,6 +276,11 @@ public class DeviceController {
                     break;
                 case 3:
                     //ZigBee网关
+                    //有设备则无法删除
+                    List<Device> subDevices = deviceService.listGatewaySubDevices(device.getId());
+                    if (!subDevices.isEmpty()) {
+                        return Result.failed("网关下有设备，无法删除");
+                    }
                     zigBeeGateWayDelDel(device);
                     result = deviceService.removeById(device.getId());
                     break;

@@ -17,11 +17,11 @@ import java.util.stream.Collectors;
  */
 public class InfluxQueryBuilder {
     // InfluxDB 支持的时间单位（严格匹配：s-秒/m-分/h-时/d-天/w-周/M-月/y-年）
-    private static final Pattern TIME_UNIT_PATTERN = Pattern.compile("^[smhdwMy]$");
+    private static final Pattern TIME_UNIT_PATTERN =  Pattern.compile("^[0-9]+(s|m|h|d|w|mo|y)$");
     // 聚合函数白名单（防止非法函数注入）
     private static final Pattern AGGREGATE_FUNC_PATTERN = Pattern.compile("^[a-zA-Z]+\\(\\)$");
-    // 新增：时间偏移量校验（匹配 InfluxDB 持续时间格式，如 8h、30m）
-    private static final Pattern TIME_SHIFT_PATTERN = Pattern.compile("^[0-9]+[smhdwMy]$");
+    // 新增：时间偏移量校验（匹配 InfluxDB 持续时间格式，如 8h、30m、1h30m）
+//    private static final Pattern TIME_SHIFT_PATTERN = Pattern.compile("^([0-9]+[smhdwmoy])+$");
     // 默认偏移量：8h（北京时间 UTC+8）
     private String timeShiftDuration = "8h";
 
@@ -50,9 +50,9 @@ public class InfluxQueryBuilder {
      * @param duration 偏移量（格式示例：8h、30m、120s，需符合 InfluxDB 持续时间规范）
      */
     public InfluxQueryBuilder timeShift(@NonNull String duration) {  // <-- 关键改动2
-        if (!TIME_SHIFT_PATTERN.matcher(duration).matches()) {
-            throw new IllegalArgumentException("时间偏移量格式错误（示例：8h、30m、120s）");
-        }
+//        if (!TIME_SHIFT_PATTERN.matcher(duration).matches()) {
+//            throw new IllegalArgumentException("时间偏移量格式错误（示例：8h、30m、120s）");
+//        }
         this.timeShiftDuration = duration;
         return this;
     }
@@ -156,9 +156,9 @@ public class InfluxQueryBuilder {
      * @param duration 窗口时长（格式示例：1h、30m）
      */
     public InfluxQueryBuilder window(@NonNull String duration) {
-        if (!TIME_SHIFT_PATTERN.matcher(duration).matches()) {
-            throw new IllegalArgumentException("窗口时长格式错误（示例：1h、30m）");
-        }
+//        if (!TIME_SHIFT_PATTERN.matcher(duration).matches()) {
+//            throw new IllegalArgumentException("窗口时长格式错误（示例：1h、30m）");
+//        }
         this.windowDuration = duration;
         return this;
     }
@@ -169,9 +169,9 @@ public class InfluxQueryBuilder {
      * @param fn 聚合函数（如 "mean", "last"）
      */
     public InfluxQueryBuilder aggregateWindow(@NonNull String every, @NonNull String fn) {
-        if (!TIME_SHIFT_PATTERN.matcher(every).matches()) {
-            throw new IllegalArgumentException("窗口周期格式错误（示例：1h、30m）");
-        }
+//        if (!TIME_SHIFT_PATTERN.matcher(every).matches()) {
+//            throw new IllegalArgumentException("窗口周期格式错误（示例：1h、30m）");
+//        }
         this.windowPeriod = every;
         this.windowFunction = fn;
         return this;
@@ -250,12 +250,12 @@ public class InfluxQueryBuilder {
         }
 
         // 时间单位严格校验（仅允许 s/m/h/d/w/M/y）
-        if (!TIME_UNIT_PATTERN.matcher(timeUnit).matches()) {
-            throw new IllegalArgumentException("timeUnit 必须是 Influx 支持的单位（s/m/h/d/w/M/y）");
-        }
+//        if (!TIME_UNIT_PATTERN.matcher(timeUnit).matches()) {
+//            throw new IllegalArgumentException("timeUnit 必须是 Influx 支持的单位（s/m/h/d/w/M/y）");
+//        }
         // 校验时间偏移量格式（新增）
-        if (!TIME_SHIFT_PATTERN.matcher(timeShiftDuration).matches()) {
-            throw new IllegalArgumentException("timeShiftDuration 格式错误（示例：8h、30m、120s）");
-        }
+//        if (!TIME_SHIFT_PATTERN.matcher(timeShiftDuration).matches()) {
+//            throw new IllegalArgumentException("timeShiftDuration 格式错误（示例：8h、30m、120s）");
+//        }
     }
 }
