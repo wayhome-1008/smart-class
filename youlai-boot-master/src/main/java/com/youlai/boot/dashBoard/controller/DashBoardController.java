@@ -111,7 +111,7 @@ public class DashBoardController {
                                                     @RequestParam(defaultValue = "h") String timeUnit
 
 //                                                    @Parameter(description = "统计类型（raw-原始数据/max-最大值/min-最小值/avg-平均值）", example = "raw")
-//                                                    @RequestParam(defaultValue = "raw") String statsType
+//                                                                                                        @RequestParam(defaultValue = "raw") String statsType
     ) {
         try {
             InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
