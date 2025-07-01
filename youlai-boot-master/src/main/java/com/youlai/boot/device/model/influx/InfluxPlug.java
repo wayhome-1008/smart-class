@@ -18,6 +18,9 @@ public class InfluxPlug {
     @Column(tag = true)
     private String deviceCode;
 
+    @Column(tag = true)
+    private Long roomId;
+
     @Column(name = "activePowerA")
     private Double activePowerA;
 

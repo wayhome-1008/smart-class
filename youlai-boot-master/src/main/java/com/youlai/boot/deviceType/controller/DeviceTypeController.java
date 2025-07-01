@@ -44,7 +44,6 @@ public class DeviceTypeController {
         return PageResult.success(result);
     }
 
-
     @Operation(summary = "设备类型下拉列表")
     @GetMapping("/options")
     public Result<List<Option<Long>>> listDeviceTypeOptions() {

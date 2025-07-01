@@ -17,6 +17,9 @@ public class InfluxSensor {
     @Column(tag = true)
     private String deviceCode;
 
+    @Column(tag = true)
+    private Long roomId;
+
     @Column(name = "battery")
     private Integer battery;
 

@@ -267,6 +267,8 @@ public class SubUpdateHandler implements MsgHandler {
         //tag为设备编号
         influxPlug.setDeviceCode(deviceCache.getDeviceCode());
 
+        //tag为房间id
+        influxPlug.setRoomId(deviceCache.getDeviceRoom());
         //处理插座数据
         if (mergeParams != null) {
             if (mergeParams.has("activePowerA") && mergeParams.get("activePowerA").isNumber()) {
@@ -350,6 +352,7 @@ public class SubUpdateHandler implements MsgHandler {
         InfluxHumanRadarSensor point = new InfluxHumanRadarSensor();
         //tag为设备编号
         point.setDeviceCode(deviceCache.getDeviceCode());
+        point.setRoomId(deviceCache.getDeviceRoom());
         //处理数据
         if (mergedParams != null) {
             if (mergedParams.has("battery") && mergedParams.get("battery").isNumber()) {
@@ -410,6 +413,7 @@ public class SubUpdateHandler implements MsgHandler {
         //tag为设备编号
         point.setDeviceCode(deviceCache.getDeviceCode());
 
+        point.setRoomId(deviceCache.getDeviceRoom());
         // 处理传感器数据
         if (mergedParams != null) {
             if (mergedParams.has("battery") && mergedParams.get("battery").isInt()) {
