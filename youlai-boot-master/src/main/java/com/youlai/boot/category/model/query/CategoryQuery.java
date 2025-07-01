@@ -11,7 +11,7 @@ import java.util.List;
  * 分类管理分页查询对象
  *
  * @author way
- * @since 2025-06-30 18:52
+ * @since 2025-07-01 09:17
  */
 @Schema(description ="分类管理查询对象")
 @Getter

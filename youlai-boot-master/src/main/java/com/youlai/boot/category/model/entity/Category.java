@@ -10,7 +10,7 @@ import com.youlai.boot.common.base.BaseEntity;
  * 分类管理实体对象
  *
  * @author way
- * @since 2025-06-30 18:52
+ * @since 2025-07-01 09:17
  */
 @Getter
 @Setter

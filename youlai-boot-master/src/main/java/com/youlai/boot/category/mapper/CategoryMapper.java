@@ -11,7 +11,7 @@ import org.apache.ibatis.annotations.Mapper;
  * 分类管理Mapper接口
  *
  * @author way
- * @since 2025-06-30 18:52
+ * @since 2025-07-01 09:17
  */
 @Mapper
 public interface CategoryMapper extends BaseMapper<Category> {

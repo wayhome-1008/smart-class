@@ -11,7 +11,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
  * 分类管理服务类
  *
  * @author way
- * @since 2025-06-30 18:52
+ * @since 2025-07-01 09:17
  */
 public interface CategoryService extends IService<Category> {
 

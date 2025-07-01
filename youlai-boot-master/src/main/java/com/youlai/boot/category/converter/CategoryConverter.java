@@ -9,7 +9,7 @@ import com.youlai.boot.category.model.form.CategoryForm;
  * 分类管理对象转换器
  *
  * @author way
- * @since 2025-06-30 18:52
+ * @since 2025-07-01 09:17
  */
 @Mapper(componentModel = "spring")
 public interface CategoryConverter{
