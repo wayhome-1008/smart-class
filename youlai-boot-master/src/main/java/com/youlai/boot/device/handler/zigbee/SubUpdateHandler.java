@@ -15,7 +15,7 @@ import com.youlai.boot.device.handler.service.MsgHandler;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.SubUpdateSensorRsp;
 import com.youlai.boot.device.model.influx.InfluxHumanRadarSensor;
-import com.youlai.boot.device.model.influx.InfluxPlug;
+import com.youlai.boot.device.model.influx.InfluxMqttPlug;
 import com.youlai.boot.device.model.influx.InfluxSensor;
 import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.device.topic.HandlerType;
@@ -263,16 +263,30 @@ public class SubUpdateHandler implements MsgHandler {
         }
 
         //创建influx数据
-        InfluxPlug influxPlug = new InfluxPlug();
+        InfluxMqttPlug influxPlug = new InfluxMqttPlug();
         //tag为设备编号
         influxPlug.setDeviceCode(deviceCache.getDeviceCode());
 
         //tag为房间id
-        influxPlug.setRoomId(deviceCache.getDeviceRoom());
+        influxPlug.setRoomId(deviceCache.getDeviceRoom().toString());
         //处理插座数据
         if (mergeParams != null) {
+            //电压
+            if (mergeParams.has("RMS_VoltageA") && mergeParams.get("RMS_VoltageA").isNumber()) {
+                influxPlug.setVoltage(mergeParams.get("RMS_VoltageA").asDouble());
+            }
+            //电流
+            if (mergeParams.has("RMS_CurrentA") && mergeParams.get("RMS_CurrentA").isNumber()) {
+                influxPlug.setCurrent(mergeParams.get("RMS_CurrentA").asDouble());
+            }
+            //功率
             if (mergeParams.has("activePowerA") && mergeParams.get("activePowerA").isNumber()) {
-                influxPlug.setActivePowerA(mergeParams.get("activePowerA").asDouble());
+//                influxPlug.setActivePowerA(mergeParams.get("activePowerA").asDouble());
+                influxPlug.setPower((int) mergeParams.get("activePowerA").asDouble());
+            }
+            //总用电量
+            if (mergeParams.has("electricalEnergy") && mergeParams.get("electricalEnergy").isNumber()) {
+                influxPlug.setTotal(mergeParams.get("electricalEnergy").asDouble());
             }
 //            if (mergeParams.has("activePowerB") && mergeParams.get("activePowerB").isInt()) {
 //                influxPlug.setActivePowerB(mergeParams.get("activePowerB").asInt());
@@ -280,27 +294,21 @@ public class SubUpdateHandler implements MsgHandler {
 //            if (mergeParams.has("activePowerC") && mergeParams.get("activePowerC").isInt()) {
 //                influxPlug.setActivePowerC(mergeParams.get("activePowerC").asInt());
 //            }
-            if (mergeParams.has("RMS_VoltageA") && mergeParams.get("RMS_VoltageA").isNumber()) {
-                influxPlug.setRMS_VoltageA(mergeParams.get("RMS_VoltageA").asDouble());
-            }
+
 //            if (mergeParams.has("RMS_VoltageB") && mergeParams.get("RMS_VoltageB").isInt()) {
 //                influxPlug.setRMS_VoltageB(mergeParams.get("RMS_VoltageB").asInt());
 //            }
 //            if (mergeParams.has("RMS_VoltageC") && mergeParams.get("RMS_VoltageC").isInt()) {
 //                influxPlug.setRMS_VoltageC(mergeParams.get("RMS_VoltageC").asInt());
 //            }
-            if (mergeParams.has("RMS_CurrentA") && mergeParams.get("RMS_CurrentA").isNumber()) {
-                influxPlug.setRMS_CurrentA(mergeParams.get("RMS_CurrentA").asDouble());
-            }
+
 //            if (mergeParams.has("RMS_CurrentB") && mergeParams.get("RMS_CurrentB").isInt()) {
 //                influxPlug.setRMS_CurrentB(mergeParams.get("RMS_CurrentB").asInt());
 //            }
 //            if (mergeParams.has("RMS_CurrentC") && mergeParams.get("RMS_CurrentC").isInt()) {
 //                influxPlug.setRMS_CurrentC(mergeParams.get("RMS_CurrentC").asInt());
 //            }
-            if (mergeParams.has("electricalEnergy") && mergeParams.get("electricalEnergy").isNumber()) {
-                influxPlug.setElectricalEnergy(mergeParams.get("electricalEnergy").asDouble());
-            }
+            log.info("插座数据:{}", influxPlug);
             influxDBClient.getWriteApiBlocking().writeMeasurement(
                     influxProperties.getBucket(),
                     influxProperties.getOrg(),
@@ -413,7 +421,7 @@ public class SubUpdateHandler implements MsgHandler {
         //tag为设备编号
         point.setDeviceCode(deviceCache.getDeviceCode());
 
-        point.setRoomId(deviceCache.getDeviceRoom());
+        point.setRoomId(deviceCache.getDeviceRoom().toString());
         // 处理传感器数据
         if (mergedParams != null) {
             if (mergedParams.has("battery") && mergedParams.get("battery").isInt()) {
