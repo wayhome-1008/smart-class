@@ -28,8 +28,13 @@ public class DeviceJobForm implements Serializable {
 
     @Schema(description = "定时任务设备")
     @NotNull(message = "定时任务设备不能为空")
-    private Long deviceId;
 
+    private Long deviceId;
+    private String jobName; // 任务名称，唯一标识一个任务
+
+    private String jobGroup; // 任务组名，用于对任务进行分组管理
+
+    private String jobClass; // 任务执行类，指定任务具体执行逻辑的类名
     @Schema(description = "任务类型")
     @NotNull(message = "任务类型不能为空")
     private Long typeId;
