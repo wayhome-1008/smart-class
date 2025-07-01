@@ -1,6 +1,13 @@
 package com.youlai.boot.category.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.conditions.update.LambdaUpdateChainWrapper;
+import com.youlai.boot.device.model.entity.Device;
+import com.youlai.boot.device.service.DeviceService;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -31,13 +38,14 @@ import cn.hutool.core.util.StrUtil;
 public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> implements CategoryService {
 
     private final CategoryConverter categoryConverter;
+    private final DeviceService deviceService;
 
     /**
-    * 获取分类管理分页列表
-    *
-    * @param queryParams 查询参数
-    * @return {@link IPage<CategoryVO>} 分类管理分页列表
-    */
+     * 获取分类管理分页列表
+     *
+     * @param queryParams 查询参数
+     * @return {@link IPage<CategoryVO>} 分类管理分页列表
+     */
     @Override
     public IPage<CategoryVO> getCategoryPage(CategoryQuery queryParams) {
         Page<CategoryVO> pageVO = this.baseMapper.getCategoryPage(
@@ -46,7 +54,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         );
         return pageVO;
     }
-    
+
     /**
      * 获取分类管理表单数据
      *
@@ -58,7 +66,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         Category entity = this.getById(id);
         return categoryConverter.toForm(entity);
     }
-    
+
     /**
      * 新增分类管理
      *
@@ -67,10 +75,23 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
      */
     @Override
     public boolean saveCategory(CategoryForm formData) {
+        boolean success;
         Category entity = categoryConverter.toEntity(formData);
-        return this.save(entity);
+        success = this.save(entity);
+        //看是否需要绑定设备
+        if (StringUtils.isNotBlank(formData.getDeviceIds())) {
+            //在设备上更新上分类id
+            List<Long> idList = Arrays.stream(formData.getDeviceIds().split(","))
+                    .map(Long::parseLong)
+                    .toList();
+            LambdaUpdateWrapper<Device> updateWrapper = Wrappers.lambdaUpdate();
+            updateWrapper.in(Device::getId, idList)  // 指定ID列表
+                    .set(Device::getCategoryId, entity.getId()); // 设置要更新的字段和值
+            success = deviceService.update(updateWrapper);
+        }
+        return success;
     }
-    
+
     /**
      * 更新分类管理
      *
@@ -79,11 +100,24 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
      * @return 是否修改成功
      */
     @Override
-    public boolean updateCategory(Long id,CategoryForm formData) {
+    public boolean updateCategory(Long id, CategoryForm formData) {
+        boolean success;
         Category entity = categoryConverter.toEntity(formData);
-        return this.updateById(entity);
+        success = this.updateById(entity);
+        //看是否需要绑定设备
+        if (StringUtils.isNotBlank(formData.getDeviceIds())) {
+            //在设备上更新上分类id
+            List<Long> idList = Arrays.stream(formData.getDeviceIds().split(","))
+                    .map(Long::parseLong)
+                    .toList();
+            LambdaUpdateWrapper<Device> updateWrapper = Wrappers.lambdaUpdate();
+            updateWrapper.in(Device::getId, idList)  // 指定ID列表
+                    .set(Device::getCategoryId, entity.getId()); // 设置要更新的字段和值
+            success = deviceService.update(updateWrapper);
+        }
+        return success;
     }
-    
+
     /**
      * 删除分类管理
      *
@@ -97,6 +131,11 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         List<Long> idList = Arrays.stream(ids.split(","))
                 .map(Long::parseLong)
                 .toList();
+        List<Device> deviceList = deviceService.list(new LambdaQueryWrapper<Device>().in(Device::getCategoryId, idList));
+        if (!deviceList.isEmpty()) {
+            // 删除的分类管理下有设备，则不允许删除
+            throw new RuntimeException("请先删除该分类下的设备");
+        }
         return this.removeByIds(idList);
     }
 
