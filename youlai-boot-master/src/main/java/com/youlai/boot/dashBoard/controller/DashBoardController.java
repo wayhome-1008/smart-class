@@ -33,6 +33,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -200,6 +202,8 @@ public class DashBoardController {
                     .range(timeAmount, timeUnit)
                     .measurement("device")
                     .fields("Total", "Voltage", "Current")
+                    .pivot()
+                    .fill()
                     .sort("_time", InfluxQueryBuilder.SORT_DESC)
                     .timeShift("8h");
 
@@ -234,24 +238,43 @@ public class DashBoardController {
             List<InfluxMqttPlug> tables = influxDBClient.getQueryApi()
                     .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);            //根据influxdb传来的数据把度数算上
             // 转换结果并返回
-            return Result.success(makeInfluxMqttPlugVOList(tables));
+            return Result.success(makeInfluxMqttPlugVOList(tables, timeUnit));
         } catch (InfluxException e) {
             System.err.println("error：" + e.getMessage());
         }
         return Result.failed();
     }
 
-    private List<InfluxMqttPlugVO> makeInfluxMqttPlugVOList(List<InfluxMqttPlug> tables) {
-        List<InfluxMqttPlugVO> influxMqttPlugVOList = new ArrayList<>();
+    private List<InfluxMqttPlugVO> makeInfluxMqttPlugVOList(List<InfluxMqttPlug> tables, String timeUnit) {
+        List<InfluxMqttPlugVO> result = new ArrayList<>();
+        InfluxMqttPlugVO vo = new InfluxMqttPlugVO();
+        List<String> times = new ArrayList<>();
+        List<Double> values = new ArrayList<>();
         for (InfluxMqttPlug table : tables) {
-            InfluxMqttPlugVO influxMqttPlugVO = new InfluxMqttPlugVO();
-            influxMqttPlugVO.setTime(table.getTime().toString());
-            influxMqttPlugVO.setValue(table.getTotal());
-            influxMqttPlugVOList.add(influxMqttPlugVO);
+            // 格式化时间（根据你的需求选择格式）
+            String formattedTime = formatTime(table.getTime(), timeUnit);
+            times.add(formattedTime);
+            values.add(table.getTotal());
         }
-        return influxMqttPlugVOList;
+        vo.setTime(times);
+        vo.setValue(values);
+        result.add(vo);
+
+        return result;
     }
 
+    private String formatTime(Instant time, String timeUnit) {
+        // 根据时间单位格式化时间
+        return switch (timeUnit) {
+            case "y" -> time.atZone(ZoneId.systemDefault()).getYear() + "/"
+                    + String.format("%02d", time.atZone(ZoneId.systemDefault()).getMonthValue());
+            case "mo" -> String.format("%02d", time.atZone(ZoneId.systemDefault()).getMonthValue()) + "/"
+                    + String.format("%02d", time.atZone(ZoneId.systemDefault()).getDayOfMonth());
+            case "d" -> String.format("%02d", time.atZone(ZoneId.systemDefault()).getHour()) + ":00";
+            case "h" -> String.format("%02d", time.atZone(ZoneId.systemDefault()).getMinute()) + ":00";
+            default -> time.toString();
+        };
+    }
 //    @Operation(summary = "查询MQTT计量插座数据")
 //    @GetMapping("/plugMqtt/data")
 //    public Result<List<InfluxMqttPlug>> getMqttPlugData(@Parameter(description = "设备编码")

@@ -312,11 +312,12 @@ public class InfluxQueryBuilder {
     private String timeShift = DEFAULT_TIME_SHIFT;
     private Integer limit;
     private Integer offset;
-    private String fillValue;
+    private boolean useFillPrevious = false;
     private boolean yield = true;
     private boolean keepEmpty = false;
 
-    private InfluxQueryBuilder() {}
+    private InfluxQueryBuilder() {
+    }
 
     /**
      * 创建新构建器实例
@@ -385,8 +386,11 @@ public class InfluxQueryBuilder {
         return this;
     }
 
-    public InfluxQueryBuilder fill(@Nullable String value) {
-        this.fillValue = value;
+    /**
+     * 启用使用上一个值填充
+     */
+    public InfluxQueryBuilder fill() {
+        this.useFillPrevious = true;
         return this;
     }
 
@@ -439,11 +443,13 @@ public class InfluxQueryBuilder {
 
         // 窗口聚合
         if (windowEvery != null) {
-            flux.append(String.format("  |> aggregateWindow(every: %s, fn: %s", windowEvery, windowFunction));
-            if (fillValue != null) {
-                flux.append(String.format(", fillValue: %s", fillValue));
+            flux.append(String.format("  |> aggregateWindow(every: %s, fn: %s)\n",
+                    windowEvery, windowFunction));
+
+            // 在窗口聚合后添加fill
+            if (useFillPrevious) {
+                flux.append("  |> fill(usePrevious: true)\n");
             }
-            flux.append(")\n");
         }
 
         // 其他聚合函数

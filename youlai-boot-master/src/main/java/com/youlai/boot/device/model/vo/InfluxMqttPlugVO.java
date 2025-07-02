@@ -2,6 +2,8 @@ package com.youlai.boot.device.model.vo;
 
 import lombok.Data;
 
+import java.util.List;
+
 /**
  *@Author: way
  *@CreateTime: 2025-06-26  14:46
@@ -9,6 +11,6 @@ import lombok.Data;
  */
 @Data
 public class InfluxMqttPlugVO {
-    private String time;  // 时间戳
-    private Double value; // 指标值
+    private List<String> time;  // 时间戳
+    private List<Double> value; // 指标值
 }
