@@ -420,23 +420,23 @@ public class SubUpdateHandler implements MsgHandler {
         InfluxSensor point = new InfluxSensor();
         //tag为设备编号
         point.setDeviceCode(deviceCache.getDeviceCode());
-
+        //tag为房间编号
         point.setRoomId(deviceCache.getDeviceRoom().toString());
         // 处理传感器数据
         if (mergedParams != null) {
             if (mergedParams.has("battery") && mergedParams.get("battery").isInt()) {
                 point.setBattery(mergedParams.get("battery").asInt());
             }
-            if (mergedParams.has("temperature") && mergedParams.get("temperature").isInt()) {
-                point.setTemperature(mergedParams.get("temperature").asInt());
+            if (mergedParams.has("temperature") && mergedParams.get("temperature").isTextual()) {
+                point.setTemperature(mergedParams.get("temperature").asDouble() / 100);
             }
-            if (mergedParams.has("humidity") && mergedParams.get("humidity").isInt()) {
-                point.setHumidity(mergedParams.get("humidity").asInt());
+            if (mergedParams.has("humidity") && mergedParams.get("humidity").isTextual()) {
+                point.setHumidity(mergedParams.get("humidity").asDouble() / 100);
             }
-            if (mergedParams.has("Illuminance") && mergedParams.get("Illuminance").isInt()) {
-                point.setIlluminance(mergedParams.get("Illuminance").asInt());
+            if (mergedParams.has("Illuminance") && mergedParams.get("Illuminance").isTextual()) {
+                point.setIlluminance(mergedParams.get("Illuminance").asDouble());
             }
-
+            point.setRoomId(deviceCache.getDeviceRoom().toString());
             influxDBClient.getWriteApiBlocking().writeMeasurement(
                     influxProperties.getBucket(),
                     influxProperties.getOrg(),

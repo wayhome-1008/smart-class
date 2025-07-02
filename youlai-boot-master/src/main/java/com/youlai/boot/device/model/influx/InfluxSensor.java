@@ -24,13 +24,13 @@ public class InfluxSensor {
     private Integer battery;
 
     @Column(name = "temperature")
-    private Integer temperature;
+    private Double temperature;
 
     @Column(name = "humidity")
-    private Integer humidity;
+    private Double humidity;
 
     @Column(name = "illuminance")
-    private Integer illuminance;
+    private Double illuminance;
 
     @Column(timestamp = true)
     private Instant time;
