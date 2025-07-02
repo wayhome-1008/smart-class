@@ -135,19 +135,19 @@ public class DashBoardController {
             // 根据时间单位设置窗口聚合
             switch (timeUnit) {
                 case "y":
-                    builder.window("1mo", "sum");
+                    builder.window("1mo", "last");
                     break;
                 case "mo":
-                    builder.window("1d", "sum");
+                    builder.window("1d", "last");
                     break;
                 case "d":
-                    builder.window("1h", "sum");
+                    builder.window("1h", "last");
                     break;
                 case "h":
-                    builder.window("1m", "sum");
+                    builder.window("1m", "last");
                     break;
                 case "m":
-                    builder.window("1s", "sum");
+                    builder.window("1s", "last");
                     break;
             }
             String fluxQuery = builder.build();

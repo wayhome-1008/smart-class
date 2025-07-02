@@ -166,6 +166,7 @@ public class SubUpdateHandler implements MsgHandler {
                 JsonNode mergeJson = mergeJson(Optional.of(device).map(Device::getDeviceInfo).orElse(null), allSwitchStates);
                 device.setDeviceInfo(mergeJson);
                 device.setStatus(1);
+                //todo 将开关状态存influxdb
                 redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
 //                deviceService.updateById(device);
                 RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
