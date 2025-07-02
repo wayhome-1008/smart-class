@@ -51,7 +51,7 @@ public class ReportSubDeviceHandler implements MsgHandler {
             if (gateway != null) {
                 gateway.setStatus(1);
                 redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, gateway);
-                deviceService.updateById(gateway);
+//                deviceService.updateById(gateway);
                 gateway.setDeviceLastDate(new java.util.Date());
                 deviceRequestTimeMap.put(deviceCode, gateway);
             }
@@ -62,7 +62,7 @@ public class ReportSubDeviceHandler implements MsgHandler {
                 if (deviceCache != null) {
                     deviceCache.setStatus(subDevice.getOnline() ? 1 : 0);
                     redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, originalMac, deviceCache);
-                    deviceService.updateById(deviceCache);
+//                    deviceService.updateById(deviceCache);
                 } else {
                     //查库
                     deviceCache = deviceService.getByCode(originalMac);

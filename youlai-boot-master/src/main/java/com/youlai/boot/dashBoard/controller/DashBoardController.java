@@ -11,6 +11,7 @@ import com.youlai.boot.device.Enum.CommunicationModeEnum;
 import com.youlai.boot.device.Enum.DeviceTypeEnum;
 import com.youlai.boot.device.factory.DeviceInfoParserFactory;
 import com.youlai.boot.device.model.entity.Device;
+import com.youlai.boot.device.model.influx.InfluxHumanRadarSensor;
 import com.youlai.boot.device.model.influx.InfluxMqttPlug;
 import com.youlai.boot.device.model.influx.InfluxSensor;
 import com.youlai.boot.device.model.vo.*;
@@ -95,121 +96,6 @@ public class DashBoardController {
         return Result.failed();
     }
 
-    @Operation(summary = "查询传感器数据")
-    @GetMapping("/sensor/data")
-    public Result<List<InfluxSensorVO>> getSensorData(
-            @Parameter(description = "设备编码", required = true)
-            @RequestParam String deviceCode,
-
-            @Parameter(description = "时间范围值", example = "1")
-            @RequestParam Long timeAmount,
-
-            @Parameter(description = "时间单位（y-年/M-月/d-日/h-小时）", example = "d")
-            @RequestParam(defaultValue = "h") String timeUnit,
-
-            @Parameter(description = "房间id")
-            @RequestParam(required = false) String roomId
-    ) {
-        try {
-            InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
-                    .bucket(influxDBProperties.getBucket())
-                    .range(timeAmount, timeUnit)
-                    .measurement("device")
-                    .fields("temperature", "humidity", "illuminance", "battery")
-                    .pivot()
-                    .fill()
-                    .sort("_time", InfluxQueryBuilder.SORT_DESC)
-                    .timeShift("8h");
-            // 添加设备编码和房间ID过滤条件
-            if (StringUtils.isNotBlank(deviceCode)) {
-                builder.tag("deviceCode", deviceCode);
-            }
-            if (StringUtils.isNotBlank(roomId)) {
-                builder.tag("roomId", roomId);
-            }
-            // 根据时间单位设置窗口聚合
-            switch (timeUnit) {
-                case "y":
-                    builder.window("1mo", "mean");
-                    break;
-                case "mo":
-                    builder.window("1d", "mean");
-                    break;
-                case "d":
-                    builder.window("1h", "mean");
-                    break;
-                case "h":
-                    builder.window("1m", "mean");
-                    break;
-                case "m":
-                    builder.window("1s", "mean");
-                    break;
-            }
-            String fluxQuery = builder.build();
-            log.info("influxdb查询传感器语句{}", fluxQuery);
-            List<InfluxSensor> tables = influxDBClient.getQueryApi().query(fluxQuery, influxDBProperties.getOrg(), InfluxSensor.class);
-            return Result.success(makeInfluxSensorVOList(tables, timeUnit));
-        } catch (InfluxException e) {
-            System.err.println("error：" + e.getMessage());
-        }
-        return Result.failed();
-
-    }
-
-    private List<InfluxSensorVO> makeInfluxSensorVOList(List<InfluxSensor> tables, String timeUnit) {
-        List<InfluxSensorVO> result = new ArrayList<>(3);
-
-        // 初始化三个VO对象，分别对应温度、湿度、光照
-        InfluxSensorVO tempVO = new InfluxSensorVO();
-        tempVO.setName("temperature");
-        List<String> tempTimes = new ArrayList<>();
-        List<Double> tempValues = new ArrayList<>();
-
-        InfluxSensorVO humidityVO = new InfluxSensorVO();
-        humidityVO.setName("humidity");
-        List<String> humidityTimes = new ArrayList<>();
-        List<Double> humidityValues = new ArrayList<>();
-
-        InfluxSensorVO illuminanceVO = new InfluxSensorVO();
-        illuminanceVO.setName("illuminance");
-        List<String> illuminanceTimes = new ArrayList<>();
-        List<Double> illuminanceValues = new ArrayList<>();
-
-        // 遍历查询结果，分别填充数据
-        for (InfluxSensor table : tables) {
-            String formattedTime = formatTime(table.getTime(), timeUnit);
-
-            // 温度数据
-            tempTimes.add(formattedTime);
-            tempValues.add(table.getTemperature());
-
-            // 湿度数据
-            humidityTimes.add(formattedTime);
-            humidityValues.add(table.getHumidity());
-
-            // 光照数据
-            illuminanceTimes.add(formattedTime);
-            illuminanceValues.add(table.getIlluminance());
-        }
-
-        // 设置VO对象的值
-        tempVO.setTime(tempTimes);
-        tempVO.setValue(tempValues);
-
-        humidityVO.setTime(humidityTimes);
-        humidityVO.setValue(humidityValues);
-
-        illuminanceVO.setTime(illuminanceTimes);
-        illuminanceVO.setValue(illuminanceValues);
-
-        // 添加到结果列表
-        result.add(tempVO);
-        result.add(humidityVO);
-        result.add(illuminanceVO);
-
-        return result;
-    }
-
     @Operation(summary = "查询MQTT计量插座数据图数据")
     @GetMapping("/plugMqtt/data")
     public Result<List<InfluxMqttPlugVO>> getMqttPlugData(
@@ -275,6 +161,180 @@ public class DashBoardController {
         }
         return Result.failed();
     }
+
+    @Operation(summary = "查询传感器数据")
+    @GetMapping("/sensor/data")
+    public Result<List<InfluxSensorVO>> getSensorData(
+            @Parameter(description = "设备编码", required = true)
+            @RequestParam String deviceCode,
+
+            @Parameter(description = "时间范围值", example = "1")
+            @RequestParam Long timeAmount,
+
+            @Parameter(description = "时间单位（y-年/M-月/d-日/h-小时）", example = "d")
+            @RequestParam(defaultValue = "h") String timeUnit,
+
+            @Parameter(description = "房间id")
+            @RequestParam(required = false) String roomId
+    ) {
+        try {
+            InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
+                    .bucket(influxDBProperties.getBucket())
+                    .range(timeAmount, timeUnit)
+                    .measurement("device")
+                    .fields("temperature", "humidity", "illuminance", "battery")
+                    .pivot()
+                    .fill()
+                    .sort("_time", InfluxQueryBuilder.SORT_DESC)
+                    .timeShift("8h");
+            // 添加设备编码和房间ID过滤条件
+            if (StringUtils.isNotBlank(deviceCode)) {
+                builder.tag("deviceCode", deviceCode);
+            }
+            if (StringUtils.isNotBlank(roomId)) {
+                builder.tag("roomId", roomId);
+            }
+            // 根据时间单位设置窗口聚合
+            switch (timeUnit) {
+                case "y":
+                    builder.window("1mo", "mean");
+                    break;
+                case "mo":
+                    builder.window("1d", "mean");
+                    break;
+                case "d":
+                    builder.window("1h", "mean");
+                    break;
+                case "h":
+                    builder.window("1m", "mean");
+                    break;
+                case "m":
+                    builder.window("1s", "mean");
+                    break;
+            }
+            String fluxQuery = builder.build();
+            log.info("influxdb查询传感器语句{}", fluxQuery);
+            List<InfluxSensor> tables = influxDBClient.getQueryApi().query(fluxQuery, influxDBProperties.getOrg(), InfluxSensor.class);
+            return Result.success(makeInfluxSensorVOList(tables, timeUnit));
+        } catch (InfluxException e) {
+            System.err.println("error：" + e.getMessage());
+        }
+        return Result.failed();
+    }
+
+    private List<InfluxSensorVO> makeInfluxSensorVOList(List<InfluxSensor> tables, String timeUnit) {
+        List<InfluxSensorVO> result = new ArrayList<>(3);
+
+        // 初始化三个VO对象，分别对应温度、湿度、光照
+        InfluxSensorVO tempVO = new InfluxSensorVO();
+        tempVO.setName("temperature");
+        List<String> tempTimes = new ArrayList<>();
+        List<Double> tempValues = new ArrayList<>();
+
+        InfluxSensorVO humidityVO = new InfluxSensorVO();
+        humidityVO.setName("humidity");
+        List<String> humidityTimes = new ArrayList<>();
+        List<Double> humidityValues = new ArrayList<>();
+
+        InfluxSensorVO illuminanceVO = new InfluxSensorVO();
+        illuminanceVO.setName("illuminance");
+        List<String> illuminanceTimes = new ArrayList<>();
+        List<Double> illuminanceValues = new ArrayList<>();
+
+        // 遍历查询结果，分别填充数据
+        for (InfluxSensor table : tables) {
+            String formattedTime = formatTime(table.getTime(), timeUnit);
+
+            // 温度数据
+            tempTimes.add(formattedTime);
+            tempValues.add(table.getTemperature());
+
+            // 湿度数据
+            humidityTimes.add(formattedTime);
+            humidityValues.add(table.getHumidity());
+
+            // 光照数据
+            illuminanceTimes.add(formattedTime);
+            illuminanceValues.add(table.getIlluminance());
+        }
+
+        // 设置VO对象的值
+        tempVO.setTime(tempTimes);
+        tempVO.setValue(tempValues);
+
+        humidityVO.setTime(humidityTimes);
+        humidityVO.setValue(humidityValues);
+
+        illuminanceVO.setTime(illuminanceTimes);
+        illuminanceVO.setValue(illuminanceValues);
+
+        // 添加到结果列表
+        result.add(tempVO);
+        result.add(humidityVO);
+        result.add(illuminanceVO);
+
+        return result;
+    }
+
+    @Operation(summary = "查询人体雷达数据图数据")
+    @GetMapping("/motion/data")
+    public Result<InfluxMotionVO> getMqttPlugData(
+            @Parameter(description = "设备编码")
+            @RequestParam(required = false) String deviceCode,
+
+            @Parameter(description = "房间id")
+            @RequestParam(required = false) String roomId
+
+    ) {
+        try {
+            // 使用新的InfluxQueryBuilder构建查询
+            InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
+                    .bucket(influxDBProperties.getBucket())
+                    .range(1, "d")
+                    .measurement("device")
+                    .fields("motion")
+                    .pivot()
+                    .sort("_time", InfluxQueryBuilder.SORT_DESC)
+                    .timeShift("8h");
+
+            // 添加设备编码和房间ID过滤条件
+            if (StringUtils.isNotBlank(deviceCode)) {
+                builder.tag("deviceCode", deviceCode);
+            }
+            if (StringUtils.isNotBlank(roomId)) {
+                builder.tag("roomId", roomId);
+            }
+            // 根据时间单位设置窗口聚合
+            builder.window("5m", "max");
+            String fluxQuery = builder.build();
+            log.info("InfluxDB查询语句: {}", fluxQuery);
+            List<InfluxHumanRadarSensor> tables = influxDBClient.getQueryApi()
+                    .query(fluxQuery, influxDBProperties.getOrg(), InfluxHumanRadarSensor.class);            //根据influxdb传来的数据把度数算上
+            // 转换结果并返回
+            return Result.success(makeInfluxMotionVOList(tables));
+        } catch (
+                InfluxException e) {
+            System.err.println("error：" + e.getMessage());
+        }
+        return Result.failed();
+    }
+
+    private InfluxMotionVO makeInfluxMotionVOList(List<InfluxHumanRadarSensor> tables) {
+        InfluxMotionVO result = new InfluxMotionVO();
+        List<String> times = new ArrayList<>();
+        List<Double> values = new ArrayList<>();
+        for (InfluxHumanRadarSensor table : tables) {
+            // 格式化时间为 HH:mm 格式
+            String formattedTime = formatTime(table.getTime(), "h");
+            times.add(formattedTime);
+            // 使用max聚合后，只要该5分钟内有1就为1，否则为0
+            values.add(table.getMotion() != null && table.getMotion() == 1d ? 1d : 0d);
+        }
+        result.setTime(times);
+        result.setValue(values);
+        return result;
+    }
+
 
     private List<InfluxMqttPlugVO> makeInfluxMqttPlugVOList(List<InfluxMqttPlug> tables, String timeUnit) {
         List<InfluxMqttPlugVO> result = new ArrayList<>();

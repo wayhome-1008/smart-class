@@ -32,6 +32,9 @@ public class InfluxSensor {
     @Column(name = "illuminance")
     private Double illuminance;
 
+    @Column(name = "motion")
+    private Integer motion;
+
     @Column(timestamp = true)
     private Instant time;
 }

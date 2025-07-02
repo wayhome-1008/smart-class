@@ -375,6 +375,7 @@ public class SubUpdateHandler implements MsgHandler {
                     WritePrecision.MS,
                     point
             );
+            log.info("人体传感器数据:{}", point);
             redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCache.getDeviceCode(), deviceCache);
             RspMqtt(topic, mqttClient, deviceCache.getDeviceCode(), sequence);
         }
@@ -399,7 +400,7 @@ public class SubUpdateHandler implements MsgHandler {
         //校验缓存于本次数据是否相同 从而判断是否更新数据库
         boolean needUpdate = false;
         if (params != null) {
-            String[] fieldsToCheck = {"battery", "temperature", "humidity", "Illuminance"};
+            String[] fieldsToCheck = {"battery", "temperature", "humidity", "Illuminance", "motion"};
             String matched = matchedFields(fieldsToCheck, params);
             if (StringUtils.isNotEmpty(matched)) {
                 //对比
@@ -435,6 +436,9 @@ public class SubUpdateHandler implements MsgHandler {
             }
             if (mergedParams.has("Illuminance") && mergedParams.get("Illuminance").isTextual()) {
                 point.setIlluminance(mergedParams.get("Illuminance").asDouble());
+            }
+            if (mergedParams.has("motion") && mergedParams.get("motion").isInt()) {
+                point.setMotion(mergedParams.get("motion").asInt());
             }
             point.setRoomId(deviceCache.getDeviceRoom().toString());
             influxDBClient.getWriteApiBlocking().writeMeasurement(
