@@ -1,0 +1,26 @@
+package com.youlai.boot.device.model.vo;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
+
+import java.time.Instant;
+
+/**
+ *@Author: way
+ *@CreateTime: 2025-07-03  11:16
+ *@Description: TODO
+ */
+@Data
+public class InfluxSwitchVO {
+
+    @JsonProperty("switch")
+    private String switchStatus;
+
+    @JsonProperty("way")
+    private String way;
+
+    @JsonProperty("time")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Shanghai")
+    private Instant time;
+}

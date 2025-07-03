@@ -177,7 +177,13 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
         for (SubDevicesEvent subDevice : subDevices) {
             Device deviceUpdate = new Device();
             if (subDevice.getOnline() != null) {
-                deviceUpdate.setStatus(subDevice.getOnline() ? 1 : 3);
+                if (subDevice.getOnline()) {
+                    //在线
+                    deviceUpdate.setStatus(1);
+                } else {
+                    //离线
+                    deviceUpdate.setStatus(0);
+                }
                 this.deviceMapper.update(deviceUpdate, new LambdaQueryWrapper<Device>().eq(Device::getDeviceCode, subDevice.getDeviceId()));
             }
         }

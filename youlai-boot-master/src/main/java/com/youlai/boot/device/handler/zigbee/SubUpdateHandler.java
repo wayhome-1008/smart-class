@@ -17,6 +17,7 @@ import com.youlai.boot.device.model.form.SubUpdateSensorRsp;
 import com.youlai.boot.device.model.influx.InfluxHumanRadarSensor;
 import com.youlai.boot.device.model.influx.InfluxMqttPlug;
 import com.youlai.boot.device.model.influx.InfluxSensor;
+import com.youlai.boot.device.model.influx.InfluxSwitch;
 import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.device.topic.HandlerType;
 import lombok.RequiredArgsConstructor;
@@ -146,6 +147,7 @@ public class SubUpdateHandler implements MsgHandler {
             JsonNode switchesArray = params.get("switches");
             // 1. 准备存储所有开关状态的对象
             ObjectNode allSwitchStates = JsonNodeFactory.instance.objectNode();
+            InfluxSwitch influxSwitch = new InfluxSwitch();
             // 2. 遍历switches数组
             if (switchesArray.isArray()) {
                 for (JsonNode switchNode : switchesArray) {
@@ -167,6 +169,16 @@ public class SubUpdateHandler implements MsgHandler {
                 device.setDeviceInfo(mergeJson);
                 device.setStatus(1);
                 //todo 将开关状态存influxdb
+                influxSwitch.setDeviceCode(device.getDeviceCode());
+                influxSwitch.setRoomId(String.valueOf(device.getDeviceRoom()));
+                influxSwitch.setSwitchState(allSwitchStates.toString());
+                influxDBClient.getWriteApiBlocking().writeMeasurement(
+                        influxProperties.getBucket(),
+                        influxProperties.getOrg(),
+                        WritePrecision.MS,
+                        influxSwitch
+                );
+                log.info("开关状态{}", influxSwitch);
                 redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
 //                deviceService.updateById(device);
                 RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
@@ -341,7 +353,7 @@ public class SubUpdateHandler implements MsgHandler {
         boolean needUpdate = false;
 
         if (params != null) {
-            String[] fieldsToCheck = {"battery", "motion"};
+            String[] fieldsToCheck = {"battery", "Occupancy"};
             String matched = matchedFields(fieldsToCheck, params);
             if (StringUtils.isNotEmpty(matched)) {
                 //对比
@@ -367,8 +379,8 @@ public class SubUpdateHandler implements MsgHandler {
             if (mergedParams.has("battery") && mergedParams.get("battery").isNumber()) {
                 point.setBattery(mergedParams.get("battery").asInt());
             }
-            if (mergedParams.has("motion") && mergedParams.get("motion").isNumber()) {
-                point.setMotion(mergedParams.get("motion").asInt());
+            if (mergedParams.has("Occupancy") && mergedParams.get("Occupancy").isNumber()) {
+                point.setMotion(mergedParams.get("Occupancy").asInt());
             }
             influxDBClient.getWriteApiBlocking().writeMeasurement(
                     influxProperties.getBucket(),
@@ -454,6 +466,7 @@ public class SubUpdateHandler implements MsgHandler {
                     deviceCache
             );
             RspMqtt(topic, mqttClient, deviceCache.getDeviceCode(), sequence);
+            log.info("传感器数据:{}", point);
         }
     }
 

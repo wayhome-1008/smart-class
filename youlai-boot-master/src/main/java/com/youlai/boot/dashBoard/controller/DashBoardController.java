@@ -1,6 +1,10 @@
 package com.youlai.boot.dashBoard.controller;
 
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.exceptions.InfluxException;
 import com.youlai.boot.common.result.Result;
@@ -14,6 +18,7 @@ import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.influx.InfluxHumanRadarSensor;
 import com.youlai.boot.device.model.influx.InfluxMqttPlug;
 import com.youlai.boot.device.model.influx.InfluxSensor;
+import com.youlai.boot.device.model.influx.InfluxSwitch;
 import com.youlai.boot.device.model.vo.*;
 import com.youlai.boot.device.service.DeviceInfoParser;
 import com.youlai.boot.device.service.DeviceService;
@@ -34,8 +39,11 @@ import org.springframework.web.bind.annotation.*;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+
+import static com.youlai.boot.common.util.JsonUtils.stringToJsonNode;
 
 /**
  *@Author: way
@@ -314,6 +322,60 @@ public class DashBoardController {
             return Result.success(makeInfluxMotionVOList(tables));
         } catch (
                 InfluxException e) {
+            System.err.println("error：" + e.getMessage());
+        }
+        return Result.failed();
+    }
+
+    @Operation(summary = "查询开关数据")
+    @GetMapping("/switch/data")
+    public Result<List<InfluxSwitchVO>> getSwitchData(
+            @Parameter(description = "设备编码", required = true)
+            @RequestParam String deviceCode,
+
+            @Parameter(description = "房间id")
+            @RequestParam(required = false) String roomId
+    ) throws JsonProcessingException {
+        try {
+            InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
+                    .bucket(influxDBProperties.getBucket())
+                    .range(1, "d")
+                    .measurement("device")
+                    .fields("switch")
+                    .pivot()
+                    .fill()
+                    .sort("_time", InfluxQueryBuilder.SORT_DESC)
+                    .timeShift("8h");
+            // 添加设备编码和房间ID过滤条件
+            if (StringUtils.isNotBlank(deviceCode)) {
+                builder.tag("deviceCode", deviceCode);
+            }
+            if (StringUtils.isNotBlank(roomId)) {
+                builder.tag("roomId", roomId);
+            }
+            String fluxQuery = builder.build();
+            log.info("influxdb查询传感器语句{}", fluxQuery);
+            List<InfluxSwitch> tables = influxDBClient.getQueryApi().query(fluxQuery, influxDBProperties.getOrg(), InfluxSwitch.class);
+            List<InfluxSwitchVO> result = new ArrayList<>();
+            for (InfluxSwitch table : tables) {
+                JsonNode jsonNode = stringToJsonNode(table.getSwitchState());
+                Iterator<String> fieldNames = jsonNode.fieldNames();
+                while (fieldNames.hasNext()) {
+                    String fieldName = fieldNames.next();
+                    if (fieldName.startsWith("switch")) {
+                        String status = jsonNode.get(fieldName).asText();
+                        InfluxSwitchVO switchVO = new InfluxSwitchVO();
+                        switchVO.setWay(fieldName);
+                        switchVO.setSwitchStatus(status);
+                        // 格式化时间为 年月日时分秒
+                        switchVO.setTime(table.getTime());
+                        result.add(switchVO);
+                    }
+                }
+            }
+            //对状态解析
+            return Result.success(result);
+        } catch (InfluxException e) {
             System.err.println("error：" + e.getMessage());
         }
         return Result.failed();
