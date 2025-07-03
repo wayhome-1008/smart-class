@@ -1,7 +1,5 @@
 package com.youlai.boot.device.model.influx;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.influxdb.annotations.Column;
 import com.influxdb.annotations.Measurement;
 import lombok.Data;

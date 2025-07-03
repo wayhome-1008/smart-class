@@ -1,25 +1,23 @@
 package com.youlai.boot.deviceType.service.impl;
 
-import com.youlai.boot.common.model.Option;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
+import cn.hutool.core.lang.Assert;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.youlai.boot.common.model.Option;
+import com.youlai.boot.deviceType.converter.DeviceTypeConverter;
 import com.youlai.boot.deviceType.mapper.DeviceTypeMapper;
-import com.youlai.boot.deviceType.service.DeviceTypeService;
 import com.youlai.boot.deviceType.model.entity.DeviceType;
 import com.youlai.boot.deviceType.model.form.DeviceTypeForm;
 import com.youlai.boot.deviceType.model.query.DeviceTypeQuery;
 import com.youlai.boot.deviceType.model.vo.DeviceTypeVO;
-import com.youlai.boot.deviceType.converter.DeviceTypeConverter;
+import com.youlai.boot.deviceType.service.DeviceTypeService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
-
-import cn.hutool.core.lang.Assert;
-import cn.hutool.core.util.StrUtil;
 
 /**
  * 设备类型字典(自维护)服务实现类
@@ -41,11 +39,10 @@ public class DeviceTypeServiceImpl extends ServiceImpl<DeviceTypeMapper, DeviceT
      */
     @Override
     public IPage<DeviceTypeVO> getDeviceTypePage(DeviceTypeQuery queryParams) {
-        Page<DeviceTypeVO> pageVO = this.baseMapper.getDeviceTypePage(
+        return this.baseMapper.getDeviceTypePage(
                 new Page<>(queryParams.getPageNum(), queryParams.getPageSize()),
                 queryParams
         );
-        return pageVO;
     }
 
     /**
