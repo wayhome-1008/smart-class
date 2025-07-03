@@ -1,8 +1,13 @@
 package com.youlai.boot.device.schedule;
 
 import com.alibaba.fastjson.JSON;
+import com.influxdb.client.InfluxDBClient;
+import com.influxdb.client.domain.WritePrecision;
 import com.youlai.boot.config.mqtt.MqttProducer;
+import com.youlai.boot.config.property.InfluxDBProperties;
 import com.youlai.boot.device.model.entity.Device;
+import com.youlai.boot.device.model.influx.InfluxHumanRadarSensor;
+import com.youlai.boot.device.model.influx.InfluxSensor;
 import com.youlai.boot.device.service.DeviceService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +35,8 @@ public class ApiMonitorService {
     public static ConcurrentHashMap<String, Device> deviceMqttRequestTimeMap = new ConcurrentHashMap<>();
     private final DeviceService deviceService;
     private final MqttProducer mqttProducer;
+    private final InfluxDBClient influxDBClient;
+    private final InfluxDBProperties influxProperties;
 
     // 初始化
     @PostConstruct
@@ -82,4 +89,23 @@ public class ApiMonitorService {
             }
         }
     }
+
+//    @Scheduled(fixedRate = 3000)
+//    public void demo2() {
+//        //创建influx数据
+//        InfluxHumanRadarSensor point = new InfluxHumanRadarSensor();
+//        //tag为设备编号
+//        point.setDeviceCode("681f2929004b1200");
+//        //tag为房间编号
+//        point.setRoomId("1");
+////        int randomMotion = Math.random() < 0.5 ? 0 : 1;
+//        point.setMotion(1);
+//        influxDBClient.getWriteApiBlocking().writeMeasurement(
+//                influxProperties.getBucket(),
+//                influxProperties.getOrg(),
+//                WritePrecision.MS,
+//                point
+//        );
+//        log.info("创建influx数据成功");
+//    }
 }

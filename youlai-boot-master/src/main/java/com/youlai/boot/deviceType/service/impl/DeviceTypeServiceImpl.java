@@ -34,11 +34,11 @@ public class DeviceTypeServiceImpl extends ServiceImpl<DeviceTypeMapper, DeviceT
     private final DeviceTypeConverter deviceTypeConverter;
 
     /**
-    * 获取设备类型字典(自维护)分页列表
-    *
-    * @param queryParams 查询参数
-    * @return {@link IPage<DeviceTypeVO>} 设备类型字典(自维护)分页列表
-    */
+     * 获取设备类型字典(自维护)分页列表
+     *
+     * @param queryParams 查询参数
+     * @return {@link IPage<DeviceTypeVO>} 设备类型字典(自维护)分页列表
+     */
     @Override
     public IPage<DeviceTypeVO> getDeviceTypePage(DeviceTypeQuery queryParams) {
         Page<DeviceTypeVO> pageVO = this.baseMapper.getDeviceTypePage(
@@ -47,7 +47,7 @@ public class DeviceTypeServiceImpl extends ServiceImpl<DeviceTypeMapper, DeviceT
         );
         return pageVO;
     }
-    
+
     /**
      * 获取设备类型字典(自维护)表单数据
      *
@@ -59,7 +59,7 @@ public class DeviceTypeServiceImpl extends ServiceImpl<DeviceTypeMapper, DeviceT
         DeviceType entity = this.getById(id);
         return deviceTypeConverter.toForm(entity);
     }
-    
+
     /**
      * 新增设备类型字典(自维护)
      *
@@ -71,7 +71,7 @@ public class DeviceTypeServiceImpl extends ServiceImpl<DeviceTypeMapper, DeviceT
         DeviceType entity = deviceTypeConverter.toEntity(formData);
         return this.save(entity);
     }
-    
+
     /**
      * 更新设备类型字典(自维护)
      *
@@ -80,11 +80,11 @@ public class DeviceTypeServiceImpl extends ServiceImpl<DeviceTypeMapper, DeviceT
      * @return 是否修改成功
      */
     @Override
-    public boolean updateDeviceType(Long id,DeviceTypeForm formData) {
+    public boolean updateDeviceType(Long id, DeviceTypeForm formData) {
         DeviceType entity = deviceTypeConverter.toEntity(formData);
         return this.updateById(entity);
     }
-    
+
     /**
      * 删除设备类型字典(自维护)
      *
@@ -103,8 +103,8 @@ public class DeviceTypeServiceImpl extends ServiceImpl<DeviceTypeMapper, DeviceT
 
     @Override
     public List<Option<Long>> listDeviceTypeOptions() {
-       List<DeviceType>  deviceTypeList=this.list();
-       return deviceTypeConverter.toOptions(deviceTypeList);
+        List<DeviceType> deviceTypeList = this.list();
+        return deviceTypeConverter.toOptions(deviceTypeList);
     }
 
 }

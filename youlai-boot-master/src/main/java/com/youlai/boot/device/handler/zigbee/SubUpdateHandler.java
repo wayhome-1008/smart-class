@@ -128,6 +128,16 @@ public class SubUpdateHandler implements MsgHandler {
             device.setDeviceInfo(mergeJson);
             device.setStatus(1);
             redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
+            InfluxSwitch influxSwitch = new InfluxSwitch();
+            influxSwitch.setDeviceCode(device.getDeviceCode());
+            influxSwitch.setRoomId(String.valueOf(device.getDeviceRoom()));
+            influxSwitch.setSwitchState(allSwitchStates.toString());
+            influxDBClient.getWriteApiBlocking().writeMeasurement(
+                    influxProperties.getBucket(),
+                    influxProperties.getOrg(),
+                    WritePrecision.MS,
+                    influxSwitch
+            );
 //            deviceService.updateById(device);
             RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
         }
@@ -147,7 +157,6 @@ public class SubUpdateHandler implements MsgHandler {
             JsonNode switchesArray = params.get("switches");
             // 1. 准备存储所有开关状态的对象
             ObjectNode allSwitchStates = JsonNodeFactory.instance.objectNode();
-            InfluxSwitch influxSwitch = new InfluxSwitch();
             // 2. 遍历switches数组
             if (switchesArray.isArray()) {
                 for (JsonNode switchNode : switchesArray) {
@@ -169,6 +178,7 @@ public class SubUpdateHandler implements MsgHandler {
                 device.setDeviceInfo(mergeJson);
                 device.setStatus(1);
                 //todo 将开关状态存influxdb
+                InfluxSwitch influxSwitch = new InfluxSwitch();
                 influxSwitch.setDeviceCode(device.getDeviceCode());
                 influxSwitch.setRoomId(String.valueOf(device.getDeviceRoom()));
                 influxSwitch.setSwitchState(allSwitchStates.toString());
@@ -373,7 +383,7 @@ public class SubUpdateHandler implements MsgHandler {
         InfluxHumanRadarSensor point = new InfluxHumanRadarSensor();
         //tag为设备编号
         point.setDeviceCode(deviceCache.getDeviceCode());
-        point.setRoomId(deviceCache.getDeviceRoom());
+        point.setRoomId(deviceCache.getDeviceRoom().toString());
         //处理数据
         if (mergedParams != null) {
             if (mergedParams.has("battery") && mergedParams.get("battery").isNumber()) {

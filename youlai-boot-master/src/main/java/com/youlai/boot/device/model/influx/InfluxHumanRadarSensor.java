@@ -18,7 +18,7 @@ public class InfluxHumanRadarSensor {
     private String deviceCode;
 
     @Column(tag = true)
-    private Long roomId;
+    private String roomId;
 
     @Column(name = "battery")
     private Integer battery;

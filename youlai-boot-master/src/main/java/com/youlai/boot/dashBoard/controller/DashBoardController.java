@@ -38,6 +38,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -169,6 +170,63 @@ public class DashBoardController {
         }
         return Result.failed();
     }
+
+//    @Operation(summary = "查询房间用电数据")
+//    @GetMapping("/roomPower/data")
+//    public Result<List<InfluxMqttPlugVO>> getRoomPowerData(
+//
+//            @Parameter(description = "房间id")
+//            @RequestParam(required = true) String roomId
+//    ) {
+//        try {
+//            // 使用新的InfluxQueryBuilder构建查询/deviceType/options
+//            InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
+//                    .bucket(influxDBProperties.getBucket())
+//                    .range(timeAmount, timeUnit)
+//                    .measurement("device")
+//                    .fields("Total", "Voltage", "Current")
+//                    .pivot()
+//                    .fill()
+//                    .sort("_time", InfluxQueryBuilder.SORT_DESC)
+//                    .timeShift("8h");
+//
+//            // 添加设备编码和房间ID过滤条件
+//            if (StringUtils.isNotBlank(deviceCode)) {
+//                builder.tag("deviceCode", deviceCode);
+//            }
+//            if (StringUtils.isNotBlank(roomId)) {
+//                builder.tag("roomId", roomId);
+//            }
+//
+//            // 根据时间单位设置窗口聚合
+//            switch (timeUnit) {
+//                case "y":
+//                    builder.window("1mo", "last");
+//                    break;
+//                case "mo":
+//                    builder.window("1d", "last");
+//                    break;
+//                case "d":
+//                    builder.window("1h", "last");
+//                    break;
+//                case "h":
+//                    builder.window("1m", "last");
+//                    break;
+//                case "m":
+//                    builder.window("1s", "last");
+//                    break;
+//            }
+//            String fluxQuery = builder.build();
+//            log.info("InfluxDB查询语句: {}", fluxQuery);
+//            List<InfluxMqttPlug> tables = influxDBClient.getQueryApi()
+//                    .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);            //根据influxdb传来的数据把度数算上
+//            // 转换结果并返回
+//            return Result.success(makeInfluxMqttPlugVOList(tables, timeUnit));
+//        } catch (InfluxException e) {
+//            System.err.println("error：" + e.getMessage());
+//        }
+//        return Result.failed();
+//    }
 
     @Operation(summary = "查询传感器数据")
     @GetMapping("/sensor/data")
@@ -386,10 +444,9 @@ public class DashBoardController {
         List<String> times = new ArrayList<>();
         List<Double> values = new ArrayList<>();
         for (InfluxHumanRadarSensor table : tables) {
-            // 格式化时间为 HH:mm 格式
-            String formattedTime = formatTime(table.getTime(), "h");
-            times.add(formattedTime);
-            // 使用max聚合后，只要该5分钟内有1就为1，否则为0
+            //把Instant转时分秒字符串
+            String time = formatTime(table.getTime(), "HH:mm:ss");
+            times.add(time);
             values.add(table.getMotion() != null && table.getMotion() == 1d ? 1d : 0d);
         }
         result.setTime(times);
@@ -417,14 +474,19 @@ public class DashBoardController {
 
     private String formatTime(Instant time, String timeUnit) {
         // 根据时间单位格式化时间
+        ZoneId utcZone = ZoneId.of("UTC");
         return switch (timeUnit) {
-            case "y" -> time.atZone(ZoneId.systemDefault()).getYear() + "/"
-                    + String.format("%02d", time.atZone(ZoneId.systemDefault()).getMonthValue());
-            case "mo" -> String.format("%02d", time.atZone(ZoneId.systemDefault()).getMonthValue()) + "/"
-                    + String.format("%02d", time.atZone(ZoneId.systemDefault()).getDayOfMonth());
-            case "d" -> String.format("%02d", time.atZone(ZoneId.systemDefault()).getHour()) + ":00";
-            case "h" -> String.format("%02d", time.atZone(ZoneId.systemDefault()).getMinute()) + ":00";
-            default -> time.toString();
+            case "y" -> time.atZone(utcZone).getYear() + "/" +
+                    String.format("%02d", time.atZone(utcZone).getMonthValue());
+            case "mo" -> String.format("%02d", time.atZone(utcZone).getMonthValue()) + "/" +
+                    String.format("%02d", time.atZone(utcZone).getDayOfMonth());
+            case "d" -> String.format("%02d", time.atZone(utcZone).getHour()) + ":00";
+            case "h" -> String.format("%02d", time.atZone(utcZone).getMinute()) + ":00";
+            case "HH:mm:ss" -> String.format("%02d:%02d:%02d",
+                    time.atZone(utcZone).getHour(),
+                    time.atZone(utcZone).getMinute(),
+                    time.atZone(utcZone).getSecond());
+            default -> time.atZone(utcZone).format(DateTimeFormatter.ISO_LOCAL_TIME);
         };
     }
 
