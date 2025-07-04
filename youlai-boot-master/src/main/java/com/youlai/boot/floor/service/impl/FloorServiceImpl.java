@@ -8,8 +8,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.youlai.boot.common.model.Option;
 import com.youlai.boot.core.security.util.SecurityUtils;
-import com.youlai.boot.device.model.entity.Device;
-import com.youlai.boot.device.model.vo.DeviceInfoVO;
 import com.youlai.boot.floor.converter.FloorConverter;
 import com.youlai.boot.floor.mapper.FloorMapper;
 import com.youlai.boot.floor.model.entity.Floor;
