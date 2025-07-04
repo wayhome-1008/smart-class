@@ -31,4 +31,6 @@ public class DeviceQuery extends BasePageQuery {
     private Long communicationModeItemId;
     @Schema(description = "设备序号")
     private String deviceNo;
+    @Schema(description = "是否显示网关")
+    private Boolean showGateway;
 }

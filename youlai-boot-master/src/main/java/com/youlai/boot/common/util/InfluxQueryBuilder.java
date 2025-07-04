@@ -312,6 +312,7 @@ public class InfluxQueryBuilder {
     private boolean useFillPrevious = false;
     private boolean yield = true;
     private boolean keepEmpty = false;
+    private boolean useTodayRange = false;
 
     private InfluxQueryBuilder() {
     }
@@ -333,6 +334,14 @@ public class InfluxQueryBuilder {
     public InfluxQueryBuilder range(long amount, @NonNull String unit) {
         this.timeAmount = amount;
         this.timeUnit = unit;
+        return this;
+    }
+
+    /**
+     * 设置按当天查询
+     */
+    public InfluxQueryBuilder today() {
+        this.useTodayRange = true;
         return this;
     }
 
@@ -433,7 +442,11 @@ public class InfluxQueryBuilder {
 
         // 基础查询
         flux.append(String.format("from(bucket: \"%s\")\n", bucket));
-        flux.append(String.format("  |> range(start: -%d%s)\n", timeAmount, timeUnit));
+        if (useTodayRange) {
+            flux.append("  |> range(start: today())\n");
+        } else {
+            flux.append(String.format("  |> range(start: -%d%s)\n", timeAmount, timeUnit));
+        }
 
         // 构建过滤条件
         buildFilters(flux);
@@ -517,13 +530,17 @@ public class InfluxQueryBuilder {
 
     private void validateParams() {
         Objects.requireNonNull(bucket, "bucket不能为空");
-        Objects.requireNonNull(timeAmount, "timeAmount不能为空");
-        Objects.requireNonNull(timeUnit, "timeUnit不能为空");
-        Objects.requireNonNull(measurement, "measurement不能为空");
-
-        if (timeAmount <= 0) {
-            throw new IllegalArgumentException("timeAmount必须大于0");
+        if (!useTodayRange) {
+            Objects.requireNonNull(timeAmount, "timeAmount不能为空");
+            Objects.requireNonNull(timeUnit, "timeUnit不能为空");
         }
+        Objects.requireNonNull(measurement, "measurement不能为空");
+        if (!useTodayRange) {
+            if (timeAmount <= 0) {
+                throw new IllegalArgumentException("timeAmount必须大于0");
+            }
+        }
+
     }
 }
 

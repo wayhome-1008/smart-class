@@ -66,6 +66,10 @@
             <if test="queryParams.deviceTypeId != null">
                 AND device_type_id = #{queryParams.deviceTypeId}
             </if>
+            <!-- 新增网关显示控制 -->
+            <if test="queryParams.showGateway != null and !queryParams.showGateway">
+                AND (d.device_type_id != 1 OR d.device_type_id IS NULL)
+            </if>
         </where>
     </select>
 

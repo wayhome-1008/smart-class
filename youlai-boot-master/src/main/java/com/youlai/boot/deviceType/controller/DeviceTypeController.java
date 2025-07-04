@@ -46,9 +46,14 @@ public class DeviceTypeController {
 
     @Operation(summary = "设备类型下拉列表")
     @GetMapping("/options")
-    public Result<List<Option<Long>>> listDeviceTypeOptions() {
+    public Result<List<Option<Long>>> listDeviceTypeOptions(@PathVariable Boolean showGateway) {
         List<Option<Long>> list = deviceTypeService.listDeviceTypeOptions();
+        if (!showGateway) {
+            //删除type==1的数据
+            list.removeIf(item -> item.getTag().equals("1"));
+        }
         return Result.success(list);
+
     }
 
     @Operation(summary = "设备类型下拉列表根据房间id过滤")

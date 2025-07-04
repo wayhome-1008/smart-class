@@ -401,7 +401,7 @@ public class DashBoardController {
             // 使用新的InfluxQueryBuilder构建查询
             InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
                     .bucket(influxDBProperties.getBucket())
-                    .range(1, "d")
+                    .today()  // 使用当天范围
                     .measurement("device")
                     .fields("motion")
                     .pivot()
