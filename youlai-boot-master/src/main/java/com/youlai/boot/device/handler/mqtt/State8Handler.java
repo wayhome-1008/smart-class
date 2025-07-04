@@ -66,6 +66,7 @@ public class State8Handler implements MsgHandler {
         //tag为设备编号
         influxPlug.setDeviceCode(device.getDeviceCode());
         influxPlug.setRoomId(device.getDeviceRoom().toString());
+        influxPlug.setDeviceType(String.valueOf(device.getDeviceTypeId()));
         influxPlug.setTotal(jsonNode.get("StatusSNS").get("ENERGY").get("Total").asDouble());
         influxPlug.setYesterday(jsonNode.get("StatusSNS").get("ENERGY").get("Yesterday").asDouble());
         influxPlug.setToday(jsonNode.get("StatusSNS").get("ENERGY").get("Today").asDouble());

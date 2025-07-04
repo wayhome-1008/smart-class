@@ -3,9 +3,13 @@ package com.youlai.boot.device.handler.mqtt;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.influxdb.client.InfluxDBClient;
+import com.influxdb.client.domain.WritePrecision;
 import com.youlai.boot.common.constant.RedisConstants;
+import com.youlai.boot.config.property.InfluxDBProperties;
 import com.youlai.boot.device.handler.service.MsgHandler;
 import com.youlai.boot.device.model.entity.Device;
+import com.youlai.boot.device.model.influx.InfluxSwitch;
 import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.device.topic.HandlerType;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +36,8 @@ import static com.youlai.boot.common.util.MacUtils.getCodeByTopic;
 public class ResultHandler implements MsgHandler {
     private final RedisTemplate<String, Object> redisTemplate;
     private final DeviceService deviceService;
+    private final InfluxDBProperties influxProperties;
+    private final InfluxDBClient influxDBClient;
 
     @Override
     public void process(String topic, String jsonMsg, MqttClient mqttClient) {
@@ -81,9 +87,29 @@ public class ResultHandler implements MsgHandler {
                 if (fieldName.equals("POWER")) {
                     String status = jsonNode.get(fieldName).asText();
                     lightStatus.put("switch1", status);
+                    InfluxSwitch influxSwitch = new InfluxSwitch();
+                    influxSwitch.setDeviceCode(deviceCode);
+                    influxSwitch.setRoomId(device.getDeviceRoom().toString());
+                    influxSwitch.setSwitchState(lightStatus.toString());
+                    influxDBClient.getWriteApiBlocking().writeMeasurement(
+                            influxProperties.getBucket(),
+                            influxProperties.getOrg(),
+                            WritePrecision.MS,
+                            influxSwitch
+                    );
                 } else {
                     String status = jsonNode.get(fieldName).asText();
                     lightStatus.put(fieldName.replace("POWER", "switch"), status);
+                    InfluxSwitch influxSwitch = new InfluxSwitch();
+                    influxSwitch.setDeviceCode(deviceCode);
+                    influxSwitch.setRoomId(device.getDeviceRoom().toString());
+                    influxSwitch.setSwitchState(lightStatus.toString());
+                    influxDBClient.getWriteApiBlocking().writeMeasurement(
+                            influxProperties.getBucket(),
+                            influxProperties.getOrg(),
+                            WritePrecision.MS,
+                            influxSwitch
+                    );
                     log.debug("灯光路数 {} 状态: {}", fieldName, status);
                 }
 

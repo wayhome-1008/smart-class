@@ -20,6 +20,9 @@ public class InfluxMqttPlug {
     @Column(tag = true)
     private String roomId;
 
+    @Column(tag = true)
+    private String deviceType;
+
     //总用电量
     @Column(name = "Total")
     private Double total;

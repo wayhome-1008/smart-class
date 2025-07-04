@@ -44,11 +44,11 @@ public class SensorHandler implements MsgHandler {
         }
         //计量插座
         if (device.getDeviceTypeId() == 4) {
-            handlerPlug( jsonMsg, device);
+            handlerPlug(jsonMsg, device);
         }
     }
 
-    private void handlerPlug( String jsonMsg, Device device) {
+    private void handlerPlug(String jsonMsg, Device device) {
         try {
             JsonNode jsonNode = stringToJsonNode(jsonMsg);
             //接受得数据与旧数据合并
@@ -60,6 +60,8 @@ public class SensorHandler implements MsgHandler {
             InfluxMqttPlug influxPlug = new InfluxMqttPlug();
             //tag为设备编号
             influxPlug.setDeviceCode(device.getDeviceCode());
+            influxPlug.setRoomId(device.getDeviceRoom().toString());
+            influxPlug.setDeviceType(String.valueOf(device.getDeviceTypeId()));
             influxPlug.setTotal(jsonNode.get("ENERGY").get("Total").asDouble());
             influxPlug.setYesterday(jsonNode.get("ENERGY").get("Yesterday").asDouble());
             influxPlug.setToday(jsonNode.get("ENERGY").get("Today").asDouble());

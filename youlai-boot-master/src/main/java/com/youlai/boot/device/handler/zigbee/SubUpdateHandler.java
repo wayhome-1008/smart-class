@@ -292,6 +292,7 @@ public class SubUpdateHandler implements MsgHandler {
 
         //tag为房间id
         influxPlug.setRoomId(deviceCache.getDeviceRoom().toString());
+        influxPlug.setDeviceType(String.valueOf(deviceCache.getDeviceTypeId()));
         //处理插座数据
         if (mergeParams != null) {
             //电压

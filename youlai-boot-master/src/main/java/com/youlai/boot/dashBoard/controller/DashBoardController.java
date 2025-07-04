@@ -37,6 +37,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.WeekFields;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -103,7 +104,45 @@ public class DashBoardController {
         return Result.failed();
     }
 
-    @Operation(summary = "查询MQTT计量插座数据图数据")
+    @Operation(summary = "房间当天用电信息")
+    @GetMapping("/room/electricity")
+    public Result<RoomElectricity> getRoomElectricityData(
+            @Parameter(description = "房间id")
+            @RequestParam Long roomId) {
+        try {
+            // 使用新的InfluxQueryBuilder构建查询
+            InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
+                    .bucket(influxDBProperties.getBucket())
+                    .range(1, "d")
+                    .measurement("device")
+                    .fields("Total", "Voltage", "Current")
+                    .pivot()
+                    .fill()
+                    .sort("_time", InfluxQueryBuilder.SORT_ASC)
+                    .limit(1)
+                    .timeShift("8h");
+            builder.tag("roomId", String.valueOf(roomId));
+            String fluxQuery = builder.build();
+            log.info("InfluxDB查询语句: {}", fluxQuery);
+
+            List<InfluxMqttPlug> tables = influxDBClient.getQueryApi()
+                    .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);         //根据influxdb传来的数据把度数算上
+            if (!tables.isEmpty()) {
+                InfluxMqttPlug latestData = tables.get(0);
+                RoomElectricity result = new RoomElectricity();
+                result.setTotal(latestData.getTotal());
+                result.setVoltage(latestData.getVoltage());
+                result.setCurrent(latestData.getCurrent());
+                return Result.success(result);
+            }
+            return Result.failed("未找到用电数据");
+        } catch (InfluxException e) {
+            log.error("查询用电数据失败: {}", e.getMessage());
+            return Result.failed("查询用电数据失败");
+        }
+    }
+
+    @Operation(summary = "查询计量插座数据图数据")
     @GetMapping("/plugMqtt/data")
     public Result<List<InfluxMqttPlugVO>> getMqttPlugData(
             @Parameter(description = "设备编码")
@@ -112,11 +151,14 @@ public class DashBoardController {
             @Parameter(description = "时间范围值", example = "1")
             @RequestParam Long timeAmount,
 
-            @Parameter(description = "时间单位（y-年/mo-月/d-日/h-小时/m-分钟）", example = "d")
+            @Parameter(description = "时间单位（y-年/mo-月/w-周/d-日/h-小时/m-分钟）", example = "d")
             @RequestParam(defaultValue = "h") String timeUnit,
 
             @Parameter(description = "房间id")
-            @RequestParam(required = false) String roomId
+            @RequestParam(required = false) String roomId,
+
+            @Parameter(description = "设备类型id")
+            @RequestParam(required = false) String deviceTypeId
 
     ) {
         try {
@@ -128,7 +170,7 @@ public class DashBoardController {
                     .fields("Total", "Voltage", "Current")
                     .pivot()
                     .fill()
-                    .sort("_time", InfluxQueryBuilder.SORT_DESC)
+                    .sort("_time", InfluxQueryBuilder.SORT_ASC)
                     .timeShift("8h");
 
             // 添加设备编码和房间ID过滤条件
@@ -138,6 +180,9 @@ public class DashBoardController {
             if (StringUtils.isNotBlank(roomId)) {
                 builder.tag("roomId", roomId);
             }
+            if (StringUtils.isNotBlank(deviceTypeId)) {
+                builder.tag("deviceType", deviceTypeId);
+            }
 
             // 根据时间单位设置窗口聚合
             switch (timeUnit) {
@@ -145,6 +190,9 @@ public class DashBoardController {
                     builder.window("1mo", "last");
                     break;
                 case "mo":
+                    builder.window("1d", "last");
+                    break;
+                case "w":  // 新增周的处理
                     builder.window("1d", "last");
                     break;
                 case "d":
@@ -471,13 +519,14 @@ public class DashBoardController {
     }
 
     private String formatTime(Instant time, String timeUnit) {
-        // 根据时间单位格式化时间
         ZoneId utcZone = ZoneId.of("UTC");
         return switch (timeUnit) {
             case "y" -> time.atZone(utcZone).getYear() + "/" +
                     String.format("%02d", time.atZone(utcZone).getMonthValue());
             case "mo" -> String.format("%02d", time.atZone(utcZone).getMonthValue()) + "/" +
                     String.format("%02d", time.atZone(utcZone).getDayOfMonth());
+            case "w" ->  // 修改为显示星期几
+                    time.atZone(utcZone).getDayOfWeek().toString(); // 直接返回DayOfWeek枚举名称
             case "d" -> String.format("%02d", time.atZone(utcZone).getHour()) + ":00";
             case "h" -> String.format("%02d", time.atZone(utcZone).getMinute()) + ":00";
             case "HH:mm:ss" -> String.format("%02d:%02d:%02d",
@@ -487,6 +536,7 @@ public class DashBoardController {
             default -> time.atZone(utcZone).format(DateTimeFormatter.ISO_LOCAL_TIME);
         };
     }
+
 
     public static DeviceInfoVO basicPropertyConvert(Device device, String roomCode) {
         DeviceInfoVO deviceInfoVO = new DeviceInfoVO();
