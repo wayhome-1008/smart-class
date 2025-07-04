@@ -113,14 +113,14 @@ public class DeviceOperateController {
             case "ZigBee" ->
                 //zigBee
                     zigBeeDevice(deviceCode, deviceGatewayId, operate, way, lightCount);
-            case "MQTT" ->
-                //mqtt
-                    mqttDevice(deviceCode, operate, way, lightCount);
+            case "WiFi" ->
+                //WiFi
+                    wifiDevice(deviceCode, operate, way, lightCount);
             default -> Result.failed("暂不支持该协议");
         };
     }
 
-    private Result<Void> mqttDevice(String deviceCode, String operate, String way, Integer lightCount) {
+    private Result<Void> wifiDevice(String deviceCode, String operate, String way, Integer lightCount) {
         //目前能控制的就只有灯的开关
         //判断几路
         if (lightCount == 1) {

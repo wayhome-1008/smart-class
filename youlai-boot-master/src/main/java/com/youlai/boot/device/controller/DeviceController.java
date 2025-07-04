@@ -270,8 +270,8 @@ public class DeviceController {
                     gatewayDeviceDelMqtt(device);
                     break;
                 case 2:
-                    //WIFI独立设备
-                    wifiDeviceDel(device);
+                    //MQTT独立设备
+                    mqttDeviceDel(device);
                     result = deviceService.removeById(device.getId());
                     break;
                 case 3:
@@ -282,11 +282,6 @@ public class DeviceController {
                         return Result.failed("网关下有设备，无法删除");
                     }
                     zigBeeGateWayDelDel(device);
-                    result = deviceService.removeById(device.getId());
-                    break;
-                case 4:
-                    //MQTT独立设备
-                    mqttDeviceDel(device);
                     result = deviceService.removeById(device.getId());
                     break;
                 default:
