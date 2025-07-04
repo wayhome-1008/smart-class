@@ -457,7 +457,7 @@ public class DashBoardController {
                 builder.tag("roomId", roomId);
             }
             String fluxQuery = builder.build();
-            log.info("influxdb查询传感器语句{}", fluxQuery);
+            log.info("influxdb查询开关语句{}", fluxQuery);
             List<InfluxSwitch> tables = influxDBClient.getQueryApi().query(fluxQuery, influxDBProperties.getOrg(), InfluxSwitch.class);
             List<InfluxSwitchVO> result = new ArrayList<>();
             for (InfluxSwitch table : tables) {
