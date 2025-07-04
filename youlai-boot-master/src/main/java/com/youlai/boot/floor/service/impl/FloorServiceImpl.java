@@ -103,10 +103,7 @@ public class FloorServiceImpl extends ServiceImpl<FloorMapper, Floor> implements
                 .map(Long::parseLong)
                 .toList();
         //删完房间再删楼层
-        boolean deleteRooms = roomService.deleteByFloorIds(idList);
-        if (!deleteRooms) {
-            throw new RuntimeException("删除楼层失败");
-        }
+        roomService.deleteByFloorIds(idList);
         return this.removeByIds(idList);
     }
 

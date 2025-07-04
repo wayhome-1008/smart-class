@@ -103,19 +103,10 @@ public class BuildingServiceImpl extends ServiceImpl<BuildingMapper, Building> i
         List<Long> idList = Arrays.stream(ids.split(","))
                 .map(Long::parseLong)
                 .toList();
-        boolean roomDelete = roomService.deleteByBuildingIds(idList);
-        if (roomDelete) {
-            boolean floorDelete = floorService.deleteByBuildingIds(idList);
-            if (floorDelete) {
-                //先删房间 再删楼层   最后删教学楼
-                return this.removeByIds(idList);
-
-            } else {
-                throw new RuntimeException("请先删除该教学楼下的楼层");
-            }
-        } else {
-            throw new RuntimeException("请先删除该教学楼下的房间");
-        }
+        roomService.deleteByBuildingIds(idList);
+        floorService.deleteByBuildingIds(idList);
+        //先删房间 再删楼层   最后删教学楼
+        return this.removeByIds(idList);
     }
 
     @Override
