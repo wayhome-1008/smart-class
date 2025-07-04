@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.youlai.boot.common.model.Option;
 import com.youlai.boot.common.result.PageResult;
 import com.youlai.boot.common.result.Result;
-import com.youlai.boot.device.model.vo.DeviceInfoVO;
 import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.deviceType.model.query.DeviceTypeQuery;
 import com.youlai.boot.deviceType.model.vo.DeviceTypeVO;
@@ -14,10 +13,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -46,11 +42,11 @@ public class DeviceTypeController {
 
     @Operation(summary = "设备类型下拉列表")
     @GetMapping("/options")
-    public Result<List<Option<Long>>> listDeviceTypeOptions(@PathVariable Boolean showGateway) {
+    public Result<List<Option<Long>>> listDeviceTypeOptions(@RequestParam(required = true) Boolean showGateway) {
         List<Option<Long>> list = deviceTypeService.listDeviceTypeOptions();
         if (!showGateway) {
             //删除type==1的数据
-            list.removeIf(item -> item.getTag().equals("1"));
+            list.removeIf(item -> item.getValue()==1);
         }
         return Result.success(list);
 
