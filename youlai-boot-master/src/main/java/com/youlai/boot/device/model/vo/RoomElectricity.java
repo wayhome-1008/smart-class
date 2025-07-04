@@ -1,6 +1,5 @@
 package com.youlai.boot.device.model.vo;
 
-import com.influxdb.annotations.Column;
 import lombok.Data;
 
 /**

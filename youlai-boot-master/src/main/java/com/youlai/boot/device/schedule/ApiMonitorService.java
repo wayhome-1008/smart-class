@@ -1,9 +1,7 @@
 package com.youlai.boot.device.schedule;
 
 import com.alibaba.fastjson.JSON;
-import com.influxdb.client.InfluxDBClient;
 import com.youlai.boot.config.mqtt.MqttProducer;
-import com.youlai.boot.config.property.InfluxDBProperties;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.service.DeviceService;
 import jakarta.annotation.PostConstruct;
