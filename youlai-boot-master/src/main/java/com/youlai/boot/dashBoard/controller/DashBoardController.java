@@ -405,9 +405,9 @@ public class DashBoardController {
                     .measurement("device")
                     .fields("motion")
                     .pivot()
+                    .fill()
                     .sort("_time", InfluxQueryBuilder.SORT_DESC)
                     .timeShift("8h");
-
             // 添加设备编码和房间ID过滤条件
             if (StringUtils.isNotBlank(deviceCode)) {
                 builder.tag("deviceCode", deviceCode);
@@ -416,7 +416,7 @@ public class DashBoardController {
                 builder.tag("roomId", roomId);
             }
             // 根据时间单位设置窗口聚合
-            builder.window("5m", "max");
+            builder.window("5m", "last");
             String fluxQuery = builder.build();
             log.info("InfluxDB查询语句: {}", fluxQuery);
             List<InfluxHumanRadarSensor> tables = influxDBClient.getQueryApi()
