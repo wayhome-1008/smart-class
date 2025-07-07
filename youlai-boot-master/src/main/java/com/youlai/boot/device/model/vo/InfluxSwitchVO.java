@@ -21,6 +21,5 @@ public class InfluxSwitchVO {
     private String way;
 
     @JsonProperty("time")
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Shanghai")
-    private Instant time;
+    private String time;
 }

@@ -12,7 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.eclipse.paho.client.mqttv3.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -27,129 +26,12 @@ public class MqttCallback implements MqttCallbackExtended {
     private MsgHandlerFactory factory;
     @Autowired
     private DeviceService deviceService;
-    @Autowired
-    private RedisTemplate<String, Object> redisTemplate;
 
     @Override
     public void connectionLost(Throwable throwable) {
         log.error("mqtt链接丢失", throwable);
     }
 
-    /**
-     * 接收mqtt服务端消息
-     * 进行业务处理，业务处理完成后，手动确认消息
-     */
-//    @Override
-//    public void messageArrived(String topic, MqttMessage message) throws MqttException {
-//        //返回消息统一在这里
-//        log.info("【接收到主题{}的消息{}】", topic, message.toString());
-//        String finalTopic = "";
-//        HandlerType type = null;
-//        //zbgw
-//        if (topic.startsWith("/zbgw")) {
-//            finalTopic = MacUtils.removeZbgwMacPart(topic);
-//        }
-//        //tele
-//        if (topic.contains("tasmota")) {
-//            //获取最后功能
-//            String function = MacUtils.getFinalByTopic(topic);
-//            switch (function) {
-//                case "STATE":
-//                    type = HandlerType.STATE;
-//                    break;
-//                case "RESULT":
-//                    type = HandlerType.RESULT;
-//                    break;
-//                case "STATUS8":
-//                    type = HandlerType.STATUS8;
-//                    break;
-//                default:
-//                    break;
-//            }
-//        }
-////        if (topic.startsWith("stat")) {
-////            //从缓存去设备
-////            String deviceCode = getCodeByTopic(topic);
-////            Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
-////            if (device == null) {
-////                device = deviceService.getByCode(deviceCode);
-////            }
-////            if (device != null) {
-////                //灯光
-////                if (device.getDeviceTypeId() == 8) {
-////                    finalTopic = "/RESULT";
-////                }
-////            }
-////        }
-//        if (StringUtils.isNotEmpty(finalTopic)) {
-//            switch (finalTopic) {
-//                case "/register":
-//                    type = HandlerType.REGISTER;
-//                    break;
-//                case "/report_subdevice":
-//                    type = HandlerType.REPORT_SUBDEVICE;
-//                    break;
-//                case "/add_subdevice":
-//                    type = HandlerType.ADD_SUB_DEVICE;
-//                    break;
-//                case "/event":
-//                    type = HandlerType.EVENT;
-//                    break;
-//                case "/sub/update":
-//                    type = HandlerType.SUB_UPDATE;
-//                    break;
-//                case "/sub/attribute_rsp":
-//                    type = HandlerType.SUB_ATTRIBUTE_RSP;
-//                    break;
-//                case "/sub/control_rsp":
-//                    type = HandlerType.SUB_CONTROL_RSP;
-//                    break;
-//                case "/sub/things_rsp":
-//                    type = HandlerType.SUB_THINGS_RSP;
-//                    break;
-//                case "/manage_rsp":
-//                    type = HandlerType.MANAGE_RSP;
-//                    break;
-//                case "/request":
-//                    type = HandlerType.REQUEST;
-//                    break;
-//                case "/sub/get_rsp":
-//                    type = HandlerType.SUB_GET_RSP;
-//                    break;
-//                case "/ota_rsp":
-//                    type = HandlerType.OTA_RSP;
-//                    break;
-//                case "/SENSOR":
-//                    type = HandlerType.SENSOR;
-//                    break;
-//                case "/LIGHT":
-//                    type = HandlerType.LIGHT;
-//                    break;
-//                case "/SENSOR3ON1":
-//                    type = HandlerType.SENSOR3ON1;
-//                    break;
-//                case "/RESULT":
-//                    type = HandlerType.RESULT;
-//                    break;
-//                default:
-//                    break;
-//            }
-//            MsgHandler handler = factory.getHandler(type);
-//            if (handler != null) {
-//                //注册消息处理
-//                String parseMessage = new String(message.getPayload());
-//                try {
-//                    handler.process(topic, parseMessage, mqttClient);
-//                } catch (JsonProcessingException e) {
-//                    throw new RuntimeException(e);
-//                }
-//            }
-//            //        mqttService.processMessage(mac, StrUtils.removeFirstTwoParts(topic), message, mqttClient);
-//            //处理成功后确认消息
-//            mqttClient.messageArrivedComplete(message.getId(), message.getQos());
-//        }
-//
-//    }
     @Override
     public void messageArrived(String topic, MqttMessage message) throws MqttException {
         log.info("【接收到主题{}的消息{}】", topic, message.toString());
@@ -273,7 +155,7 @@ public class MqttCallback implements MqttCallbackExtended {
                             log.info("订阅主题:{}", BASE_TOPIC + deviceMac + consumerTopic);
                         }
                         //独立mqtt通信设备
-                    } else if (device.getCommunicationModeItemId() == 4) {
+                    } else if (device.getCommunicationModeItemId() == 2) {
                         mqttClient.subscribe("tele/" + device.getDeviceCode() + "/SENSOR", 2);
                         mqttClient.subscribe("tele/" + device.getDeviceCode() + "/INFO3", 2);
                         mqttClient.subscribe("tele/" + device.getDeviceCode() + "/STATE", 2);

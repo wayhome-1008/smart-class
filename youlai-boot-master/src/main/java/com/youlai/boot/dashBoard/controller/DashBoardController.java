@@ -471,7 +471,7 @@ public class DashBoardController {
                         switchVO.setWay(fieldName);
                         switchVO.setSwitchStatus(status);
                         // 格式化时间为 年月日时分秒
-                        switchVO.setTime(table.getTime());
+                        switchVO.setTime(formatTime(table.getTime(), "yyyy-MM-dd HH:mm:ss"));
                         result.add(switchVO);
                     }
                 }
@@ -520,8 +520,10 @@ public class DashBoardController {
     private String formatTime(Instant time, String timeUnit) {
         ZoneId utcZone = ZoneId.of("UTC");
         return switch (timeUnit) {
+            //显示月份
             case "y" -> time.atZone(utcZone).getYear() + "/" +
                     String.format("%02d", time.atZone(utcZone).getMonthValue());
+            //显示日期
             case "mo" -> String.format("%02d", time.atZone(utcZone).getMonthValue()) + "/" +
                     String.format("%02d", time.atZone(utcZone).getDayOfMonth());
             case "w" ->  // 修改为显示星期几
@@ -529,6 +531,14 @@ public class DashBoardController {
             case "d" -> String.format("%02d", time.atZone(utcZone).getHour()) + ":00";
             case "h" -> String.format("%02d", time.atZone(utcZone).getMinute()) + ":00";
             case "HH:mm:ss" -> String.format("%02d:%02d:%02d",
+                    time.atZone(utcZone).getHour(),
+                    time.atZone(utcZone).getMinute(),
+                    time.atZone(utcZone).getSecond());
+            //显示年月日时分秒
+            case "yyyy-MM-dd HH:mm:ss" -> String.format("%04d-%02d-%02d %02d:%02d:%02d",
+                    time.atZone(utcZone).getYear(),
+                    time.atZone(utcZone).getMonthValue(),
+                    time.atZone(utcZone).getDayOfMonth(),
                     time.atZone(utcZone).getHour(),
                     time.atZone(utcZone).getMinute(),
                     time.atZone(utcZone).getSecond());
