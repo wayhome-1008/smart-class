@@ -378,11 +378,11 @@ public class DeviceController {
             log.info("动态取消订阅主题: {}", BASE_TOPIC + deviceMac + consumerTopic);
         }
     }
-
-    private void wifiDeviceDel(Device device) {
-        //删缓存
-        redisTemplate.opsForHash().delete(RedisConstants.Device.DEVICE, device.getDeviceCode());
-    }
+//
+//    private void wifiDeviceDel(Device device) {
+//        //删缓存
+//        redisTemplate.opsForHash().delete(RedisConstants.Device.DEVICE, device.getDeviceCode());
+//    }
 
     private void zigBeeDeviceDel(Device device) throws MqttException {
         //删缓存

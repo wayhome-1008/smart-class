@@ -1,8 +1,5 @@
 package com.youlai.boot.device.model.form;
 
-import java.io.Serial;
-import java.io.Serializable;
-
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.youlai.boot.config.handler.JsonTypeHandler;
@@ -10,9 +7,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
-
-import com.fasterxml.jackson.annotation.JsonFormat;
+import java.io.Serial;
+import java.io.Serializable;
 
 /**
  * 设备管理表单对象

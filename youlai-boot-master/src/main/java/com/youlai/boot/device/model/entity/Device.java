@@ -2,19 +2,14 @@ package com.youlai.boot.device.model.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableLogic;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.influxdb.annotations.Column;
-import com.influxdb.annotations.Measurement;
+import com.youlai.boot.common.base.BaseEntity;
 import com.youlai.boot.config.handler.JsonTypeHandler;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.Date;
-
-import com.baomidou.mybatisplus.annotation.TableName;
-import com.youlai.boot.common.base.BaseEntity;
 
 /**
  * 设备管理实体对象
