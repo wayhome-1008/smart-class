@@ -72,13 +72,13 @@ public class SensorHandler implements MsgHandler {
             influxPlug.setFactor(jsonNode.get("ENERGY").get("Factor").asDouble());
             influxPlug.setVoltage(jsonNode.get("ENERGY").get("Voltage").asDouble());
             influxPlug.setCurrent(jsonNode.get("ENERGY").get("Current").asDouble());
-
             influxDBClient.getWriteApiBlocking().writeMeasurement(
                     influxProperties.getBucket(),
                     influxProperties.getOrg(),
                     WritePrecision.MS,
                     influxPlug
             );
+            log.info("MQTT计量插座{}", influxPlug);
             redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
         } catch (Exception e) {
             log.error("qqqqq");

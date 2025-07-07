@@ -70,7 +70,9 @@ public class MqttCallback implements MqttCallbackExtended {
             case "STATE" -> HandlerType.STATE;
             case "RESULT" -> HandlerType.RESULT;
             case "STATUS8" -> HandlerType.STATUS8;
-
+            case "SENSOR" -> HandlerType.SENSOR;
+            case "LIGHT" -> HandlerType.LIGHT;
+            case "SENSOR3ON1" -> HandlerType.SENSOR3ON1;
             // 处理通用路径
             case "/register" -> HandlerType.REGISTER;
             case "/report_subdevice" -> HandlerType.REPORT_SUBDEVICE;
@@ -156,11 +158,16 @@ public class MqttCallback implements MqttCallbackExtended {
                         }
                         //独立mqtt通信设备
                     } else if (device.getCommunicationModeItemId() == 2) {
+                        log.info("订阅主题:{}", "tele/" + device.getDeviceCode() + "/SENSOR");
                         mqttClient.subscribe("tele/" + device.getDeviceCode() + "/SENSOR", 2);
+                        log.info("订阅主题:{}", "tele/" + device.getDeviceCode() + "/INFO3");
                         mqttClient.subscribe("tele/" + device.getDeviceCode() + "/INFO3", 2);
+                        log.info("订阅主题:{}", "tele/" + device.getDeviceCode() + "/STATE");
                         mqttClient.subscribe("tele/" + device.getDeviceCode() + "/STATE", 2);
 //                        mqttClient.subscribe("stat/" + device.getDeviceCode() + "/POWER", 2);
+                        log.info("订阅主题:{}", "stat/" + device.getDeviceCode() + "/RESULT");
                         mqttClient.subscribe("stat/" + device.getDeviceCode() + "/RESULT", 2);
+                        log.info("订阅主题:{}", "stat/" + device.getDeviceCode() + "/STATUS8");
                         mqttClient.subscribe("stat/" + device.getDeviceCode() + "/STATUS8", 2);
                     }
                 }

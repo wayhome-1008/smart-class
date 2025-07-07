@@ -75,9 +75,9 @@ public class SubUpdateHandler implements MsgHandler {
                 if (device.getDeviceTypeId() == 6) {
                     processHumanRadarSensor(topic, mqttClient, device, jsonMsg, sequence);
                 }
-                //三路开关
+                //开关
                 if (device.getDeviceTypeId() == 7) {
-                    processThreeWaySwitch(topic, mqttClient, device, jsonMsg, sequence);
+                    processSwitch(topic, mqttClient, device, jsonMsg, sequence);
                 }
                 //插座
                 if (device.getDeviceTypeId() == 10) {
@@ -149,7 +149,7 @@ public class SubUpdateHandler implements MsgHandler {
      * @author: way
      * @date: 2025/5/27 17:36
      **/
-    private void processThreeWaySwitch(String topic, MqttClient mqttClient, Device device, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
+    private void processSwitch(String topic, MqttClient mqttClient, Device device, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
         if (ObjectUtil.isNotEmpty(device)) {
             JsonNode jsonNode = stringToJsonNode(jsonMsg);
             //获取params
