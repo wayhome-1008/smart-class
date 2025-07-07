@@ -1,10 +1,10 @@
 package com.youlai.boot.category.model.entity;
 
-import lombok.Getter;
-import lombok.Setter;
-import java.time.LocalDateTime;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.youlai.boot.common.base.BaseEntity;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * 分类管理实体对象
@@ -16,8 +16,6 @@ import com.youlai.boot.common.base.BaseEntity;
 @Setter
 @TableName("category")
 public class Category extends BaseEntity {
-
-    private static final long serialVersionUID = 1L;
 
     private String categoryName;
     /**
@@ -43,5 +41,6 @@ public class Category extends BaseEntity {
     /**
      * 逻辑删除标识(0-未删除 1-已删除)
      */
+    @TableLogic(value = "0", delval = "1")
     private Integer isDeleted;
 }

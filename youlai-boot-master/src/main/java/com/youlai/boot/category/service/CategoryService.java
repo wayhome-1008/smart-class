@@ -1,6 +1,7 @@
 package com.youlai.boot.category.service;
 
 import com.youlai.boot.category.model.entity.Category;
+import com.youlai.boot.category.model.form.BindingForm;
 import com.youlai.boot.category.model.form.CategoryForm;
 import com.youlai.boot.category.model.query.CategoryQuery;
 import com.youlai.boot.category.model.vo.CategoryVO;
@@ -55,4 +56,5 @@ public interface CategoryService extends IService<Category> {
      */
     boolean deleteCategorys(String ids);
 
+    boolean bindCategory(BindingForm formData);
 }

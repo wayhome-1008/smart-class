@@ -40,12 +40,6 @@ public class Device extends BaseEntity {
      */
     private Long deviceRoom;
 
-    /**
-     * 分类物品id
-     */
-    private Long categoryId;
-
-
     @TableField(exist = false)
     private String roomName;
     /**

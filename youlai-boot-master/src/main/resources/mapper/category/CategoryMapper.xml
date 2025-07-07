@@ -13,6 +13,7 @@
         FROM
             category
         <where>
+            AND is_deleted = 0
             <if test="queryParams.categoryName != null and queryParams.categoryName != ''">
                 AND category_name LIKE CONCAT('%', #{queryParams.categoryName}, '%')
             </if>

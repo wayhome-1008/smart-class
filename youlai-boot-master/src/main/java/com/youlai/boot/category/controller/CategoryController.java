@@ -1,5 +1,6 @@
 package com.youlai.boot.category.controller;
 
+import com.youlai.boot.category.model.form.BindingForm;
 import com.youlai.boot.category.service.CategoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,14 +29,14 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/api/v1/category")
 @RequiredArgsConstructor
-public class CategoryController  {
+public class CategoryController {
 
     private final CategoryService categoryService;
 
     @Operation(summary = "分类管理分页列表")
     @GetMapping("/page")
     @PreAuthorize("@ss.hasPerm('category:category:query')")
-    public PageResult<CategoryVO> getCategoryPage(CategoryQuery queryParams ) {
+    public PageResult<CategoryVO> getCategoryPage(CategoryQuery queryParams) {
         IPage<CategoryVO> result = categoryService.getCategoryPage(queryParams);
         return PageResult.success(result);
     }
@@ -43,7 +44,7 @@ public class CategoryController  {
     @Operation(summary = "新增分类管理")
     @PostMapping
     @PreAuthorize("@ss.hasPerm('category:category:add')")
-    public Result<Void> saveCategory(@RequestBody @Valid CategoryForm formData ) {
+    public Result<Void> saveCategory(@RequestBody @Valid CategoryForm formData) {
         boolean result = categoryService.saveCategory(formData);
         return Result.judge(result);
     }
@@ -52,7 +53,7 @@ public class CategoryController  {
     @GetMapping("/{id}/form")
     @PreAuthorize("@ss.hasPerm('category:category:edit')")
     public Result<CategoryForm> getCategoryForm(
-        @Parameter(description = "分类管理ID") @PathVariable Long id
+            @Parameter(description = "分类管理ID") @PathVariable Long id
     ) {
         CategoryForm formData = categoryService.getCategoryFormData(id);
         return Result.success(formData);
@@ -73,9 +74,19 @@ public class CategoryController  {
     @DeleteMapping("/{ids}")
     @PreAuthorize("@ss.hasPerm('category:category:delete')")
     public Result<Void> deleteCategorys(
-        @Parameter(description = "分类管理ID，多个以英文逗号(,)分割") @PathVariable String ids
+            @Parameter(description = "分类管理ID，多个以英文逗号(,)分割") @PathVariable String ids
     ) {
         boolean result = categoryService.deleteCategorys(ids);
+        return Result.judge(result);
+    }
+
+    @Operation(summary = "设备绑定")
+    @PostMapping("/bind")
+    @PreAuthorize("@ss.hasPerm('category:category:bind')")
+    public Result<Void> bindCategory(
+            @RequestBody @Validated BindingForm formData) {
+        //一个分类可以绑定多个设备
+        boolean result = categoryService.bindCategory(formData);
         return Result.judge(result);
     }
 }

@@ -2,7 +2,10 @@ package com.youlai.boot.device.controller;
 
 import cn.hutool.core.util.RandomUtil;
 import com.alibaba.fastjson.JSON;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.youlai.boot.categoryDeviceRelationship.model.CategoryDeviceRelationship;
+import com.youlai.boot.categoryDeviceRelationship.service.CategoryDeviceRelationshipService;
 import com.youlai.boot.common.annotation.Log;
 import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.common.enums.LogModuleEnum;
@@ -63,6 +66,7 @@ public class DeviceController {
     private final MqttProducer mqttProducer;
     private final MqttCallback mqttCallback;
     private final DeviceConverter deviceConverter;
+    private final CategoryDeviceRelationshipService categoryDeviceRelationshipService;
 
     @Operation(summary = "设备管理分页列表")
     @GetMapping("/page")
@@ -189,7 +193,7 @@ public class DeviceController {
                 result = deviceService.saveDevice(formData);
                 break;
             case 2:
-                //WIFI独立设备
+                //WIFI独立设备 tasmota
                 wifiDevice(formData);
                 result = deviceService.saveDevice(formData);
                 break;
@@ -205,6 +209,16 @@ public class DeviceController {
                 break;
             default:
                 break;
+        }
+        if (result) {
+            redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, formData.getDeviceCode(), deviceService.getById(formData.getId()));
+            //处理category
+            if (formData.getCategoryId() != null) {
+                CategoryDeviceRelationship categoryDeviceRelationship = new CategoryDeviceRelationship();
+                categoryDeviceRelationship.setCategoryId(formData.getCategoryId());
+                categoryDeviceRelationship.setDeviceId(formData.getId());
+                categoryDeviceRelationshipService.save(categoryDeviceRelationship);
+            }
         }
         return Result.judge(result);
     }
@@ -230,6 +244,32 @@ public class DeviceController {
         boolean result = deviceService.updateDevice(id, formData);
         //更新缓存
         redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, formData.getDeviceCode(), deviceService.getById(id));
+        //处理category
+        if (formData.getCategoryId() != null) {
+            //根据设备及分类查询分类 分类可以绑定多个设备 但设备只能绑定一个分类
+            CategoryDeviceRelationship relationship = categoryDeviceRelationshipService.getOne(new LambdaQueryWrapper<CategoryDeviceRelationship>()
+                    .eq(CategoryDeviceRelationship::getDeviceId, id)
+                    .eq(CategoryDeviceRelationship::getCategoryId, formData.getCategoryId())
+            );
+            //存在需校验是否分类id改变
+            if (ObjectUtils.isNotEmpty(relationship)) {
+                if (!relationship.getCategoryId().equals(formData.getCategoryId())) {
+                    //删除分类设备关系
+                    categoryDeviceRelationshipService.removeById(relationship);
+                    //添加新的分类设备关系
+                    CategoryDeviceRelationship categoryDeviceRelationship = new CategoryDeviceRelationship();
+                    categoryDeviceRelationship.setCategoryId(formData.getCategoryId());
+                    categoryDeviceRelationship.setDeviceId(id);
+                    categoryDeviceRelationshipService.save(categoryDeviceRelationship);
+                }
+            } else {
+                //添加新的分类设备关系
+                CategoryDeviceRelationship categoryDeviceRelationship = new CategoryDeviceRelationship();
+                categoryDeviceRelationship.setCategoryId(formData.getCategoryId());
+                categoryDeviceRelationship.setDeviceId(id);
+                categoryDeviceRelationshipService.save(categoryDeviceRelationship);
+            }
+        }
         return Result.judge(result);
     }
 
@@ -287,6 +327,13 @@ public class DeviceController {
                 default:
                     break;
             }
+        }
+
+        if (result) {
+            //删除的同时清缓存
+            redisTemplate.opsForHash().delete(RedisConstants.Device.DEVICE, idList);
+            //删除关系表
+            categoryDeviceRelationshipService.remove(new LambdaQueryWrapper<CategoryDeviceRelationship>().eq(CategoryDeviceRelationship::getDeviceId, idList));
         }
         return Result.judge(result);
     }
@@ -378,16 +425,16 @@ public class DeviceController {
     }
 
     private void wifiDevice(@Valid DeviceForm formData) {
-        log.info(formData.toString());
-    }
-
-    private void mqttDevice(@Valid DeviceForm formData) {
         mqttCallback.subscribeTopic("tele/" + formData.getDeviceMac() + "/SENSOR");
         mqttCallback.subscribeTopic("tele/" + formData.getDeviceMac() + "/INFO3");
         mqttCallback.subscribeTopic("tele/" + formData.getDeviceMac() + "/STATE");
 //        mqttCallback.subscribeTopic("stat/" + formData.getDeviceMac() + "/POWER");
         mqttCallback.subscribeTopic("stat/" + formData.getDeviceMac() + "/RESULT");
         mqttCallback.subscribeTopic("stat/" + formData.getDeviceCode() + "/STATUS8");
+    }
+
+    private void mqttDevice(@Valid DeviceForm formData) {
+        log.info("{}", formData);
     }
 
     private void zigBeeDevice(@Valid DeviceForm formData) throws MqttException {

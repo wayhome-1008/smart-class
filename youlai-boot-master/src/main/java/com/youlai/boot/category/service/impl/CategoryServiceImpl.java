@@ -1,31 +1,27 @@
 package com.youlai.boot.category.service.impl;
 
+import cn.hutool.core.lang.Assert;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.baomidou.mybatisplus.extension.conditions.update.LambdaUpdateChainWrapper;
-import com.youlai.boot.device.model.entity.Device;
-import com.youlai.boot.device.service.DeviceService;
-import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.stereotype.Service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.youlai.boot.category.converter.CategoryConverter;
 import com.youlai.boot.category.mapper.CategoryMapper;
-import com.youlai.boot.category.service.CategoryService;
 import com.youlai.boot.category.model.entity.Category;
+import com.youlai.boot.category.model.form.BindingForm;
 import com.youlai.boot.category.model.form.CategoryForm;
 import com.youlai.boot.category.model.query.CategoryQuery;
 import com.youlai.boot.category.model.vo.CategoryVO;
-import com.youlai.boot.category.converter.CategoryConverter;
+import com.youlai.boot.category.service.CategoryService;
+import com.youlai.boot.categoryDeviceRelationship.model.CategoryDeviceRelationship;
+import com.youlai.boot.categoryDeviceRelationship.service.CategoryDeviceRelationshipService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
-
-import cn.hutool.core.lang.Assert;
-import cn.hutool.core.util.StrUtil;
 
 /**
  * 分类管理服务实现类
@@ -38,7 +34,7 @@ import cn.hutool.core.util.StrUtil;
 public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> implements CategoryService {
 
     private final CategoryConverter categoryConverter;
-    private final DeviceService deviceService;
+    private final CategoryDeviceRelationshipService categoryDeviceRelationshipService;
 
     /**
      * 获取分类管理分页列表
@@ -48,11 +44,10 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
      */
     @Override
     public IPage<CategoryVO> getCategoryPage(CategoryQuery queryParams) {
-        Page<CategoryVO> pageVO = this.baseMapper.getCategoryPage(
+        return this.baseMapper.getCategoryPage(
                 new Page<>(queryParams.getPageNum(), queryParams.getPageSize()),
                 queryParams
         );
-        return pageVO;
     }
 
     /**
@@ -75,21 +70,12 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
      */
     @Override
     public boolean saveCategory(CategoryForm formData) {
-        boolean success;
         Category entity = categoryConverter.toEntity(formData);
-        success = this.save(entity);
-        //看是否需要绑定设备
-        if (StringUtils.isNotBlank(formData.getDeviceIds())) {
-            //在设备上更新上分类id
-            List<Long> idList = Arrays.stream(formData.getDeviceIds().split(","))
-                    .map(Long::parseLong)
-                    .toList();
-            LambdaUpdateWrapper<Device> updateWrapper = Wrappers.lambdaUpdate();
-            updateWrapper.in(Device::getId, idList)  // 指定ID列表
-                    .set(Device::getCategoryId, entity.getId()); // 设置要更新的字段和值
-            success = deviceService.update(updateWrapper);
-        }
-        return success;
+        //查询是否分类名称重复
+        long count = this.count(new LambdaQueryWrapper<Category>()
+                .eq(Category::getCategoryName, entity.getCategoryName()));
+        Assert.isTrue(count == 0, "分类名称已存在");
+        return this.save(entity);
     }
 
     /**
@@ -101,21 +87,12 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
      */
     @Override
     public boolean updateCategory(Long id, CategoryForm formData) {
-        boolean success;
         Category entity = categoryConverter.toEntity(formData);
-        success = this.updateById(entity);
-        //看是否需要绑定设备
-        if (StringUtils.isNotBlank(formData.getDeviceIds())) {
-            //在设备上更新上分类id
-            List<Long> idList = Arrays.stream(formData.getDeviceIds().split(","))
-                    .map(Long::parseLong)
-                    .toList();
-            LambdaUpdateWrapper<Device> updateWrapper = Wrappers.lambdaUpdate();
-            updateWrapper.in(Device::getId, idList)  // 指定ID列表
-                    .set(Device::getCategoryId, entity.getId()); // 设置要更新的字段和值
-            success = deviceService.update(updateWrapper);
-        }
-        return success;
+        //查询是否分类名称重复
+        long count = this.count(new LambdaQueryWrapper<Category>().ne(Category::getId, id)
+                .eq(Category::getCategoryName, entity.getCategoryName()));
+        Assert.isTrue(count == 0, "分类名称已存在");
+        return this.updateById(entity);
     }
 
     /**
@@ -131,12 +108,48 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         List<Long> idList = Arrays.stream(ids.split(","))
                 .map(Long::parseLong)
                 .toList();
-        List<Device> deviceList = deviceService.list(new LambdaQueryWrapper<Device>().in(Device::getCategoryId, idList));
-        if (!deviceList.isEmpty()) {
-            // 删除的分类管理下有设备，则不允许删除
-            throw new RuntimeException("请先删除该分类下的设备");
-        }
         return this.removeByIds(idList);
+    }
+
+    @Override
+    public boolean bindCategory(BindingForm formData) {
+        // 1. 参数校验
+        Assert.notNull(formData.getCategoryId(), "分类ID不能为空");
+        Assert.isTrue(StrUtil.isNotBlank(formData.getDeviceIds()), "设备ID列表不能为空");
+
+        // 2. 解析设备ID列表
+        List<Long> deviceIds = Arrays.stream(formData.getDeviceIds().split(","))
+                .map(Long::parseLong)
+                .toList();
+
+        // 3. 查询已存在的绑定关系
+        List<CategoryDeviceRelationship> existingBindings = categoryDeviceRelationshipService.list(
+                new LambdaQueryWrapper<CategoryDeviceRelationship>()
+                        .eq(CategoryDeviceRelationship::getCategoryId, formData.getCategoryId())
+                        .in(CategoryDeviceRelationship::getDeviceId, deviceIds)
+        );
+
+        // 4. 过滤出需要新增的设备ID（排除已存在的）
+        List<Long> existingDeviceIds = existingBindings.stream()
+                .map(CategoryDeviceRelationship::getDeviceId)
+                .toList();
+
+        List<CategoryDeviceRelationship> newBindings = deviceIds.stream()
+                .filter(deviceId -> !existingDeviceIds.contains(deviceId))
+                .map(deviceId -> {
+                    CategoryDeviceRelationship relationship = new CategoryDeviceRelationship();
+                    relationship.setCategoryId(formData.getCategoryId());
+                    relationship.setDeviceId(deviceId);
+                    return relationship;
+                })
+                .toList();
+
+        // 5. 批量插入新绑定关系（如果有需要新增的）
+        if (!newBindings.isEmpty()) {
+            return categoryDeviceRelationshipService.saveBatch(newBindings);
+        }
+
+        return true; // 全部已存在时也返回成功
     }
 
 }

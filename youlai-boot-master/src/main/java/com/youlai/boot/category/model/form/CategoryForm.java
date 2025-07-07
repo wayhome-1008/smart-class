@@ -26,14 +26,11 @@ public class CategoryForm implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    @NotNull(message = "不能为空")
     private Long id;
 
     @NotBlank(message = "不能为空")
     @Size(max = 255, message = "长度不能超过255个字符")
     private String categoryName;
-
-    private String deviceIds;
 
     @Schema(description = "icon")
     @NotBlank(message = "icon不能为空")
