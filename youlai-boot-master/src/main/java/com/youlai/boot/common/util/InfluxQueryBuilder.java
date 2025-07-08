@@ -338,6 +338,42 @@ public class InfluxQueryBuilder {
     }
 
     /**
+     * 设置按当前小时查询
+     */
+    public InfluxQueryBuilder currentHour() {
+        this.timeAmount = 1L;
+        this.timeUnit = "h";
+        return this;
+    }
+
+    /**
+     * 设置按当周查询（从周一到周日）
+     */
+    public InfluxQueryBuilder currentWeek() {
+        this.timeAmount = 1L;
+        this.timeUnit = "w";
+        return this;
+    }
+
+    /**
+     * 设置按当月查询
+     */
+    public InfluxQueryBuilder currentMonth() {
+        this.timeAmount = 1L;
+        this.timeUnit = "mo";
+        return this;
+    }
+
+    /**
+     * 设置按当年查询
+     */
+    public InfluxQueryBuilder currentYear() {
+        this.timeAmount = 1L;
+        this.timeUnit = "y";
+        return this;
+    }
+
+    /**
      * 设置按当天查询
      */
     public InfluxQueryBuilder today() {

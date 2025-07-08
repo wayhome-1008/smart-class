@@ -42,6 +42,9 @@ public class DeviceForm implements Serializable {
     private Long deviceGatewayId;
 
     private Long categoryId;
+
+    private String categoryName;
+
     @Schema(description = "设备类型")
     private Long deviceTypeId;
     @Schema(description = "设备类型名称")

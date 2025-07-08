@@ -33,6 +33,8 @@ public class DeviceInfoParserFactory {
         PARSER_MAP.put("HumanRadarSensor:ZigBee", new ZigBeeHumanRadarSensorParser());
         //ZigBee插座
         PARSER_MAP.put("SmartPlug:ZigBee", new ZigBeeSmartPlugParser());
+        //ZigBee串口通讯设备
+        PARSER_MAP.put("Switch:ZigBee/Serial", new ZigBeeSerialParser());
         //MQTT温湿度传感器
         PARSER_MAP.put("Sensor:WiFi", new MqttSensorParser());
         //MQTT灯光

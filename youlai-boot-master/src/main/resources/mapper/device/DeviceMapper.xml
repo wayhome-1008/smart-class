@@ -18,6 +18,8 @@
         <result column="communicationModeItemName" property="communicationModeItemName"/>
         <result column="communicationModeItemId" property="communicationModeItemId"/>
         <result column="roomName" property="roomName"/>
+        <result column="category_id" property="categoryId"/>
+        <result column="categoryName" property="categoryName"/>
     </resultMap>
 
     <!-- 修改查询使用 resultMap -->
@@ -36,13 +38,17 @@
         dt.device_type,
         cmi.label AS communicationModeItemName,
         cmi.value AS communicationModeItemId,
-        r.classroom_code AS roomName
+        r.classroom_code AS roomName,
+        cdr.category_id,
+        c.category_name AS categoryName
         FROM
         device d
         LEFT JOIN device_type dt ON d.device_type_id = dt.id
         LEFT JOIN sys_dict_item cmi ON d.communication_mode_item_id = cmi.value
         AND cmi.dict_code = 'communication_mode'
         LEFT JOIN room r ON d.device_room = r.id
+        LEFT JOIN category_device_relationship cdr ON d.id = cdr.device_id
+        LEFT JOIN category c ON cdr.category_id = c.id
         <where>
             AND d.is_deleted = 0
             <if test="queryParams.id != null and queryParams.id != ''">
@@ -87,13 +93,17 @@
         dt.device_type,
         cmi.label AS communicationModeItemName,
         cmi.value AS communicationModeItemId,
-        r.classroom_code AS roomName
+        r.classroom_code AS roomName,
+        cdr.category_id,
+        c.category_name AS categoryName
         FROM
         device d
         LEFT JOIN device_type dt ON d.device_type_id = dt.id
         LEFT JOIN sys_dict_item cmi ON d.communication_mode_item_id = cmi.value
         AND cmi.dict_code = 'communication_mode'
         LEFT JOIN room r ON d.device_room = r.id
+        LEFT JOIN category_device_relationship cdr ON d.id = cdr.device_id
+        LEFT JOIN category c ON cdr.category_id = c.id
         <where>
             AND d.is_deleted = 0
             <if test="queryParams.id != null and queryParams.id != ''">

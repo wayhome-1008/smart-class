@@ -48,7 +48,10 @@ public class DeviceVO implements Serializable {
     private String roomName;
     @Schema(description = "设备序号")
     private String deviceNo;
-
+    @Schema(description = "所属分类")
+    private Long categoryId;
+    @Schema(description = "分类名称")
+    private String categoryName;
     @Schema(description = "设备数据信息")
     private JsonNode deviceInfo;
 

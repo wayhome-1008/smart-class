@@ -187,7 +187,7 @@ public class DeviceController {
         //目前switch应该分ZigBee网关 ZigBee网关子设备 MQTT独立设备 WIFI独立设备
         //所以先根据通讯方式做不同处理
         switch (formData.getCommunicationModeItemId().intValue()) {
-            case 1:
+            case 1, 5:
                 //ZigBee网关子设备
                 zigBeeDevice(formData);
                 result = deviceService.saveDevice(formData);
@@ -346,7 +346,9 @@ public class DeviceController {
         Device device = deviceService.getById(id);
         //必须为zigBee子设备
         if (ObjectUtils.isEmpty(device)) return Result.failed("设备不存在");
-        if (device.getCommunicationModeItemId() != 1) return Result.failed("设备不是zigBee子设备");
+        if (device.getCommunicationModeItemId() != 1 && device.getCommunicationModeItemId() != 5) {
+            return Result.failed("设备不是zigBee子设备");
+        }
         if (device.getDeviceGatewayId() == null) return Result.failed("设备没有网关");
         Device gateway = deviceService.getById(device.getDeviceGatewayId());
         if (ObjectUtils.isEmpty(gateway)) return Result.failed("该设备没有网关");
@@ -460,7 +462,14 @@ public class DeviceController {
         }
     }
 
-    private void gatewayDeviceAddMqtt(String macTopic) throws MqttException {
+    @Operation(summary = "网关扫描子设备动作")
+    @GetMapping("/scan")
+    public void scan(@RequestParam String gateway) throws MqttException {
+        ///zbgw/9454c5ee8180/sub/manage
+        gatewayDeviceAddMqtt(gateway);
+    }
+
+    public void gatewayDeviceAddMqtt(String macTopic) throws MqttException {
         //1.构造消息
         GateWayManageParams params = new GateWayManageParams();
         params.setPermitjoin(true);

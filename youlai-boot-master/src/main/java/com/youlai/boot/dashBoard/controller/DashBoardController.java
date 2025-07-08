@@ -1,6 +1,8 @@
 package com.youlai.boot.dashBoard.controller;
 
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.influxdb.client.InfluxDBClient;
@@ -37,10 +39,8 @@ import org.springframework.web.bind.annotation.*;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.youlai.boot.common.util.JsonUtils.stringToJsonNode;
 
@@ -204,16 +204,78 @@ public class DashBoardController {
                     builder.window("1s", "last");
                     break;
             }
-            String fluxQuery = builder.build();
-            log.info("InfluxDB查询语句: {}", fluxQuery);
-            List<InfluxMqttPlug> tables = influxDBClient.getQueryApi()
-                    .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);            //根据influxdb传来的数据把度数算上
-            // 转换结果并返回
-            return Result.success(makeInfluxMqttPlugVOList(tables, timeUnit));
+            List<Device> deviceList = new ArrayList<>();
+            if (StringUtils.isBlank(deviceCode) && StringUtils.isBlank(roomId) && StringUtils.isNotBlank(deviceTypeId)) {
+                //说明查所有
+                deviceList = deviceService.list(new LambdaQueryWrapper<Device>().eq(Device::getDeviceTypeId, deviceTypeId));
+            }
+            List<InfluxMqttPlug> tables =new ArrayList<>();
+            List<InfluxMqttPlugVO> influxMqttPlugVOS = new ArrayList<>();
+            String fluxQuery = "";
+            if (ObjectUtils.isNotEmpty(deviceList)) {
+                for (Device device : deviceList) {
+                    builder.tag("deviceCode", device.getDeviceCode());
+                    fluxQuery = builder.build();
+                    log.info("InfluxDB查询语句: {}", fluxQuery);
+                    List<InfluxMqttPlug> query = influxDBClient.getQueryApi()
+                            .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
+                    influxMqttPlugVOS.addAll( makeInfluxMqttPlugVOListAll(query, timeUnit));
+                }
+                List<Double> resultValue = new ArrayList<>();
+                for (InfluxMqttPlugVO influxMqttPlugVO : influxMqttPlugVOS) {
+                    List<Double> value = influxMqttPlugVO.getValue();
+                    if (ObjectUtils.isEmpty(resultValue)) {
+                        resultValue = new ArrayList<>(value); // 创建新列表避免引用问题
+                    } else {
+                        // 确保两个列表长度相同
+                        int minSize = Math.min(resultValue.size(), value.size());
+                        for (int i = 0; i < minSize; i++) {
+                            Double v1 = resultValue.get(i);
+                            Double v2 = value.get(i);
+                            // 处理null值
+                            if (v1 == null) v1 = 0.0;
+                            if (v2 == null) v2 = 0.0;
+                            resultValue.set(i, v1 + v2);
+                        }
+                    }
+                }
+                List<InfluxMqttPlugVO> influxMqttPlugVOS1 = new ArrayList<>();
+                InfluxMqttPlugVO influxMqttPlugVO = new InfluxMqttPlugVO();
+                influxMqttPlugVO.setTime(influxMqttPlugVOS.get(0).getTime());
+                influxMqttPlugVO.setValue(resultValue);
+                influxMqttPlugVOS1.add(influxMqttPlugVO);
+                return Result.success(influxMqttPlugVOS1);
+            }else{
+                tables = influxDBClient.getQueryApi()
+                        .query(builder.build(), influxDBProperties.getOrg(), InfluxMqttPlug.class);
+                log.info("InfluxDB查询语句: {}", fluxQuery);
+                // 转换结果并返回
+                return Result.success(makeInfluxMqttPlugVOList(tables, timeUnit));
+            }
+            //根据influxdb传来的数据把度数算上
+
         } catch (InfluxException e) {
             System.err.println("error：" + e.getMessage());
         }
         return Result.failed();
+    }
+
+    private List<InfluxMqttPlugVO> makeInfluxMqttPlugVOListAll(List<InfluxMqttPlug> tables, String timeUnit) {
+        List<InfluxMqttPlugVO> result = new ArrayList<>();
+        InfluxMqttPlugVO vo = new InfluxMqttPlugVO();
+        List<String> times = new ArrayList<>();
+        List<Double> values = new ArrayList<>();
+        for (InfluxMqttPlug table : tables) {
+            // 格式化时间（根据你的需求选择格式）
+            String formattedTime = formatTime(table.getTime(), timeUnit);
+            times.add(formattedTime);
+            values.add(table.getTotal());
+        }
+        vo.setTime(times);
+        vo.setValue(values);
+        result.add(vo);
+        log.info("转换后的数据：{}", result);
+        return result;
     }
 
 //    @Operation(summary = "查询房间用电数据")
@@ -334,6 +396,7 @@ public class DashBoardController {
     }
 
     private List<InfluxSensorVO> makeInfluxSensorVOList(List<InfluxSensor> tables, String timeUnit) {
+        tables.sort(Comparator.comparing(InfluxSensor::getTime));
         List<InfluxSensorVO> result = new ArrayList<>(3);
 
         // 初始化三个VO对象，分别对应温度、湿度、光照
@@ -485,6 +548,7 @@ public class DashBoardController {
     }
 
     private InfluxMotionVO makeInfluxMotionVOList(List<InfluxHumanRadarSensor> tables) {
+        tables.sort(Comparator.comparing(InfluxHumanRadarSensor::getTime));
         InfluxMotionVO result = new InfluxMotionVO();
         List<String> times = new ArrayList<>();
         List<Double> values = new ArrayList<>();
@@ -505,16 +569,63 @@ public class DashBoardController {
         InfluxMqttPlugVO vo = new InfluxMqttPlugVO();
         List<String> times = new ArrayList<>();
         List<Double> values = new ArrayList<>();
+//        if (deviceCodes.size() == 1) {
         for (InfluxMqttPlug table : tables) {
             // 格式化时间（根据你的需求选择格式）
             String formattedTime = formatTime(table.getTime(), timeUnit);
             times.add(formattedTime);
             values.add(table.getTotal());
         }
+//        }
+//        if (deviceCodes.size() > 1) {
+//            // 按 deviceCode 分组，收集每个设备的所有数据点
+//            Map<String, List<InfluxMqttPlug>> deviceGroups = tables.stream()
+//                    .filter(Objects::nonNull)
+//                    .filter(plug -> plug.getDeviceCode() != null)
+//                    .collect(Collectors.groupingBy(InfluxMqttPlug::getDeviceCode));
+//            for (String deviceCode : deviceCodes) {
+//                int i = 0;
+//                Double total;
+//                for (InfluxMqttPlug table : tables) {
+//                    if (table.getDeviceCode().equals(deviceCode)) {
+//                        i = i + 1;
+//                        List<Double> singleDevice = new ArrayList<>();
+//                        singleDevice.add(table.getTotal());
+//                        // 格式化时间（根据你的需求选择格式）
+//                        if (i==0){
+//                            String formattedTime = formatTime(table.getTime(), timeUnit);
+//                            times.add(formattedTime);
+//                        }
+//                    }
+//
+//                }
+//            }
+//
+//        }
         vo.setTime(times);
         vo.setValue(values);
         result.add(vo);
+        log.info("转换后的数据：{}", result);
         return result;
+//        // 1. 按时间点分组，处理可能为null的total值
+//        Map<String, Double> timeTotalMap = new TreeMap<>();
+//
+//        for (InfluxMqttPlug table : tables) {
+//            String formattedTime = formatTime(table.getTime(), timeUnit);
+//            Double total = Optional.of(table).map(InfluxMqttPlug::getTotal).orElse(0d);
+//            // 累加相同时间点的total值
+//            timeTotalMap.merge(formattedTime, total, Double::sum);
+//        }
+//
+//        // 2. 构建结果VO
+//        List<InfluxMqttPlugVO> result = new ArrayList<>();
+//        InfluxMqttPlugVO vo = new InfluxMqttPlugVO();
+//        vo.setTime(new ArrayList<>(timeTotalMap.keySet()));
+//        vo.setValue(new ArrayList<>(timeTotalMap.values()));
+//        result.add(vo);
+//
+//        log.info("转换后的数据：时间点={}, 值={}", vo.getTime(), vo.getValue());
+//        return result;
     }
 
     private String formatTime(Instant time, String timeUnit) {
@@ -526,10 +637,21 @@ public class DashBoardController {
             //显示日期
             case "mo" -> String.format("%02d", time.atZone(utcZone).getMonthValue()) + "/" +
                     String.format("%02d", time.atZone(utcZone).getDayOfMonth());
-            case "w" ->  // 修改为显示星期几
-                    time.atZone(utcZone).getDayOfWeek().toString(); // 直接返回DayOfWeek枚举名称
+            case "w" -> { // 显示中文星期
+                int dayOfWeek = time.atZone(utcZone).getDayOfWeek().getValue();
+                yield switch (dayOfWeek) {
+                    case 1 -> "周一";
+                    case 2 -> "周二";
+                    case 3 -> "周三";
+                    case 4 -> "周四";
+                    case 5 -> "周五";
+                    case 6 -> "周六";
+                    case 7 -> "周日";
+                    default -> String.valueOf(dayOfWeek);
+                };
+            }
             case "d" -> String.format("%02d", time.atZone(utcZone).getHour()) + ":00";
-            case "h" -> String.format("%02d", time.atZone(utcZone).getMinute()) + ":00";
+            case "h" -> String.format("%02d:%02d", time.atZone(utcZone).getHour(), time.atZone(utcZone).getMinute());
             case "HH:mm:ss" -> String.format("%02d:%02d:%02d",
                     time.atZone(utcZone).getHour(),
                     time.atZone(utcZone).getMinute(),
