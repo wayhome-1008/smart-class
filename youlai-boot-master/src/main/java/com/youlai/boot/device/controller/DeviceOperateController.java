@@ -12,6 +12,8 @@ import com.youlai.boot.device.model.dto.ControlParams;
 import com.youlai.boot.device.model.dto.Switch;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.DeviceOperate;
+import com.youlai.boot.device.model.form.SerialData;
+import com.youlai.boot.device.model.form.SerialDataDown;
 import com.youlai.boot.device.model.vo.DeviceInfo;
 import com.youlai.boot.device.model.vo.DeviceInfoVO;
 import com.youlai.boot.device.service.DeviceService;
@@ -51,6 +53,39 @@ public class DeviceOperateController {
     private final MqttProducer mqttProducer;
     private final RoomService roomService;
     private final FloorService floorService;
+
+    @Operation(summary = "串口透传demo")
+    @GetMapping(value = "/serial{id}")
+    public Result<SerialDataDown> serialTransfer(@Parameter(description = "设备ID") @PathVariable Long id,
+                                                 @RequestParam(required = false) String data
+    ) {
+        //根据设备发送mqtt
+        Device device = deviceService.getById(id);
+        if (ObjectUtils.isEmpty(device)) return Result.failed("设备不存在");
+        //状态
+        if (device.getStatus() != 1) return Result.failed("该设备非正常状态，无法操作");
+        //查询网关
+        Device gateway = deviceService.getById(device.getDeviceGatewayId());
+        if (ObjectUtils.isEmpty(gateway)) return Result.failed("该设备没有网关");
+        //构造透传 数据
+        SerialData serialData = new SerialData();
+        serialData.setData(data);
+        serialData.setTunnelingId(0);
+        SerialDataDown serialDataDown = new SerialDataDown();
+        serialDataDown.setDeviceId(device.getDeviceCode());
+        serialDataDown.setSerialData(serialData);
+        serialDataDown.setSequence(123);
+        //发送mqtt
+        try {
+            String topic = "/zbgw/" + gateway.getDeviceCode() + "/sub/control";
+            log.info(topic);
+            mqttProducer.send(topic, 0, false, JSON.toJSONString(serialDataDown));
+        } catch (MqttException e) {
+            log.error("串口透传发送失败", e);
+            return Result.failed("串口透传发送失败");
+        }
+        return Result.success(serialDataDown);
+    }
 
     @Operation(summary = "根据楼、层、房间批量操作设备")
     @PutMapping(value = "/batch")
@@ -209,4 +244,5 @@ public class DeviceOperateController {
         control.setSequence((int) System.currentTimeMillis());
         return control;
     }
+
 }

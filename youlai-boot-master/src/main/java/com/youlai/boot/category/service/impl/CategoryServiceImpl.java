@@ -19,6 +19,7 @@ import com.youlai.boot.categoryDeviceRelationship.service.CategoryDeviceRelation
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -74,6 +75,20 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         long count = this.count(new LambdaQueryWrapper<Category>()
                 .eq(Category::getCategoryName, entity.getCategoryName()));
         Assert.isTrue(count == 0, "分类名称已存在");
+        //存储分类设备关系
+        if (StrUtil.isNotBlank(formData.getDeviceIds())) {
+            List<Long> deviceIds = Arrays.stream(formData.getDeviceIds().split(","))
+                    .map(Long::parseLong)
+                    .toList();
+            List<CategoryDeviceRelationship> relationships = new ArrayList<>();
+            deviceIds.forEach(deviceId -> {
+                CategoryDeviceRelationship relationship = new CategoryDeviceRelationship();
+                relationship.setCategoryId(entity.getId());
+                relationship.setDeviceId(deviceId);
+                relationships.add(relationship);
+            });
+            categoryDeviceRelationshipService.saveBatch(relationships);
+        }
         return this.save(entity);
     }
 

@@ -30,6 +30,8 @@ public class CategoryForm implements Serializable {
     @Size(max = 255, message = "长度不能超过255个字符")
     private String categoryName;
 
+    private String deviceIds;
+
     @Schema(description = "icon")
     @NotBlank(message = "icon不能为空")
     @Size(max = 255, message = "icon长度不能超过255个字符")

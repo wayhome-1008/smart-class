@@ -59,6 +59,12 @@ public class SubUpdateHandler implements MsgHandler {
             }
             device.setStatus(1);
             if (ObjectUtil.isNotEmpty(device)) {
+                //先校验是否是串口的
+                //串口透传设备
+                if (device.getCommunicationModeItemId() == 5) {
+                    processSerialDevice(topic, mqttClient, device, jsonMsg, sequence);
+                    return;
+                }
                 //传感器
                 if (device.getDeviceTypeId() == 2 || device.getDeviceTypeId() == 5) {
                     processSensor(topic, mqttClient, device, jsonMsg, sequence);
@@ -82,10 +88,6 @@ public class SubUpdateHandler implements MsgHandler {
                 //插座
                 if (device.getDeviceTypeId() == 10) {
                     processSocket(topic, mqttClient, device, jsonMsg, sequence);
-                }
-                //串口透传设备
-                if (device.getCommunicationModeItemId() == 5) {
-                    processSerialDevice(topic, mqttClient, device, jsonMsg, sequence);
                 }
             }
 

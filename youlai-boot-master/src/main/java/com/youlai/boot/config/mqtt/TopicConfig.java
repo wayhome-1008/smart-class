@@ -29,6 +29,7 @@ public class TopicConfig {
 
     //⑥ 网关回应子设备控制结果: 控制设备后，网关返回控制结果
     public final static String SUB_CONTROL_RSP = "/sub/control_rsp";
+    public final static String SUB_CONTROL = "/sub/control";
 
     //⑦ 网关回应读取子设备状态结果: 服务器主动读取子设备状态，此命令一般无需适配，子设备会通过update主题定期上报
     public final static String SUB_ATTRIBUTE_RSP = "/sub/attribute_rsp";
@@ -52,7 +53,7 @@ public class TopicConfig {
 
     //tasmota设备
 //    public final static String INFO="/tele/"
-    public static List<String> TOPIC_LIST = List.of(REPORT_SUB_DEVICE, SUB_UPDATE2, REGISTER, ADD_SUB_DEVICE, EVENT, SUB_UPDATE, SUB_CONTROL_RSP, SUB_ATTRIBUTE_RSP, OTA_RSP, SUB_THINGS_RSP, MANAGE_RSP, REQUEST, SUB_GET_RSP,GIAO);
+    public static List<String> TOPIC_LIST = List.of(REPORT_SUB_DEVICE, SUB_UPDATE2, REGISTER, ADD_SUB_DEVICE, EVENT, SUB_UPDATE,SUB_CONTROL, SUB_CONTROL_RSP, SUB_ATTRIBUTE_RSP, OTA_RSP, SUB_THINGS_RSP, MANAGE_RSP, REQUEST, SUB_GET_RSP,GIAO);
 
 
 
