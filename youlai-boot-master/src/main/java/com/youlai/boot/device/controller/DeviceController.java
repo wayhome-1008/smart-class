@@ -245,29 +245,67 @@ public class DeviceController {
         //更新缓存
         redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, formData.getDeviceCode(), deviceService.getById(id));
         //处理category
+//        if (formData.getCategoryId() != null) {
+//            //根据设备及分类查询分类 分类可以绑定多个设备 但设备只能绑定一个分类
+//            CategoryDeviceRelationship relationship = categoryDeviceRelationshipService.getOne(new LambdaQueryWrapper<CategoryDeviceRelationship>()
+//                    .eq(CategoryDeviceRelationship::getDeviceId, id)
+////                    .eq(CategoryDeviceRelationship::getCategoryId, formData.getCategoryId())
+//            );
+//            //存在需校验是否分类id改变
+//            if (ObjectUtils.isNotEmpty(relationship)) {
+//                if (!relationship.getCategoryId().equals(formData.getCategoryId())) {
+//                    //删除分类设备关系
+//                    categoryDeviceRelationshipService.removeById(relationship);
+//                    //添加新的分类设备关系
+//                    CategoryDeviceRelationship categoryDeviceRelationship = new CategoryDeviceRelationship();
+//                    categoryDeviceRelationship.setCategoryId(formData.getCategoryId());
+//                    categoryDeviceRelationship.setDeviceId(id);
+//                    categoryDeviceRelationshipService.save(categoryDeviceRelationship);
+//                }
+//            } else {
+//                //添加新的分类设备关系
+//                CategoryDeviceRelationship categoryDeviceRelationship = new CategoryDeviceRelationship();
+//                categoryDeviceRelationship.setCategoryId(formData.getCategoryId());
+//                categoryDeviceRelationship.setDeviceId(id);
+//                categoryDeviceRelationshipService.save(categoryDeviceRelationship);
+//            }
+//        }
+        // 处理设备分类关系
         if (formData.getCategoryId() != null) {
-            //根据设备及分类查询分类 分类可以绑定多个设备 但设备只能绑定一个分类
-            CategoryDeviceRelationship relationship = categoryDeviceRelationshipService.getOne(new LambdaQueryWrapper<CategoryDeviceRelationship>()
-                    .eq(CategoryDeviceRelationship::getDeviceId, id)
-//                    .eq(CategoryDeviceRelationship::getCategoryId, formData.getCategoryId())
+            // 1. 查询设备当前的分类关系
+            CategoryDeviceRelationship relationship = categoryDeviceRelationshipService.getOne(
+                    new LambdaQueryWrapper<CategoryDeviceRelationship>()
+                            .eq(CategoryDeviceRelationship::getDeviceId, id)
             );
-            //存在需校验是否分类id改变
+
+            // 2. 如果已存在分类关系
             if (ObjectUtils.isNotEmpty(relationship)) {
+                // 2.1 分类ID不同则更新
                 if (!relationship.getCategoryId().equals(formData.getCategoryId())) {
-                    //删除分类设备关系
                     categoryDeviceRelationshipService.removeById(relationship);
-                    //添加新的分类设备关系
-                    CategoryDeviceRelationship categoryDeviceRelationship = new CategoryDeviceRelationship();
-                    categoryDeviceRelationship.setCategoryId(formData.getCategoryId());
-                    categoryDeviceRelationship.setDeviceId(id);
-                    categoryDeviceRelationshipService.save(categoryDeviceRelationship);
+                    CategoryDeviceRelationship newRelationship = new CategoryDeviceRelationship();
+                    newRelationship.setCategoryId(formData.getCategoryId());
+                    newRelationship.setDeviceId(id);
+                    categoryDeviceRelationshipService.save(newRelationship);
                 }
-            } else {
-                //添加新的分类设备关系
-                CategoryDeviceRelationship categoryDeviceRelationship = new CategoryDeviceRelationship();
-                categoryDeviceRelationship.setCategoryId(formData.getCategoryId());
-                categoryDeviceRelationship.setDeviceId(id);
-                categoryDeviceRelationshipService.save(categoryDeviceRelationship);
+                // 2.2 分类ID相同则不做处理
+            }
+            // 3. 不存在分类关系则新增
+            else {
+                CategoryDeviceRelationship newRelationship = new CategoryDeviceRelationship();
+                newRelationship.setCategoryId(formData.getCategoryId());
+                newRelationship.setDeviceId(id);
+                categoryDeviceRelationshipService.save(newRelationship);
+            }
+        }
+// 4. 取消绑定分类(分类ID为null)
+        else {
+            CategoryDeviceRelationship relationship = categoryDeviceRelationshipService.getOne(
+                    new LambdaQueryWrapper<CategoryDeviceRelationship>()
+                            .eq(CategoryDeviceRelationship::getDeviceId, id)
+            );
+            if (ObjectUtils.isNotEmpty(relationship)) {
+                categoryDeviceRelationshipService.removeById(relationship);
             }
         }
         return Result.judge(result);
