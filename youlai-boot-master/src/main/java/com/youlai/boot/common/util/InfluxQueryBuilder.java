@@ -468,6 +468,16 @@ public class InfluxQueryBuilder {
         this.keepEmpty = keep;
         return this;
     }
+// 在 InfluxQueryBuilder 类中添加以下方法
+
+    /**
+     * 设置查询为计数模式（返回记录总数）
+     */
+    public InfluxQueryBuilder count() {
+        this.functions.add("count()");
+        return this;
+    }
+
 
     // ========== 构建方法 ==========
 
@@ -530,6 +540,35 @@ public class InfluxQueryBuilder {
         // 是否生成结果
         if (yield) {
             flux.append("  |> yield()\n");
+        }
+
+        return flux.toString().trim();
+    }
+    /**
+     * 专用于构建计数查询的快捷方法
+     * @return 仅包含count结果的Flux查询语句
+     */
+    public String buildCountQuery() {
+        validateParams();
+
+        StringBuilder flux = new StringBuilder();
+        flux.append(String.format("from(bucket: \"%s\")\n", bucket));
+
+        if (useTodayRange) {
+            flux.append("  |> range(start: today())\n");
+        } else {
+            flux.append(String.format("  |> range(start: -%d%s)\n", timeAmount, timeUnit));
+        }
+
+        // 构建过滤条件
+        buildFilters(flux);
+
+        // 添加计数
+        flux.append("  |> count()\n");
+
+        // 时间偏移（如需要）
+        if (timeShift != null) {
+            flux.append(String.format("  |> timeShift(duration: %s)\n", timeShift));
         }
 
         return flux.toString().trim();

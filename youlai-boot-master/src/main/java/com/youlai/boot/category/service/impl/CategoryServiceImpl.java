@@ -16,6 +16,7 @@ import com.youlai.boot.category.model.vo.CategoryVO;
 import com.youlai.boot.category.service.CategoryService;
 import com.youlai.boot.categoryDeviceRelationship.model.CategoryDeviceRelationship;
 import com.youlai.boot.categoryDeviceRelationship.service.CategoryDeviceRelationshipService;
+import com.youlai.boot.common.model.Option;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -75,20 +76,20 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         long count = this.count(new LambdaQueryWrapper<Category>()
                 .eq(Category::getCategoryName, entity.getCategoryName()));
         Assert.isTrue(count == 0, "分类名称已存在");
-        //存储分类设备关系
-        if (StrUtil.isNotBlank(formData.getDeviceIds())) {
-            List<Long> deviceIds = Arrays.stream(formData.getDeviceIds().split(","))
-                    .map(Long::parseLong)
-                    .toList();
-            List<CategoryDeviceRelationship> relationships = new ArrayList<>();
-            deviceIds.forEach(deviceId -> {
-                CategoryDeviceRelationship relationship = new CategoryDeviceRelationship();
-                relationship.setCategoryId(entity.getId());
-                relationship.setDeviceId(deviceId);
-                relationships.add(relationship);
-            });
-            categoryDeviceRelationshipService.saveBatch(relationships);
-        }
+//        //存储分类设备关系
+//        if (StrUtil.isNotBlank(formData.getDeviceIds())) {
+//            List<Long> deviceIds = Arrays.stream(formData.getDeviceIds().split(","))
+//                    .map(Long::parseLong)
+//                    .toList();
+//            List<CategoryDeviceRelationship> relationships = new ArrayList<>();
+//            deviceIds.forEach(deviceId -> {
+//                CategoryDeviceRelationship relationship = new CategoryDeviceRelationship();
+//                relationship.setCategoryId(entity.getId());
+//                relationship.setDeviceId(deviceId);
+//                relationships.add(relationship);
+//            });
+//            categoryDeviceRelationshipService.saveBatch(relationships);
+//        }
         return this.save(entity);
     }
 
@@ -164,6 +165,12 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         }
 
         return true; // 全部已存在时也返回成功
+    }
+
+    @Override
+    public List<Option<Long>> listCategoryOptions() {
+        List<Category> list = this.list(new LambdaQueryWrapper<Category>().eq(Category::getStatus, 1));
+        return categoryConverter.toOptions(list);
     }
 
 }

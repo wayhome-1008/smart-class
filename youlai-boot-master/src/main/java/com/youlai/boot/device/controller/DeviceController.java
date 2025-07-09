@@ -249,7 +249,7 @@ public class DeviceController {
             //根据设备及分类查询分类 分类可以绑定多个设备 但设备只能绑定一个分类
             CategoryDeviceRelationship relationship = categoryDeviceRelationshipService.getOne(new LambdaQueryWrapper<CategoryDeviceRelationship>()
                     .eq(CategoryDeviceRelationship::getDeviceId, id)
-                    .eq(CategoryDeviceRelationship::getCategoryId, formData.getCategoryId())
+//                    .eq(CategoryDeviceRelationship::getCategoryId, formData.getCategoryId())
             );
             //存在需校验是否分类id改变
             if (ObjectUtils.isNotEmpty(relationship)) {

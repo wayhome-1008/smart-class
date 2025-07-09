@@ -2,6 +2,7 @@ package com.youlai.boot.category.controller;
 
 import com.youlai.boot.category.model.form.BindingForm;
 import com.youlai.boot.category.service.CategoryService;
+import com.youlai.boot.common.model.Option;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -18,6 +19,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
+
+import java.util.List;
 
 /**
  * 分类管理前端控制层
@@ -68,6 +71,13 @@ public class CategoryController {
     ) {
         boolean result = categoryService.updateCategory(id, formData);
         return Result.judge(result);
+    }
+
+    @Operation(summary = "分类下拉列表")
+    @GetMapping("/options")
+    public Result<List<Option<Long>>> listGatewayOptions() {
+        List<Option<Long>> list = categoryService.listCategoryOptions();
+        return Result.success(list);
     }
 
     @Operation(summary = "删除分类管理")

@@ -2,14 +2,16 @@ package com.youlai.boot.dashBoard.controller;
 
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.exceptions.InfluxException;
+import com.youlai.boot.common.result.PageResult;
 import com.youlai.boot.common.result.Result;
 import com.youlai.boot.common.util.InfluxQueryBuilder;
 import com.youlai.boot.config.property.InfluxDBProperties;
+import com.youlai.boot.dashBoard.model.vo.CountResult;
 import com.youlai.boot.dashBoard.model.vo.DashCount;
 import com.youlai.boot.device.Enum.CommunicationModeEnum;
 import com.youlai.boot.device.Enum.DeviceTypeEnum;
@@ -40,7 +42,6 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static com.youlai.boot.common.util.JsonUtils.stringToJsonNode;
 
@@ -209,7 +210,7 @@ public class DashBoardController {
                 //说明查所有
                 deviceList = deviceService.list(new LambdaQueryWrapper<Device>().eq(Device::getDeviceTypeId, deviceTypeId));
             }
-            List<InfluxMqttPlug> tables =new ArrayList<>();
+            List<InfluxMqttPlug> tables = new ArrayList<>();
             List<InfluxMqttPlugVO> influxMqttPlugVOS = new ArrayList<>();
             String fluxQuery = "";
             if (ObjectUtils.isNotEmpty(deviceList)) {
@@ -219,7 +220,7 @@ public class DashBoardController {
                     log.info("InfluxDB查询语句: {}", fluxQuery);
                     List<InfluxMqttPlug> query = influxDBClient.getQueryApi()
                             .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
-                    influxMqttPlugVOS.addAll( makeInfluxMqttPlugVOListAll(query, timeUnit));
+                    influxMqttPlugVOS.addAll(makeInfluxMqttPlugVOListAll(query, timeUnit));
                 }
                 List<Double> resultValue = new ArrayList<>();
                 for (InfluxMqttPlugVO influxMqttPlugVO : influxMqttPlugVOS) {
@@ -245,7 +246,7 @@ public class DashBoardController {
                 influxMqttPlugVO.setValue(resultValue);
                 influxMqttPlugVOS1.add(influxMqttPlugVO);
                 return Result.success(influxMqttPlugVOS1);
-            }else{
+            } else {
                 tables = influxDBClient.getQueryApi()
                         .query(builder.build(), influxDBProperties.getOrg(), InfluxMqttPlug.class);
                 log.info("InfluxDB查询语句: {}", fluxQuery);
@@ -495,12 +496,18 @@ public class DashBoardController {
 
     @Operation(summary = "查询开关数据")
     @GetMapping("/switch/data")
-    public Result<List<InfluxSwitchVO>> getSwitchData(
+    public PageResult<InfluxSwitchVO> getSwitchData(
             @Parameter(description = "设备编码", required = true)
             @RequestParam String deviceCode,
 
             @Parameter(description = "房间id")
-            @RequestParam(required = false) String roomId
+            @RequestParam(required = false) String roomId,
+
+            @Parameter(description = "页码，默认1")
+            @RequestParam(required = false, defaultValue = "1") Integer pageNum,
+
+            @Parameter(description = "每页数量，默认10")
+            @RequestParam(required = false, defaultValue = "10") Integer pageSize
     ) throws JsonProcessingException {
         try {
             InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
@@ -519,6 +526,9 @@ public class DashBoardController {
             if (StringUtils.isNotBlank(roomId)) {
                 builder.tag("roomId", roomId);
             }
+            // 计算偏移量并设置分页
+            int offset = (pageNum - 1) * pageSize;
+            builder.limit(pageSize).offset(offset);
             String fluxQuery = builder.build();
             log.info("influxdb查询开关语句{}", fluxQuery);
             List<InfluxSwitch> tables = influxDBClient.getQueryApi().query(fluxQuery, influxDBProperties.getOrg(), InfluxSwitch.class);
@@ -539,12 +549,49 @@ public class DashBoardController {
                     }
                 }
             }
-            //对状态解析
-            return Result.success(result);
+            // 计算总记录数(需要单独查询)
+            long total = getTotalCount(deviceCode, roomId);
+            Page<InfluxSwitchVO> page = new Page<>();
+            page.setTotal(total);
+            page.setRecords(result);
+            page.setCurrent(pageNum);
+            page.setSize(pageSize);
+
+            return PageResult.success(page);
         } catch (InfluxException e) {
             System.err.println("error：" + e.getMessage());
         }
-        return Result.failed();
+//        return PageResult.failed();
+        return null;
+    }
+
+    // 辅助方法：获取总记录数
+    private long getTotalCount(String deviceCode, String roomId) {
+        InfluxQueryBuilder countBuilder = InfluxQueryBuilder.newBuilder()
+                .bucket(influxDBProperties.getBucket())
+                .range(1, "d")
+                .measurement("device")
+                .fields("switch")
+                .count();
+
+        if (StringUtils.isNotBlank(deviceCode)) {
+            countBuilder.tag("deviceCode", deviceCode);
+        }
+        if (StringUtils.isNotBlank(roomId)) {
+            countBuilder.tag("roomId", roomId);
+        }
+
+        String countQuery = countBuilder.build();
+        log.debug("InfluxDB查询总记录数语句: {}", countQuery);
+
+        try {
+            List<CountResult> results = influxDBClient.getQueryApi()
+                    .query(countQuery, influxDBProperties.getOrg(), CountResult.class);
+            return results.isEmpty() ? 0 : results.get(0).getValue();
+        } catch (Exception e) {
+            log.error("查询总记录数失败", e);
+            return 0;
+        }
     }
 
     private InfluxMotionVO makeInfluxMotionVOList(List<InfluxHumanRadarSensor> tables) {

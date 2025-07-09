@@ -7,6 +7,9 @@ import com.youlai.boot.category.model.query.CategoryQuery;
 import com.youlai.boot.category.model.vo.CategoryVO;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.youlai.boot.common.model.Option;
+
+import java.util.List;
 
 /**
  * 分类管理服务类
@@ -57,4 +60,6 @@ public interface CategoryService extends IService<Category> {
     boolean deleteCategorys(String ids);
 
     boolean bindCategory(BindingForm formData);
+
+    List<Option<Long>> listCategoryOptions();
 }

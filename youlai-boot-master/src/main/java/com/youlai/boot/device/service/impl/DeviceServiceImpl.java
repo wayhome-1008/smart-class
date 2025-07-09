@@ -329,7 +329,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
             Long count = (Long) map.get("count");
 
             switch (status) {
-                case 0:
+                case 3:
                     result.put("disable", count);
                     break;
                 case 1:
@@ -338,7 +338,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
                 case 2:
                     result.put("unregistered", count);
                     break;
-                case 3:
+                case 0:
                     result.put("offline", count);
                     break;
             }
