@@ -59,9 +59,9 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, Config> impleme
         String keywords = configPageQuery.getKeywords();
         LambdaQueryWrapper<Config> query = new LambdaQueryWrapper<Config>()
                 .and(StringUtils.isNotBlank(keywords),
-                    q -> q.like(Config::getConfigKey, keywords)
-                        .or()
-                        .like(Config::getConfigName, keywords)
+                        q -> q.like(Config::getConfigKey, keywords)
+                                .or()
+                                .like(Config::getConfigName, keywords)
                 );
         Page<Config> pageList = this.page(page, query);
         return configConverter.toPageVo(pageList);
@@ -123,7 +123,7 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, Config> impleme
     public boolean delete(Long id) {
         if (id != null) {
             return super.update(new LambdaUpdateWrapper<Config>()
-                    .eq(Config::getId,id)
+                    .eq(Config::getId, id)
                     .set(Config::getIsDeleted, 1)
                     .set(Config::getUpdateBy, SecurityUtils.getUserId())
             );
@@ -160,6 +160,14 @@ public class ConfigServiceImpl extends ServiceImpl<ConfigMapper, Config> impleme
             return redisTemplate.opsForHash().get(RedisConstants.System.CONFIG, key);
         }
         return null;
+    }
+
+    @Override
+    public List<Config> listByKeys(List<String> keys) {
+        if (keys != null && !keys.isEmpty()) {
+            return this.list(new LambdaQueryWrapper<Config>().in(Config::getConfigKey, keys));
+        }
+        return List.of();
     }
 
 }

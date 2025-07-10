@@ -7,6 +7,8 @@ import com.youlai.boot.system.model.form.ConfigForm;
 import com.youlai.boot.system.model.query.ConfigPageQuery;
 import com.youlai.boot.system.model.vo.ConfigVO;
 
+import java.util.List;
+
 /**
  * 系统配置Service接口
  *
@@ -65,4 +67,5 @@ public interface ConfigService extends IService<Config> {
      */
     Object getSystemConfig(String key);
 
+    List<Config> listByKeys(List<String> keys);
 }

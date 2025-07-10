@@ -9,6 +9,9 @@ import com.influxdb.client.InfluxDBClient;
 import com.influxdb.exceptions.InfluxException;
 import com.influxdb.query.FluxRecord;
 import com.influxdb.query.FluxTable;
+import com.youlai.boot.category.model.entity.Category;
+import com.youlai.boot.category.service.CategoryService;
+import com.youlai.boot.common.model.Option;
 import com.youlai.boot.common.result.PageResult;
 import com.youlai.boot.common.result.Result;
 import com.youlai.boot.common.util.InfluxQueryBuilder;
@@ -29,6 +32,8 @@ import com.youlai.boot.device.service.DeviceInfoParser;
 import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.room.model.entity.Room;
 import com.youlai.boot.room.service.RoomService;
+import com.youlai.boot.system.model.entity.Config;
+import com.youlai.boot.system.service.ConfigService;
 import com.youlai.boot.system.service.LogService;
 import com.youlai.boot.system.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -67,6 +72,29 @@ public class DashBoardController {
     private final RoomService roomService;
     private final InfluxDBProperties influxDBProperties;
     private final InfluxDBClient influxDBClient;
+    private final ConfigService configService;
+    private final CategoryService categoryService;
+
+    @Operation(summary = "查询配置分类用电量")
+    @GetMapping("/category/electricity")
+    public Result<Void> getCategoryElectricityData() {
+        //查category
+        List<Category> categories = categoryService.list();
+        if (ObjectUtils.isEmpty(categories)) return Result.success();
+        //根据category名称查询展示那些配置
+        List<String> categoryNames = categories.stream().map(Category::getCategoryName).toList();
+        List<Config> configList = configService.listByKeys(categoryNames);
+        //此时再根据配置的分类名称查询
+        for (Config config : configList) {
+            for (String categoryName : categoryNames) {
+                if (categoryName.equals(config.getConfigKey())){
+                    //说明需要查询该分类设备的数据
+                }
+            }
+        }
+
+        return Result.success();
+    }
 
     @Operation(summary = "获取首页count数量")
     @GetMapping("/count")
