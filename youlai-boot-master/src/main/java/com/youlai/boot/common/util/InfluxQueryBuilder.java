@@ -427,7 +427,10 @@ public class InfluxQueryBuilder {
         this.pivot = true;
         return this;
     }
-
+    public InfluxQueryBuilder sum() {
+        this.functions.add("sum()");
+        return this;
+    }
     /**
      * 启用使用上一个值填充
      */

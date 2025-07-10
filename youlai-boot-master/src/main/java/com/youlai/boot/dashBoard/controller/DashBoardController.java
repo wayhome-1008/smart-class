@@ -7,12 +7,15 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.exceptions.InfluxException;
+import com.influxdb.query.FluxRecord;
+import com.influxdb.query.FluxTable;
 import com.youlai.boot.common.result.PageResult;
 import com.youlai.boot.common.result.Result;
 import com.youlai.boot.common.util.InfluxQueryBuilder;
 import com.youlai.boot.config.property.InfluxDBProperties;
 import com.youlai.boot.dashBoard.model.vo.CountResult;
 import com.youlai.boot.dashBoard.model.vo.DashCount;
+import com.youlai.boot.dashBoard.model.vo.RoomElectricityRankingVO;
 import com.youlai.boot.device.Enum.CommunicationModeEnum;
 import com.youlai.boot.device.Enum.DeviceTypeEnum;
 import com.youlai.boot.device.factory.DeviceInfoParserFactory;
@@ -44,6 +47,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 import static com.youlai.boot.common.util.JsonUtils.stringToJsonNode;
+import static com.youlai.boot.common.util.MathUtils.formatDouble;
 
 /**
  *@Author: way
@@ -130,7 +134,7 @@ public class DashBoardController {
             if (!tables.isEmpty()) {
                 InfluxMqttPlug latestData = tables.get(0);
                 RoomElectricity result = new RoomElectricity();
-                result.setTotal(latestData.getTotal());
+                result.setTotal(formatDouble(latestData.getTotal()));
                 result.setVoltage(latestData.getVoltage());
                 result.setCurrent(latestData.getCurrent());
                 return Result.success(result);
@@ -270,7 +274,7 @@ public class DashBoardController {
             // 格式化时间（根据你的需求选择格式）
             String formattedTime = formatTime(table.getTime(), timeUnit);
             times.add(formattedTime);
-            values.add(table.getTotal());
+            values.add(formatDouble(table.getTotal()));
         }
         vo.setTime(times);
         vo.setValue(values);
@@ -422,15 +426,15 @@ public class DashBoardController {
 
             // 温度数据
             tempTimes.add(formattedTime);
-            tempValues.add(table.getTemperature());
+            tempValues.add(formatDouble(table.getTemperature()));
 
             // 湿度数据
             humidityTimes.add(formattedTime);
-            humidityValues.add(table.getHumidity());
+            humidityValues.add(formatDouble(table.getHumidity()));
 
             // 光照数据
             illuminanceTimes.add(formattedTime);
-            illuminanceValues.add(table.getIlluminance());
+            illuminanceValues.add(formatDouble(table.getIlluminance()));
         }
 
         // 设置VO对象的值
@@ -564,6 +568,90 @@ public class DashBoardController {
 //        return PageResult.failed();
         return null;
     }
+
+    @Operation(summary = "查询各房间总用电量排名(升序)")
+    @GetMapping("/electricity/ranking")
+    public Result<List<RoomElectricityRankingVO>> getRoomElectricityRankingAsc(
+            @Parameter(description = "时间范围: today-今天/month-本月/year-本年", example = "today")
+            @RequestParam(defaultValue = "today") String range) {
+        try {
+            // 1. 获取所有房间列表
+            List<Room> rooms = roomService.list();
+
+            // 2. 构建结果列表
+            List<RoomElectricityRankingVO> rankingList = new ArrayList<>();
+
+            // 3. 查询每个房间的总用电量
+            for (Room room : rooms) {
+                // 为每个房间创建新的查询构建器
+                InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
+                        .bucket(influxDBProperties.getBucket())
+                        .measurement("device")
+                        .fields("Total")
+                        .sum()
+                        .timeShift("8h");
+
+                // 设置时间范围
+                switch (range) {
+                    case "today":
+                        builder.today();
+                        break;
+                    case "month":
+                        builder.currentMonth();
+                        break;
+                    case "year":
+                        builder.currentYear();
+                        break;
+                    default:
+                        return Result.failed("无效的时间范围参数");
+                }
+
+                // 添加房间ID过滤和聚合
+                builder.tag("roomId", String.valueOf(room.getId()))
+                        .sum();  // 使用专门的sum方法
+
+                String fluxQuery = builder.build();
+                log.info("InfluxDB查询语句: {}", fluxQuery);
+
+//                List<InfluxMqttPlug> tables = influxDBClient.getQueryApi()
+//                        .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
+                List<FluxTable> tables = influxDBClient.getQueryApi().query(fluxQuery);
+                Double total = 0d;
+                for (FluxTable table : tables) {
+                    for (FluxRecord record : table.getRecords()) {
+                        total = (Double) record.getValueByKey("_value"); // 或 "Total"
+                        log.info("获取到的Total值: {}", total);
+                    }
+                }
+                if (!tables.isEmpty()) {
+                    RoomElectricityRankingVO vo = new RoomElectricityRankingVO();
+                    vo.setRoomId(room.getId());
+                    vo.setRoomCode(room.getClassroomCode());
+                    vo.setRoomName(room.getClassroomCode());
+                    vo.setTotalElectricity(formatDouble(total));
+                    rankingList.add(vo);
+                }
+            }
+
+            // 4. 按用电量升序排序（从小到大）
+// 安全处理null值的排序方式
+            rankingList.sort(Comparator.comparingDouble(
+                    vo -> Optional.ofNullable(vo.getTotalElectricity()).orElse(0.0)
+            ));
+
+            // 5. 添加排名序号
+            for (int i = 0; i < rankingList.size(); i++) {
+                rankingList.get(i).setRank(i + 1);
+            }
+
+            return Result.success(rankingList);
+
+        } catch (InfluxException e) {
+            log.error("查询房间用电量排名失败: {}", e.getMessage());
+            return Result.failed("查询房间用电量排名失败");
+        }
+    }
+
 
     // 辅助方法：获取总记录数
     private long getTotalCount(String deviceCode, String roomId) {
