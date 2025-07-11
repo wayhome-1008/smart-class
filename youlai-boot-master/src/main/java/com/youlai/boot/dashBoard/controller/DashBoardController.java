@@ -13,7 +13,6 @@ import com.youlai.boot.category.model.entity.Category;
 import com.youlai.boot.category.service.CategoryService;
 import com.youlai.boot.categoryDeviceRelationship.model.CategoryDeviceRelationship;
 import com.youlai.boot.categoryDeviceRelationship.service.CategoryDeviceRelationshipService;
-import com.youlai.boot.common.model.Option;
 import com.youlai.boot.common.result.PageResult;
 import com.youlai.boot.common.result.Result;
 import com.youlai.boot.common.util.InfluxQueryBuilder;
