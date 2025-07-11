@@ -8,7 +8,10 @@ import java.text.DecimalFormat;
  *@Description: TODO
  */
 public class MathUtils {
-    public static double formatDouble(double value) {
+    public static Double formatDouble(Double value) {
+        if (value == null) {
+            return null;
+        }
         DecimalFormat df = new DecimalFormat("#.##"); // 保留两位小数，自动四舍五入
         return Double.parseDouble(df.format(value));
     }

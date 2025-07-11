@@ -7,6 +7,7 @@ import com.youlai.boot.category.model.query.CategoryQuery;
 import com.youlai.boot.category.model.vo.CategoryVO;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.youlai.boot.categoryDeviceRelationship.model.CategoryDeviceRelationship;
 import com.youlai.boot.common.model.Option;
 
 import java.util.List;

@@ -8,6 +8,8 @@ import com.youlai.boot.categoryDeviceRelationship.service.CategoryDeviceRelation
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 /**
  * @author Way
  */
@@ -20,6 +22,11 @@ public class CategoryDeviceRelationshipServiceImpl extends ServiceImpl<CategoryD
     @Override
     public CategoryDeviceRelationship getByDeviceId(Long id) {
         return categoryDeviceRelationshipMapper.selectOne(new LambdaQueryWrapper<CategoryDeviceRelationship>().eq(CategoryDeviceRelationship::getDeviceId, id));
+    }
+
+    @Override
+    public List<CategoryDeviceRelationship> listByCategoryId(Long categoryId) {
+        return this.categoryDeviceRelationshipMapper.selectList(new LambdaQueryWrapper<CategoryDeviceRelationship>().eq(CategoryDeviceRelationship::getCategoryId, categoryId));
     }
 }
 

@@ -11,11 +11,15 @@ import com.influxdb.query.FluxRecord;
 import com.influxdb.query.FluxTable;
 import com.youlai.boot.category.model.entity.Category;
 import com.youlai.boot.category.service.CategoryService;
+import com.youlai.boot.categoryDeviceRelationship.model.CategoryDeviceRelationship;
+import com.youlai.boot.categoryDeviceRelationship.service.CategoryDeviceRelationshipService;
 import com.youlai.boot.common.model.Option;
 import com.youlai.boot.common.result.PageResult;
 import com.youlai.boot.common.result.Result;
 import com.youlai.boot.common.util.InfluxQueryBuilder;
+import com.youlai.boot.common.util.MathUtils;
 import com.youlai.boot.config.property.InfluxDBProperties;
+import com.youlai.boot.dashBoard.model.vo.CategoryElectricityVO;
 import com.youlai.boot.dashBoard.model.vo.CountResult;
 import com.youlai.boot.dashBoard.model.vo.DashCount;
 import com.youlai.boot.dashBoard.model.vo.RoomElectricityRankingVO;
@@ -50,6 +54,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.youlai.boot.common.util.JsonUtils.stringToJsonNode;
 import static com.youlai.boot.common.util.MathUtils.formatDouble;
@@ -74,26 +79,136 @@ public class DashBoardController {
     private final InfluxDBClient influxDBClient;
     private final ConfigService configService;
     private final CategoryService categoryService;
+    private final CategoryDeviceRelationshipService categoryDeviceRelationshipService;
 
+    //    @Operation(summary = "查询配置分类用电量")
+//    @GetMapping("/category/electricity")
+//    public Result<CategoryElectricityVO> getCategoryElectricityData() {
+//        CategoryElectricityVO categoryElectricityVO = new CategoryElectricityVO();
+//        List<String> categoryNameVo = new ArrayList<>();
+//        List<Double> value = new ArrayList<>();
+//        List<String> time = new ArrayList<>();
+//        //查category
+//        List<Category> categories = categoryService.list();
+//        if (ObjectUtils.isEmpty(categories)) return Result.success();
+//        //根据category名称查询展示那些配置
+//        List<String> categoryNames = categories.stream().map(Category::getCategoryName).toList();
+//        List<Config> configList = configService.listByKeys(categoryNames);
+//        //此时再根据配置的分类名称查询
+//        for (Config config : configList) {
+//            for (String categoryName : categoryNames) {
+//                if (categoryName.equals(config.getConfigKey())) {
+//                    //根据categoryName查询出categories中符合条件的对象
+//                    Category category = categories.stream().filter(category1 -> category1.getCategoryName().equals(categoryName)).findFirst().get();
+//                    categoryNameVo.add(categoryName);
+//                    //根据categoryId查询出关系表中是哪个设备
+//                    List<CategoryDeviceRelationship> categoryDeviceRelationships = categoryDeviceRelationshipService.listByCategoryId(category.getId());
+//                    //todo 目前来说没有做主从配置的地方所有只从集合去0
+//                    CategoryDeviceRelationship relationship = categoryDeviceRelationships.get(0);
+//                    Device device = deviceService.getById(relationship.getDeviceId());
+//                    //查influxdb
+//                    InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
+//                            .bucket(influxDBProperties.getBucket())
+//                            .range(7, "d")
+//                            .measurement("device")
+//                            .fields("Total")
+//                            .tag("deviceCode", device.getDeviceCode())
+//                            .pivot()
+//                            .fill()
+//                            .sort("_time", InfluxQueryBuilder.SORT_ASC)
+//                            .timeShift("8h");
+//                    builder.window("1d", "last");
+//                    String fluxQuery = builder.build();
+//                    log.info("查询语句：{}", fluxQuery);
+//                    List<InfluxMqttPlug> tables = influxDBClient.getQueryApi()
+//                            .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
+//                    List<InfluxMqttPlugVO> influxMqttPlugVOS = makeInfluxMqttPlugVOListAll(tables, "w");
+//                    value.addAll(influxMqttPlugVOS.get(0).getValue());
+//                    time.addAll(influxMqttPlugVOS.get(0).getTime());
+//                }
+//            }
+//        }
+//        categoryElectricityVO.setCategoryName(categoryNameVo);
+//        categoryElectricityVO.setTime(time);
+//        categoryElectricityVO.setValue(value);
+//        return Result.success(categoryElectricityVO);
+//    }
     @Operation(summary = "查询配置分类用电量")
     @GetMapping("/category/electricity")
-    public Result<Void> getCategoryElectricityData() {
-        //查category
+    public Result<CategoryElectricityVO> getCategoryElectricityData() {
+        // 1. 初始化结果对象
+        CategoryElectricityVO result = new CategoryElectricityVO();
+        List<CategoryElectricityVO.CategoryData> categoryDataList = new ArrayList<>();
+
+        // 2. 获取所有分类
         List<Category> categories = categoryService.list();
+        List<Category> categoriesAll = new ArrayList<>();
         if (ObjectUtils.isEmpty(categories)) return Result.success();
-        //根据category名称查询展示那些配置
         List<String> categoryNames = categories.stream().map(Category::getCategoryName).toList();
         List<Config> configList = configService.listByKeys(categoryNames);
-        //此时再根据配置的分类名称查询
         for (Config config : configList) {
             for (String categoryName : categoryNames) {
-                if (categoryName.equals(config.getConfigKey())){
-                    //说明需要查询该分类设备的数据
+                if (categoryName.equals(config.getConfigKey())) {
+                    categoriesAll.add(categories.stream().filter(category1 -> category1.getCategoryName().equals(categoryName)).findFirst().get());
                 }
             }
         }
+        // 3. 获取时间基准（从任意一个分类查询获取即可）
+        List<String> timeTemplate = getTimeTemplate();
+        result.setTimes(timeTemplate);
 
-        return Result.success();
+        // 4. 处理每个分类
+        for (Category category : categoriesAll) {
+            // 查询该分类的设备数据
+            List<CategoryDeviceRelationship> relationships = categoryDeviceRelationshipService.listByCategoryId(category.getId());
+            if (!relationships.isEmpty()) {
+                CategoryElectricityVO.CategoryData data = new CategoryElectricityVO.CategoryData();
+                Device device = deviceService.getById(relationships.get(0).getDeviceId());
+                List<Double> values = queryDeviceWeeklyData(device.getDeviceCode());
+                data.setCategoryName(category.getCategoryName());
+                data.setValues(values);
+                categoryDataList.add(data);
+            }
+        }
+
+        result.setData(categoryDataList);
+        return Result.success(result);
+    }
+
+    // 获取时间模板（周一到周日）
+    private List<String> getTimeTemplate() {
+        List<String> times = new ArrayList<>(7);
+        times.add("周一");
+        times.add("周二");
+        times.add("周三");
+        times.add("周四");
+        times.add("周五");
+        times.add("周六");
+        times.add("周日");
+        return times;
+    }
+
+    // 查询设备一周数据
+    private List<Double> queryDeviceWeeklyData(String deviceCode) {
+        InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
+                .bucket(influxDBProperties.getBucket())
+                .range(7, "d")
+                .measurement("device")
+                .fields("Total")
+                .tag("deviceCode", deviceCode)
+                .pivot()
+                .fill()
+                .sort("_time", InfluxQueryBuilder.SORT_ASC)
+                .timeShift("8h")
+                .window("1d", "last");
+
+        List<InfluxMqttPlug> tables = influxDBClient.getQueryApi()
+                .query(builder.build(), influxDBProperties.getOrg(), InfluxMqttPlug.class);
+
+        return tables.stream()
+                .map(InfluxMqttPlug::getTotal)
+                .map(MathUtils::formatDouble)
+                .collect(Collectors.toList());
     }
 
     @Operation(summary = "获取首页count数量")
