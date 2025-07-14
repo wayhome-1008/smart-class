@@ -335,12 +335,14 @@ public class SubUpdateHandler implements MsgHandler {
 //                influxPlug.setRMS_CurrentC(mergeParams.get("RMS_CurrentC").asInt());
 //            }
             log.info("插座数据:{}", influxPlug);
-            influxDBClient.getWriteApiBlocking().writeMeasurement(
-                    influxProperties.getBucket(),
-                    influxProperties.getOrg(),
-                    WritePrecision.MS,
-                    influxPlug
-            );
+            if (deviceCache.getIsMaster()==1) {
+                influxDBClient.getWriteApiBlocking().writeMeasurement(
+                        influxProperties.getBucket(),
+                        influxProperties.getOrg(),
+                        WritePrecision.MS,
+                        influxPlug
+                );
+            }
         }
         redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCache.getDeviceCode(), deviceCache);
         RspMqtt(topic, mqttClient, deviceCache.getDeviceCode(), sequence);

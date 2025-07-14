@@ -100,4 +100,11 @@ public interface DeviceService extends IService<Device> {
     List<Device> listGatewaySubDevices(Long gatewayId);
 
     List<Device> listMqttDevices();
+
+    void masterSlave(String ids, Boolean isMaster);
+
+//    Boolean masterSlave(@Valid MasterSlaveForm formData);
+//
+//    List<Option<Long>> listDeviceMasterSlaveOptions();
+
 }

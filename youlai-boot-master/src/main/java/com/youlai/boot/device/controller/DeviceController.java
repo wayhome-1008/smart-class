@@ -397,6 +397,33 @@ public class DeviceController {
         return Result.success();
     }
 
+    @Operation(summary = "主从配置")
+    @GetMapping("/masterSlave/{ids}")
+    @Log(value = "主从配置", module = LogModuleEnum.DEVICE)
+    @PreAuthorize("@ss.hasPerm('device:device:master')")
+    public Result<Void> masterSlave(
+            @Parameter(description = "设备ID") @PathVariable String ids,
+            @Parameter(description = "是否为主设备") @RequestParam Boolean isMaster
+    ) {
+        deviceService.masterSlave(ids, isMaster);
+        return Result.success();
+    }
+
+//    @Operation(summary = "主从配置")
+//    @PostMapping("/masterSlave")
+//    @Log(value = "主从配置", module = LogModuleEnum.DEVICE)
+//    public Result<Boolean> masterSlave(@RequestBody @Valid MasterSlaveForm formData) {
+//        Boolean slave = deviceService.masterSlave(formData);
+//        return Result.success(slave);
+//    }
+
+//    @Operation(summary = "设备主从下拉列表")
+//    @GetMapping("/masterSlave/options")
+//    public Result<List<Option<Long>>> getDeptOptions() {
+//        List<Option<Long>> list = deviceService.listDeviceMasterSlaveOptions();
+//        return Result.success(list);
+//    }
+
     private void mqttDeviceDel(Device device) {
         //删缓存
         redisTemplate.opsForHash().delete(RedisConstants.Device.DEVICE, device.getDeviceCode());

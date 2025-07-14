@@ -1,5 +1,6 @@
 package com.youlai.boot.device.service.impl;
 
+import cn.hutool.core.lang.Assert;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -406,4 +407,96 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     public List<Device> listMqttDevices() {
         return deviceMapper.selectList(new LambdaQueryWrapper<Device>().eq(Device::getCommunicationModeItemId, 4));
     }
+
+    @Override
+    public void masterSlave(String ids, Boolean isMaster) {
+        List<Long> idList = Arrays.stream(ids.split(","))
+                .map(Long::parseLong)
+                .toList();
+        List<Device> devices = this.listByIds(idList);
+        for (Device device : devices) {
+            device.setIsMaster(isMaster ? 1 : 0);
+        }
+        this.updateBatchById(devices);
+    }
+
+//    @Override
+//    public Boolean masterSlave(MasterSlaveForm formData) {
+//        //查询设备
+//        Device device = this.getById(formData.getId());
+//        String treePath = generateDeviceTreePath(formData.getParentId());
+//        device.setTreePath(treePath);
+//        device.setParentId(formData.getParentId());
+//        //更新缓存
+//        redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
+//        return this.updateById(device);
+//    }
+
+//    @Override
+//    public List<Option<Long>> listDeviceMasterSlaveOptions() {
+//        List<Device> deviceList = this.list(new LambdaQueryWrapper<Device>()
+//                .select(Device::getId, Device::getParentId, Device::getDeviceName)
+//        );
+//        if (CollectionUtil.isEmpty(deviceList)) {
+//            return Collections.EMPTY_LIST;
+//        }
+//
+//        Set<Long> deviceIds = deviceList.stream()
+//                .map(Device::getId)
+//                .collect(Collectors.toSet());
+//
+//        Set<Long> parentIds = deviceList.stream()
+//                .map(Device::getParentId)
+//                .collect(Collectors.toSet());
+//
+//        List<Long> rootIds = CollectionUtil.subtractToList(parentIds, deviceIds);
+//
+//        // 递归生成部门树形列表
+//        return rootIds.stream()
+//                .flatMap(rootId -> recurDeviceTreeOptions(rootId, deviceList).stream())
+//                .toList();
+//    }
+
+//    /**
+//     * 设备路径生成
+//     *
+//     * @param parentId 父ID
+//     * @return 父节点路径以英文逗号(, )分割，eg: 1,2,3
+//     */
+//    private String generateDeviceTreePath(Long parentId) {
+//        String treePath = null;
+//        if (SystemConstants.ROOT_NODE_ID.equals(parentId)) {
+//            treePath = String.valueOf(parentId);
+//        } else {
+//            Device parent = this.getById(parentId);
+//            if (parent != null) {
+//                treePath = parent.getTreePath() + "," + parent.getId();
+//            }
+//        }
+//        return treePath;
+//    }
+
+//    /**
+//     * 递归生成设备表格层级列表
+//     *
+//     * @param parentId 父ID
+//     * @param deviceList 设备列表
+//     * @return 设备表格层级列表
+//     */
+//    public static List<Option<Long>> recurDeviceTreeOptions(Long parentId, List<Device> deviceList) {
+//        return CollectionUtil.emptyIfNull(deviceList).stream()
+//                .filter(device ->
+//                        // 关键修改：仅处理parentId不为null的设备
+//                        parentId != null && parentId.equals(device.getParentId())
+//                )
+//                .map(device -> {
+//                    Option<Long> option = new Option<>(device.getId(), device.getDeviceName());
+//                        List<Option<Long>> children = recurDeviceTreeOptions(device.getId(), deviceList);
+//                        if (CollectionUtil.isNotEmpty(children)) {
+//                            option.setChildren(children);
+//                        }
+//                    return option;
+//                })
+//                .collect(Collectors.toList());
+//    }
 }

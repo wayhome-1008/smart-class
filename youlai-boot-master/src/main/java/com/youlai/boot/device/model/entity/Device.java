@@ -91,6 +91,8 @@ public class Device extends BaseEntity {
     @TableLogic(value = "0", delval = "1")
     private Integer isDeleted;
 
+    private Integer isMaster;
+
     @TableField(exist = false)
     private Date deviceLastDate;
 }

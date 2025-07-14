@@ -85,32 +85,37 @@ public class ResultHandler implements MsgHandler {
             String fieldName = fieldNames.next();
             if (fieldName.startsWith("POWER")) {
                 if (fieldName.equals("POWER")) {
-                    String status = jsonNode.get(fieldName).asText();
-                    lightStatus.put("switch1", status);
-                    InfluxSwitch influxSwitch = new InfluxSwitch();
-                    influxSwitch.setDeviceCode(deviceCode);
-                    influxSwitch.setRoomId(device.getDeviceRoom().toString());
-                    influxSwitch.setSwitchState(lightStatus.toString());
-                    influxDBClient.getWriteApiBlocking().writeMeasurement(
-                            influxProperties.getBucket(),
-                            influxProperties.getOrg(),
-                            WritePrecision.MS,
-                            influxSwitch
-                    );
+                    if (device.getIsMaster() == 1) {
+                        String status = jsonNode.get(fieldName).asText();
+                        lightStatus.put("switch1", status);
+                        InfluxSwitch influxSwitch = new InfluxSwitch();
+                        influxSwitch.setDeviceCode(deviceCode);
+                        influxSwitch.setRoomId(device.getDeviceRoom().toString());
+                        influxSwitch.setSwitchState(lightStatus.toString());
+                        influxDBClient.getWriteApiBlocking().writeMeasurement(
+                                influxProperties.getBucket(),
+                                influxProperties.getOrg(),
+                                WritePrecision.MS,
+                                influxSwitch
+                        );
+                    }
+
                 } else {
-                    String status = jsonNode.get(fieldName).asText();
-                    lightStatus.put(fieldName.replace("POWER", "switch"), status);
-                    InfluxSwitch influxSwitch = new InfluxSwitch();
-                    influxSwitch.setDeviceCode(deviceCode);
-                    influxSwitch.setRoomId(device.getDeviceRoom().toString());
-                    influxSwitch.setSwitchState(lightStatus.toString());
-                    influxDBClient.getWriteApiBlocking().writeMeasurement(
-                            influxProperties.getBucket(),
-                            influxProperties.getOrg(),
-                            WritePrecision.MS,
-                            influxSwitch
-                    );
-                    log.debug("灯光路数 {} 状态: {}", fieldName, status);
+                    if (device.getIsMaster() == 1) {
+                        String status = jsonNode.get(fieldName).asText();
+                        lightStatus.put(fieldName.replace("POWER", "switch"), status);
+                        InfluxSwitch influxSwitch = new InfluxSwitch();
+                        influxSwitch.setDeviceCode(deviceCode);
+                        influxSwitch.setRoomId(device.getDeviceRoom().toString());
+                        influxSwitch.setSwitchState(lightStatus.toString());
+                        influxDBClient.getWriteApiBlocking().writeMeasurement(
+                                influxProperties.getBucket(),
+                                influxProperties.getOrg(),
+                                WritePrecision.MS,
+                                influxSwitch
+                        );
+                        log.debug("灯光路数 {} 状态: {}", fieldName, status);
+                    }
                 }
 
             }

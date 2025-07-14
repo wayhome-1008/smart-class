@@ -80,12 +80,14 @@ public class State8Handler implements MsgHandler {
         device.setStatus(1);
         redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
 //        deviceService.updateById(device);
-        influxDBClient.getWriteApiBlocking().writeMeasurement(
-                influxProperties.getBucket(),
-                influxProperties.getOrg(),
-                WritePrecision.MS,
-                influxPlug
-        );
+        if (device.getIsMaster()==1) {
+            influxDBClient.getWriteApiBlocking().writeMeasurement(
+                    influxProperties.getBucket(),
+                    influxProperties.getOrg(),
+                    WritePrecision.MS,
+                    influxPlug
+            );
+        }
         log.info("插座数据:{}", influxPlug);
     }
 
