@@ -415,8 +415,11 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
         List<Device> devices = this.listByIds(idList);
         for (Device device : devices) {
             device.setIsMaster(isMaster ? 1 : 0);
+            //缓存同步
+            redisTemplate.delete(RedisConstants.Device.DEVICE + device.getId());
         }
         this.updateBatchById(devices);
+
     }
 
 //    @Override

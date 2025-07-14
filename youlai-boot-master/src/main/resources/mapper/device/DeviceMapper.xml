@@ -36,6 +36,7 @@
         d.device_type_id,
         d.device_info,
         dt.device_type,
+        d.is_master,
         cmi.label AS communicationModeItemName,
         cmi.value AS communicationModeItemId,
         r.classroom_code AS roomName,
