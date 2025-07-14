@@ -101,7 +101,7 @@ public interface DeviceService extends IService<Device> {
 
     List<Device> listMqttDevices();
 
-    void masterSlave(String ids, Boolean isMaster);
+    void masterSlave(String ids, Boolean isMaster, Long roomId);
 
 //    Boolean masterSlave(@Valid MasterSlaveForm formData);
 //

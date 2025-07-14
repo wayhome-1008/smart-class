@@ -408,11 +408,11 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     }
 
     @Override
-    public void masterSlave(String ids, Boolean isMaster) {
+    public void masterSlave(String ids, Boolean isMaster, Long roomId) {
         List<Long> idList = Arrays.stream(ids.split(","))
                 .map(Long::parseLong)
                 .toList();
-        List<Device> devices = this.listByIds(idList);
+        List<Device> devices = this.listByIdAndRoomId(idList, roomId);
         for (Device device : devices) {
             device.setIsMaster(isMaster ? 1 : 0);
             //缓存同步
@@ -420,6 +420,19 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
         }
         this.updateBatchById(devices);
 
+    }
+
+    private List<Device> listByIdAndRoomId(List<Long> idList, Long roomId) {
+        if (idList.size() == 1) {
+            if (idList.get(0) == -1) {
+                return this.list(new LambdaQueryWrapper<Device>()
+                        .eq(Device::getDeviceRoom, roomId));
+            }
+        }
+        return this.list(new QueryWrapper<Device>().lambda()
+                .eq(Device::getDeviceRoom, roomId).in(Device::getId, idList)
+                .in(Device::getId, idList)
+        );
     }
 
 //    @Override

@@ -398,14 +398,15 @@ public class DeviceController {
     }
 
     @Operation(summary = "主从配置")
-    @GetMapping("/masterSlave/{ids}")
+    @GetMapping("/masterSlave")
     @Log(value = "主从配置", module = LogModuleEnum.DEVICE)
     @PreAuthorize("@ss.hasPerm('device:device:master')")
     public Result<Void> masterSlave(
-            @Parameter(description = "设备ID") @PathVariable String ids,
-            @Parameter(description = "是否为主设备") @RequestParam Boolean isMaster
+            @Parameter(description = "设备ID列表") @RequestParam String ids,
+            @Parameter(description = "是否为主设备") @RequestParam Boolean isMaster,
+            @Parameter(description = "房间Id") @RequestParam Long roomId
     ) {
-        deviceService.masterSlave(ids, isMaster);
+        deviceService.masterSlave(ids, isMaster,roomId);
         return Result.success();
     }
 
