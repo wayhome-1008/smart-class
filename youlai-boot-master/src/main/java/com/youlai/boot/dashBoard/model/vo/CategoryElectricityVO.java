@@ -11,11 +11,8 @@ import java.util.List;
  */
 @Data
 public class CategoryElectricityVO {
-//    private List<String> categoryName;
-//    private List<String> time;  // 时间戳
-//    private List<Double> value; // 指标值
-// 时间维度 ["周一","周二",...,"周日"]
-private List<String> times;
+    // 时间维度 ["周一","周二",...,"周日"]
+    private List<String> times;
 
     // 分类数据列表
     private List<CategoryData> data;

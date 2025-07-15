@@ -80,58 +80,6 @@ public class DashBoardController {
     private final CategoryService categoryService;
     private final CategoryDeviceRelationshipService categoryDeviceRelationshipService;
 
-    //    @Operation(summary = "查询配置分类用电量")
-//    @GetMapping("/category/electricity")
-//    public Result<CategoryElectricityVO> getCategoryElectricityData() {
-//        CategoryElectricityVO categoryElectricityVO = new CategoryElectricityVO();
-//        List<String> categoryNameVo = new ArrayList<>();
-//        List<Double> value = new ArrayList<>();
-//        List<String> time = new ArrayList<>();
-//        //查category
-//        List<Category> categories = categoryService.list();
-//        if (ObjectUtils.isEmpty(categories)) return Result.success();
-//        //根据category名称查询展示那些配置
-//        List<String> categoryNames = categories.stream().map(Category::getCategoryName).toList();
-//        List<Config> configList = configService.listByKeys(categoryNames);
-//        //此时再根据配置的分类名称查询
-//        for (Config config : configList) {
-//            for (String categoryName : categoryNames) {
-//                if (categoryName.equals(config.getConfigKey())) {
-//                    //根据categoryName查询出categories中符合条件的对象
-//                    Category category = categories.stream().filter(category1 -> category1.getCategoryName().equals(categoryName)).findFirst().get();
-//                    categoryNameVo.add(categoryName);
-//                    //根据categoryId查询出关系表中是哪个设备
-//                    List<CategoryDeviceRelationship> categoryDeviceRelationships = categoryDeviceRelationshipService.listByCategoryId(category.getId());
-//                    //todo 目前来说没有做主从配置的地方所有只从集合去0
-//                    CategoryDeviceRelationship relationship = categoryDeviceRelationships.get(0);
-//                    Device device = deviceService.getById(relationship.getDeviceId());
-//                    //查influxdb
-//                    InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
-//                            .bucket(influxDBProperties.getBucket())
-//                            .range(7, "d")
-//                            .measurement("device")
-//                            .fields("Total")
-//                            .tag("deviceCode", device.getDeviceCode())
-//                            .pivot()
-//                            .fill()
-//                            .sort("_time", InfluxQueryBuilder.SORT_ASC)
-//                            .timeShift("8h");
-//                    builder.window("1d", "last");
-//                    String fluxQuery = builder.build();
-//                    log.info("查询语句：{}", fluxQuery);
-//                    List<InfluxMqttPlug> tables = influxDBClient.getQueryApi()
-//                            .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
-//                    List<InfluxMqttPlugVO> influxMqttPlugVOS = makeInfluxMqttPlugVOListAll(tables, "w");
-//                    value.addAll(influxMqttPlugVOS.get(0).getValue());
-//                    time.addAll(influxMqttPlugVOS.get(0).getTime());
-//                }
-//            }
-//        }
-//        categoryElectricityVO.setCategoryName(categoryNameVo);
-//        categoryElectricityVO.setTime(time);
-//        categoryElectricityVO.setValue(value);
-//        return Result.success(categoryElectricityVO);
-//    }
     @Operation(summary = "查询配置分类用电量")
     @GetMapping("/category/electricity")
     public Result<CategoryElectricityVO> getCategoryElectricityData() {
@@ -148,7 +96,10 @@ public class DashBoardController {
         for (Config config : configList) {
             for (String categoryName : categoryNames) {
                 if (categoryName.equals(config.getConfigKey())) {
-                    categoriesAll.add(categories.stream().filter(category1 -> category1.getCategoryName().equals(categoryName)).findFirst().get());
+                    categoriesAll.add(categories.stream()
+                            .filter(category1 -> category1.getCategoryName().equals(categoryName))
+                            .findFirst()
+                            .orElse(null));
                 }
             }
         }
@@ -269,7 +220,7 @@ public class DashBoardController {
                     .timeShift("8h");
             builder.tag("roomId", String.valueOf(roomId));
             String fluxQuery = builder.build();
-            log.info("InfluxDB查询语句: {}", fluxQuery);
+            log.info("房间当天用电InfluxDB查询语句: {}", fluxQuery);
 
             List<InfluxMqttPlug> tables = influxDBClient.getQueryApi()
                     .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);         //根据influxdb传来的数据把度数算上
@@ -356,14 +307,14 @@ public class DashBoardController {
                 //说明查所有
                 deviceList = deviceService.list(new LambdaQueryWrapper<Device>().eq(Device::getDeviceTypeId, deviceTypeId));
             }
-            List<InfluxMqttPlug> tables = new ArrayList<>();
+            List<InfluxMqttPlug> tables;
             List<InfluxMqttPlugVO> influxMqttPlugVOS = new ArrayList<>();
             String fluxQuery = "";
             if (ObjectUtils.isNotEmpty(deviceList)) {
                 for (Device device : deviceList) {
                     builder.tag("deviceCode", device.getDeviceCode());
                     fluxQuery = builder.build();
-                    log.info("InfluxDB查询语句: {}", fluxQuery);
+                    log.info("查询计量插座数据图数据InfluxDB查询语句: {}", fluxQuery);
                     List<InfluxMqttPlug> query = influxDBClient.getQueryApi()
                             .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
                     influxMqttPlugVOS.addAll(makeInfluxMqttPlugVOListAll(query, timeUnit));
@@ -395,7 +346,7 @@ public class DashBoardController {
             } else {
                 tables = influxDBClient.getQueryApi()
                         .query(builder.build(), influxDBProperties.getOrg(), InfluxMqttPlug.class);
-                log.info("InfluxDB查询语句: {}", fluxQuery);
+                log.info("查询计量插座数据图InfluxDB查询语句: {}", fluxQuery);
                 // 转换结果并返回
                 return Result.success(makeInfluxMqttPlugVOList(tables, timeUnit));
             }
@@ -421,66 +372,8 @@ public class DashBoardController {
         vo.setTime(times);
         vo.setValue(values);
         result.add(vo);
-        log.info("转换后的数据：{}", result);
         return result;
     }
-
-//    @Operation(summary = "查询房间用电数据")
-//    @GetMapping("/roomPower/data")
-//    public Result<List<InfluxMqttPlugVO>> getRoomPowerData(
-//
-//            @Parameter(description = "房间id")
-//            @RequestParam(required = true) String roomId
-//    ) {
-//        try {
-//            // 使用新的InfluxQueryBuilder构建查询/deviceType/options
-//            InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
-//                    .bucket(influxDBProperties.getBucket())
-//                    .range(timeAmount, timeUnit)
-//                    .measurement("device")
-//                    .fields("Total", "Voltage", "Current")
-//                    .pivot()
-//                    .fill()
-//                    .sort("_time", InfluxQueryBuilder.SORT_DESC)
-//                    .timeShift("8h");
-//
-//            // 添加设备编码和房间ID过滤条件
-//            if (StringUtils.isNotBlank(deviceCode)) {
-//                builder.tag("deviceCode", deviceCode);
-//            }
-//            if (StringUtils.isNotBlank(roomId)) {
-//                builder.tag("roomId", roomId);
-//            }
-//
-//            // 根据时间单位设置窗口聚合
-//            switch (timeUnit) {
-//                case "y":
-//                    builder.window("1mo", "last");
-//                    break;
-//                case "mo":
-//                    builder.window("1d", "last");
-//                    break;
-//                case "d":
-//                    builder.window("1h", "last");
-//                    break;
-//                case "h":
-//                    builder.window("1m", "last");
-//                    break;
-//                case "m":
-//                    builder.window("1s", "last");
-//                    break;
-//            }
-//            String fluxQuery = builder.build();
-//            log.info("InfluxDB查询语句: {}", fluxQuery);
-//            List<InfluxMqttPlug> tables = influxDBClient.getQueryApi()
-//                    .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);            //根据influxdb传来的数据把度数算上
-//            // 转换结果并返回
-//            return Result.success(makeInfluxMqttPlugVOList(tables, timeUnit));
-//        } catch (InfluxException e) {
-//            System.err.println("error：" + e.getMessage());
-//        }
-//        return Result.failed();
-//    }
 
     @Operation(summary = "查询传感器数据")
     @GetMapping("/sensor/data")
@@ -628,7 +521,7 @@ public class DashBoardController {
             // 根据时间单位设置窗口聚合
             builder.window("5m", "last");
             String fluxQuery = builder.build();
-            log.info("InfluxDB查询语句: {}", fluxQuery);
+            log.info("查询人体雷达数据图数据InfluxDB查询语句: {}", fluxQuery);
             List<InfluxHumanRadarSensor> tables = influxDBClient.getQueryApi()
                     .query(fluxQuery, influxDBProperties.getOrg(), InfluxHumanRadarSensor.class);            //根据influxdb传来的数据把度数算上
             // 转换结果并返回
@@ -725,7 +618,7 @@ public class DashBoardController {
 
             // 3. 查询每个房间的总用电量
             for (Room room : rooms) {
-                // 为每个房间创建新的查询构建器
+                // 为每个房间创建新查询构建器
                 InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
                         .bucket(influxDBProperties.getBucket())
                         .measurement("device")
@@ -754,9 +647,6 @@ public class DashBoardController {
 
                 String fluxQuery = builder.build();
                 log.info("InfluxDB查询语句: {}", fluxQuery);
-
-//                List<InfluxMqttPlug> tables = influxDBClient.getQueryApi()
-//                        .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
                 List<FluxTable> tables = influxDBClient.getQueryApi().query(fluxQuery);
                 Double total = 0d;
                 for (FluxTable table : tables) {
@@ -846,63 +736,16 @@ public class DashBoardController {
         InfluxMqttPlugVO vo = new InfluxMqttPlugVO();
         List<String> times = new ArrayList<>();
         List<Double> values = new ArrayList<>();
-//        if (deviceCodes.size() == 1) {
         for (InfluxMqttPlug table : tables) {
             // 格式化时间（根据你的需求选择格式）
             String formattedTime = formatTime(table.getTime(), timeUnit);
             times.add(formattedTime);
             values.add(table.getTotal());
         }
-//        }
-//        if (deviceCodes.size() > 1) {
-//            // 按 deviceCode 分组，收集每个设备的所有数据点
-//            Map<String, List<InfluxMqttPlug>> deviceGroups = tables.stream()
-//                    .filter(Objects::nonNull)
-//                    .filter(plug -> plug.getDeviceCode() != null)
-//                    .collect(Collectors.groupingBy(InfluxMqttPlug::getDeviceCode));
-//            for (String deviceCode : deviceCodes) {
-//                int i = 0;
-//                Double total;
-//                for (InfluxMqttPlug table : tables) {
-//                    if (table.getDeviceCode().equals(deviceCode)) {
-//                        i = i + 1;
-//                        List<Double> singleDevice = new ArrayList<>();
-//                        singleDevice.add(table.getTotal());
-//                        // 格式化时间（根据你的需求选择格式）
-//                        if (i==0){
-//                            String formattedTime = formatTime(table.getTime(), timeUnit);
-//                            times.add(formattedTime);
-//                        }
-//                    }
-//
-//                }
-//            }
-//
-//        }
         vo.setTime(times);
         vo.setValue(values);
         result.add(vo);
-        log.info("转换后的数据：{}", result);
         return result;
-//        // 1. 按时间点分组，处理可能为null的total值
-//        Map<String, Double> timeTotalMap = new TreeMap<>();
-//
-//        for (InfluxMqttPlug table : tables) {
-//            String formattedTime = formatTime(table.getTime(), timeUnit);
-//            Double total = Optional.of(table).map(InfluxMqttPlug::getTotal).orElse(0d);
-//            // 累加相同时间点的total值
-//            timeTotalMap.merge(formattedTime, total, Double::sum);
-//        }
-//
-//        // 2. 构建结果VO
-//        List<InfluxMqttPlugVO> result = new ArrayList<>();
-//        InfluxMqttPlugVO vo = new InfluxMqttPlugVO();
-//        vo.setTime(new ArrayList<>(timeTotalMap.keySet()));
-//        vo.setValue(new ArrayList<>(timeTotalMap.values()));
-//        result.add(vo);
-//
-//        log.info("转换后的数据：时间点={}, 值={}", vo.getTime(), vo.getValue());
-//        return result;
     }
 
     private String formatTime(Instant time, String timeUnit) {

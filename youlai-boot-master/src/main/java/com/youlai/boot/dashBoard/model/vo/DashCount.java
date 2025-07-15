@@ -15,7 +15,7 @@ public class DashCount {
     private Long userCount;
     //日志数量
     private Long logCount;
-    //房间数量
+    //房间的数量
     private Long roomCount;
     //todo
     private Long demo1Count;
