@@ -31,7 +31,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class DeviceJobServiceImpl extends ServiceImpl<DeviceJobMapper, DeviceJob> implements DeviceJobService {
-    private Scheduler scheduler;
+    private final Scheduler scheduler;
     private final DeviceJobConverter deviceJobConverter;
 
     /**
@@ -42,11 +42,10 @@ public class DeviceJobServiceImpl extends ServiceImpl<DeviceJobMapper, DeviceJob
      */
     @Override
     public IPage<DeviceJobVO> getDeviceJobPage(DeviceJobQuery queryParams) {
-        Page<DeviceJobVO> pageVO = this.baseMapper.getDeviceJobPage(
+        return this.baseMapper.getDeviceJobPage(
                 new Page<>(queryParams.getPageNum(), queryParams.getPageSize()),
                 queryParams
         );
-        return pageVO;
     }
 
     /**
