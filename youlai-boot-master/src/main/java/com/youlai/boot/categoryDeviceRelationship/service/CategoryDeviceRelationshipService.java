@@ -14,4 +14,6 @@ public interface CategoryDeviceRelationshipService extends IService<CategoryDevi
     CategoryDeviceRelationship getByDeviceId(Long id);
 
     List<CategoryDeviceRelationship> listByCategoryId(Long categoryId);
+
+    List<CategoryDeviceRelationship> listByDeviceIds(List<Long> deviceIds);
 }

@@ -103,6 +103,8 @@ public interface DeviceService extends IService<Device> {
 
     void masterSlave(String ids, Boolean isMaster, Long roomId);
 
+    List<Device> listAllMasterDevices();
+
 //    Boolean masterSlave(@Valid MasterSlaveForm formData);
 //
 //    List<Option<Long>> listDeviceMasterSlaveOptions();

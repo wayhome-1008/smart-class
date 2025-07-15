@@ -28,6 +28,11 @@ public class CategoryDeviceRelationshipServiceImpl extends ServiceImpl<CategoryD
     public List<CategoryDeviceRelationship> listByCategoryId(Long categoryId) {
         return this.categoryDeviceRelationshipMapper.selectList(new LambdaQueryWrapper<CategoryDeviceRelationship>().eq(CategoryDeviceRelationship::getCategoryId, categoryId));
     }
+
+    @Override
+    public List<CategoryDeviceRelationship> listByDeviceIds(List<Long> deviceIds) {
+        return this.list(new LambdaQueryWrapper<CategoryDeviceRelationship>().in(CategoryDeviceRelationship::getDeviceId, deviceIds));
+    }
 }
 
 

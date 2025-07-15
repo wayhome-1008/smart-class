@@ -416,10 +416,15 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
         for (Device device : devices) {
             device.setIsMaster(isMaster ? 1 : 0);
             //缓存同步
-            redisTemplate.delete(RedisConstants.Device.DEVICE + device.getId());
+            redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
         }
         this.updateBatchById(devices);
 
+    }
+
+    @Override
+    public List<Device> listAllMasterDevices() {
+        return this.list(new LambdaQueryWrapper<Device>().eq(Device::getIsMaster, 1));
     }
 
     private List<Device> listByIdAndRoomId(List<Long> idList, Long roomId) {

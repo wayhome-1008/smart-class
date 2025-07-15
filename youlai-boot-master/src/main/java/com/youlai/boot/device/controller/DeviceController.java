@@ -4,6 +4,8 @@ import cn.hutool.core.util.RandomUtil;
 import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.youlai.boot.category.model.entity.Category;
+import com.youlai.boot.category.service.CategoryService;
 import com.youlai.boot.categoryDeviceRelationship.model.CategoryDeviceRelationship;
 import com.youlai.boot.categoryDeviceRelationship.service.CategoryDeviceRelationshipService;
 import com.youlai.boot.common.annotation.Log;
@@ -26,6 +28,7 @@ import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.DeviceForm;
 import com.youlai.boot.device.model.query.DeviceQuery;
 import com.youlai.boot.device.model.vo.DeviceInfo;
+import com.youlai.boot.device.model.vo.DeviceMasterVO;
 import com.youlai.boot.device.model.vo.DeviceVO;
 import com.youlai.boot.device.service.DeviceInfoParser;
 import com.youlai.boot.device.service.DeviceService;
@@ -44,6 +47,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.youlai.boot.common.util.MacUtils.reParseMACAddress;
 import static com.youlai.boot.config.mqtt.TopicConfig.BASE_TOPIC;
@@ -67,6 +71,7 @@ public class DeviceController {
     private final MqttCallback mqttCallback;
     private final DeviceConverter deviceConverter;
     private final CategoryDeviceRelationshipService categoryDeviceRelationshipService;
+    private final CategoryService categoryService;
 
     @Operation(summary = "设备管理分页列表")
     @GetMapping("/page")
@@ -160,6 +165,60 @@ public class DeviceController {
         });
         return PageResult.success(result);
     }
+
+    @Operation(summary = "主从配置管理分页列表")
+    @GetMapping("/master/page")
+    public Result<List<DeviceMasterVO>> getDeviceMasterPage() {
+        // 1. 查询所有主设备
+        List<Device> masterDevices = deviceService.listAllMasterDevices();
+        if (ObjectUtils.isEmpty(masterDevices)) {
+            return Result.success();
+        }
+
+        // 2. 获取主设备ID列表
+        List<Long> masterDeviceIds = masterDevices.stream()
+                .map(Device::getId)
+                .collect(Collectors.toList());
+
+        // 3. 查询设备分类关系
+        List<CategoryDeviceRelationship> relationships = categoryDeviceRelationshipService.listByDeviceIds(masterDeviceIds);
+        if (ObjectUtils.isEmpty(relationships)) {
+            return Result.success();
+        }
+
+        // 4. 获取分类ID列表并查询分类信息
+        List<Long> categoryIds = relationships.stream()
+                .map(CategoryDeviceRelationship::getCategoryId)
+                .collect(Collectors.toList());
+        Map<Long, Category> categoryMap = categoryService.listByIds(categoryIds).stream()
+                .collect(Collectors.toMap(Category::getId, category -> category));
+
+        // 5. 构建设备与分类的关系映射
+        Map<Long, Long> deviceToCategoryMap = relationships.stream()
+                .collect(Collectors.toMap(
+                        CategoryDeviceRelationship::getDeviceId,
+                        CategoryDeviceRelationship::getCategoryId
+                ));
+
+        // 6. 构建返回结果
+        List<DeviceMasterVO> deviceMasterVOList = masterDevices.stream().map(masterDevice -> {
+            DeviceMasterVO vo = new DeviceMasterVO();
+            vo.setDeviceName(masterDevice.getDeviceName());
+
+            // 获取分类ID
+            Long categoryId = deviceToCategoryMap.get(masterDevice.getId());
+            if (categoryId != null) {
+                Category category = categoryMap.get(categoryId);
+                if (category != null) {
+                    vo.setCategoryName(category.getCategoryName());
+                }
+            }
+            return vo;
+        }).collect(Collectors.toList());
+
+        return Result.success(deviceMasterVOList);
+    }
+
 
     @Operation(summary = "网关设备下拉列表")
     @GetMapping("/options")
@@ -406,9 +465,10 @@ public class DeviceController {
             @Parameter(description = "是否为主设备") @RequestParam Boolean isMaster,
             @Parameter(description = "房间Id") @RequestParam Long roomId
     ) {
-        deviceService.masterSlave(ids, isMaster,roomId);
+        deviceService.masterSlave(ids, isMaster, roomId);
         return Result.success();
     }
+
 
 //    @Operation(summary = "主从配置")
 //    @PostMapping("/masterSlave")
