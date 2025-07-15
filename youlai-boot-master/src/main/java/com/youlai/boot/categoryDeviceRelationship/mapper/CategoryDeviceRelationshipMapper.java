@@ -5,11 +5,11 @@ import com.youlai.boot.categoryDeviceRelationship.model.CategoryDeviceRelationsh
 import org.apache.ibatis.annotations.Mapper;
 
 /**
-* @author YanFa
-* @description 针对表【category_device_relationship】的数据库操作Mapper
-* @createDate 2025-07-07 13:41:25
-* @Entity generator.model.CategoryDeviceRelationship
-*/
+ * 设备分类关系表Mapper接口
+ *
+ * @author way
+ * @since 2025-07-07 13:41
+ */
 @Mapper
 public interface CategoryDeviceRelationshipMapper extends BaseMapper<CategoryDeviceRelationship> {
 
