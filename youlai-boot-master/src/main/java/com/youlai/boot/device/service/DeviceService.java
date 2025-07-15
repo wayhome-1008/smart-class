@@ -38,7 +38,7 @@ public interface DeviceService extends IService<Device> {
      * @param id 设备管理ID
      * @return 设备管理表单数据
      */
-     DeviceForm getDeviceFormData(Long id);
+    DeviceForm getDeviceFormData(Long id);
 
     /**
      * 新增设备管理
@@ -57,14 +57,6 @@ public interface DeviceService extends IService<Device> {
      */
     boolean updateDevice(Long id, DeviceForm formData);
 
-//    /**
-//     * 删除设备管理
-//     *
-//     * @param ids 设备管理ID，多个以英文逗号(,)分割
-//     * @return 是否删除成功
-//     */
-//    boolean deleteDevices(String ids);
-
     boolean isExistDeviceMac(String deviceMac);
 
     Device getByMac(String macAddress);
@@ -75,7 +67,7 @@ public interface DeviceService extends IService<Device> {
 
     List<Option<Long>> listGatewayOptions();
 
-    IPage<DeviceVO> getSubDevicePage( DeviceQuery queryParams);
+    IPage<DeviceVO> getSubDevicePage(DeviceQuery queryParams);
 
     List<DeviceInfoVO> listDeviceByRoomId(Long roomId, Room room);
 
@@ -89,7 +81,7 @@ public interface DeviceService extends IService<Device> {
 
     Map<String, Long> countDevicesByStatus();
 
-    Long  listDevicesCount(String type,String ids);
+    Long listDevicesCount(String type, String ids);
 
     boolean isExistDeviceNo(String deviceNo);
 
@@ -102,9 +94,4 @@ public interface DeviceService extends IService<Device> {
     void masterSlave(String ids, Boolean isMaster, Long roomId);
 
     List<Device> listAllMasterDevices();
-
-//    Boolean masterSlave(@Valid MasterSlaveForm formData);
-//
-//    List<Option<Long>> listDeviceMasterSlaveOptions();
-
 }

@@ -303,32 +303,6 @@ public class DeviceController {
         boolean result = deviceService.updateDevice(id, formData);
         //更新缓存
         redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, formData.getDeviceCode(), deviceService.getById(id));
-        //处理category
-//        if (formData.getCategoryId() != null) {
-//            //根据设备及分类查询分类 分类可以绑定多个设备 但设备只能绑定一个分类
-//            CategoryDeviceRelationship relationship = categoryDeviceRelationshipService.getOne(new LambdaQueryWrapper<CategoryDeviceRelationship>()
-//                    .eq(CategoryDeviceRelationship::getDeviceId, id)
-////                    .eq(CategoryDeviceRelationship::getCategoryId, formData.getCategoryId())
-//            );
-//            //存在需校验是否分类id改变
-//            if (ObjectUtils.isNotEmpty(relationship)) {
-//                if (!relationship.getCategoryId().equals(formData.getCategoryId())) {
-//                    //删除分类设备关系
-//                    categoryDeviceRelationshipService.removeById(relationship);
-//                    //添加新的分类设备关系
-//                    CategoryDeviceRelationship categoryDeviceRelationship = new CategoryDeviceRelationship();
-//                    categoryDeviceRelationship.setCategoryId(formData.getCategoryId());
-//                    categoryDeviceRelationship.setDeviceId(id);
-//                    categoryDeviceRelationshipService.save(categoryDeviceRelationship);
-//                }
-//            } else {
-//                //添加新的分类设备关系
-//                CategoryDeviceRelationship categoryDeviceRelationship = new CategoryDeviceRelationship();
-//                categoryDeviceRelationship.setCategoryId(formData.getCategoryId());
-//                categoryDeviceRelationship.setDeviceId(id);
-//                categoryDeviceRelationshipService.save(categoryDeviceRelationship);
-//            }
-//        }
         // 处理设备分类关系
         if (formData.getCategoryId() != null) {
             // 1. 查询设备当前的分类关系
@@ -469,22 +443,6 @@ public class DeviceController {
         return Result.success();
     }
 
-
-//    @Operation(summary = "主从配置")
-//    @PostMapping("/masterSlave")
-//    @Log(value = "主从配置", module = LogModuleEnum.DEVICE)
-//    public Result<Boolean> masterSlave(@RequestBody @Valid MasterSlaveForm formData) {
-//        Boolean slave = deviceService.masterSlave(formData);
-//        return Result.success(slave);
-//    }
-
-//    @Operation(summary = "设备主从下拉列表")
-//    @GetMapping("/masterSlave/options")
-//    public Result<List<Option<Long>>> getDeptOptions() {
-//        List<Option<Long>> list = deviceService.listDeviceMasterSlaveOptions();
-//        return Result.success(list);
-//    }
-
     private void mqttDeviceDel(Device device) {
         //删缓存
         redisTemplate.opsForHash().delete(RedisConstants.Device.DEVICE, device.getDeviceCode());
@@ -506,11 +464,6 @@ public class DeviceController {
             log.info("动态取消订阅主题: {}", BASE_TOPIC + deviceMac + consumerTopic);
         }
     }
-//
-//    private void wifiDeviceDel(Device device) {
-//        //删缓存
-//        redisTemplate.opsForHash().delete(RedisConstants.Device.DEVICE, device.getDeviceCode());
-//    }
 
     private void zigBeeDeviceDel(Device device) throws MqttException {
         //删缓存

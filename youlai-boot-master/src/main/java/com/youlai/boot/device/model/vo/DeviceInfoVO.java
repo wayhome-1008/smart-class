@@ -1,6 +1,5 @@
 package com.youlai.boot.device.model.vo;
 
-import com.youlai.boot.config.handler.JsonTypeHandler;
 import lombok.Data;
 
 import java.io.Serializable;

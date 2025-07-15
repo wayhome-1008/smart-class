@@ -10,7 +10,6 @@ import com.youlai.boot.config.property.InfluxDBProperties;
 import com.youlai.boot.device.handler.service.MsgHandler;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.influx.InfluxSensor;
-import com.youlai.boot.device.model.vo.DeviceInfo;
 import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.device.topic.HandlerType;
 import lombok.RequiredArgsConstructor;
@@ -70,9 +69,6 @@ public class StateHandler implements MsgHandler {
 
             // 2. 获取设备信息（缓存优先）
             Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
-            if (ObjectUtils.isEmpty(device)) {
-//                device = deviceService.getByCode(deviceCode);
-            }
             //定义灯光路数
             int lightCount = 0;
             // 3. 动态处理所有灯光路数

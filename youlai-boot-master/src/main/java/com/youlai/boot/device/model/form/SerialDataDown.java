@@ -1,7 +1,6 @@
 package com.youlai.boot.device.model.form;
 
 import com.alibaba.fastjson.annotation.JSONField;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 /**

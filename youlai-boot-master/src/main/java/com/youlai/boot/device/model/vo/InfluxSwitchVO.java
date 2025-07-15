@@ -1,10 +1,7 @@
 package com.youlai.boot.device.model.vo;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
-
-import java.time.Instant;
 
 /**
  *@Author: way
