@@ -65,8 +65,6 @@ public interface DeviceService extends IService<Device> {
 //     */
 //    boolean deleteDevices(String ids);
 
-    List<Device> getDeviceList();
-
     boolean isExistDeviceMac(String deviceMac);
 
     Device getByMac(String macAddress);

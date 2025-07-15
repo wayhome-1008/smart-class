@@ -173,11 +173,6 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
 //    }
 
     @Override
-    public List<Device> getDeviceList() {
-        return this.deviceMapper.selectList(new LambdaQueryWrapper<Device>().eq(Device::getStatus, 1));
-    }
-
-    @Override
     public boolean isExistDeviceMac(String deviceMac) {
         return deviceMapper.selectCount(new LambdaQueryWrapper<Device>().eq(Device::getDeviceMac, deviceMac)) > 0;
     }
