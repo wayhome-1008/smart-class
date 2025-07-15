@@ -1,6 +1,7 @@
 package com.youlai.boot.device.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.youlai.boot.common.model.Option;
 import com.youlai.boot.device.model.dto.event.DeviceEventParams;
@@ -93,5 +94,5 @@ public interface DeviceService extends IService<Device> {
 
     void masterSlave(String ids, Boolean isMaster, Long roomId);
 
-    List<Device> listAllMasterDevices();
+    IPage<Device> listAllMasterDevices(Page<Device> objectPage);
 }

@@ -4,11 +4,13 @@ import cn.hutool.core.util.RandomUtil;
 import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.youlai.boot.category.model.entity.Category;
 import com.youlai.boot.category.service.CategoryService;
 import com.youlai.boot.categoryDeviceRelationship.model.CategoryDeviceRelationship;
 import com.youlai.boot.categoryDeviceRelationship.service.CategoryDeviceRelationshipService;
 import com.youlai.boot.common.annotation.Log;
+import com.youlai.boot.common.base.BasePageQuery;
 import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.common.enums.LogModuleEnum;
 import com.youlai.boot.common.exception.BusinessException;
@@ -168,22 +170,23 @@ public class DeviceController {
 
     @Operation(summary = "主从配置管理分页列表")
     @GetMapping("/master/page")
-    public Result<List<DeviceMasterVO>> getDeviceMasterPage() {
+    public PageResult<DeviceMasterVO> getDeviceMasterPage(BasePageQuery queryParams) {
         // 1. 查询所有主设备
-        List<Device> masterDevices = deviceService.listAllMasterDevices();
-        if (ObjectUtils.isEmpty(masterDevices)) {
-            return Result.success();
+        IPage<Device> masterPage = deviceService.listAllMasterDevices(new Page<Device>(queryParams.getPageNum(), queryParams.getPageSize()));
+//        List<Device> masterDevices = deviceService.listAllMasterDevices();
+        if (ObjectUtils.isEmpty(masterPage.getRecords())) {
+            return PageResult.success(new Page<>());
         }
 
         // 2. 获取主设备ID列表
-        List<Long> masterDeviceIds = masterDevices.stream()
+        List<Long> masterDeviceIds = masterPage.getRecords().stream()
                 .map(Device::getId)
                 .collect(Collectors.toList());
 
         // 3. 查询设备分类关系
         List<CategoryDeviceRelationship> relationships = categoryDeviceRelationshipService.listByDeviceIds(masterDeviceIds);
         if (ObjectUtils.isEmpty(relationships)) {
-            return Result.success();
+            return PageResult.success(new Page<>());
         }
 
         // 4. 获取分类ID列表并查询分类信息
@@ -201,7 +204,7 @@ public class DeviceController {
                 ));
 
         // 6. 构建返回结果
-        List<DeviceMasterVO> deviceMasterVOList = masterDevices.stream().map(masterDevice -> {
+        List<DeviceMasterVO> deviceMasterVOList = masterPage.getRecords().stream().map(masterDevice -> {
             DeviceMasterVO vo = new DeviceMasterVO();
             vo.setDeviceName(masterDevice.getDeviceName());
 
@@ -216,7 +219,10 @@ public class DeviceController {
             return vo;
         }).collect(Collectors.toList());
 
-        return Result.success(deviceMasterVOList);
+        IPage<DeviceMasterVO> resultPage = new Page<>(masterPage.getCurrent(), masterPage.getSize(), masterPage.getTotal());
+        resultPage.setRecords(deviceMasterVOList);
+
+        return PageResult.success(resultPage);
     }
 
 
@@ -430,6 +436,14 @@ public class DeviceController {
         return Result.success();
     }
 
+
+    /**
+     * @description: 房间页详情里配置主从按钮的接口
+     * @author: way
+     * @date: 2025/7/15 15:15
+     * @param: [ids, isMaster, roomId]
+     * @return: com.youlai.boot.common.result.Result<java.lang.Void>
+     **/
     @Operation(summary = "主从配置")
     @GetMapping("/masterSlave")
     @Log(value = "主从配置", module = LogModuleEnum.DEVICE)

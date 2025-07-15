@@ -402,8 +402,11 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     }
 
     @Override
-    public List<Device> listAllMasterDevices() {
-        return this.list(new LambdaQueryWrapper<Device>().eq(Device::getIsMaster, 1));
+    public IPage<Device> listAllMasterDevices(Page<Device> page) {
+        return this.page(page,
+                new LambdaQueryWrapper<Device>()
+                        .eq(Device::getIsMaster, 1)
+        );
     }
 
     private List<Device> listByIdAndRoomId(List<Long> idList, Long roomId) {
