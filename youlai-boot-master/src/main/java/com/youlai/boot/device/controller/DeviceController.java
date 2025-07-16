@@ -34,6 +34,8 @@ import com.youlai.boot.device.model.vo.DeviceMasterVO;
 import com.youlai.boot.device.model.vo.DeviceVO;
 import com.youlai.boot.device.service.DeviceInfoParser;
 import com.youlai.boot.device.service.DeviceService;
+import com.youlai.boot.room.model.entity.Room;
+import com.youlai.boot.room.service.RoomService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -74,6 +76,7 @@ public class DeviceController {
     private final DeviceConverter deviceConverter;
     private final CategoryDeviceRelationshipService categoryDeviceRelationshipService;
     private final CategoryService categoryService;
+    private final RoomService roomService;
 
     @Operation(summary = "设备管理分页列表")
     @GetMapping("/page")
@@ -172,50 +175,75 @@ public class DeviceController {
     @GetMapping("/master/page")
     public PageResult<DeviceMasterVO> getDeviceMasterPage(BasePageQuery queryParams) {
         // 1. 查询所有主设备
-        IPage<Device> masterPage = deviceService.listAllMasterDevices(new Page<Device>(queryParams.getPageNum(), queryParams.getPageSize()));
-//        List<Device> masterDevices = deviceService.listAllMasterDevices();
+        IPage<Device> masterPage = deviceService.listAllMasterDevices(new Page<>(queryParams.getPageNum(), queryParams.getPageSize()));
         if (ObjectUtils.isEmpty(masterPage.getRecords())) {
             return PageResult.success(new Page<>());
         }
 
-        // 2. 获取主设备ID列表
-        List<Long> masterDeviceIds = masterPage.getRecords().stream()
+        // 2. 获取房间信息
+        List<Long> roomIds = masterPage.getRecords().stream()
+                .map(Device::getDeviceRoom)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Long, Room> roomMap = roomService.listByIds(roomIds).stream()
+                .collect(Collectors.toMap(Room::getId, room -> room));
+
+        // 3. 获取设备ID列表
+        List<Long> deviceIds = masterPage.getRecords().stream()
                 .map(Device::getId)
                 .collect(Collectors.toList());
 
-        // 3. 查询设备分类关系
-        List<CategoryDeviceRelationship> relationships = categoryDeviceRelationshipService.listByDeviceIds(masterDeviceIds);
-        if (ObjectUtils.isEmpty(relationships)) {
-            return PageResult.success(new Page<>());
-        }
+        // 4. 查询设备分类关系并过滤掉分类ID为null的记录
+        List<CategoryDeviceRelationship> relationships = categoryDeviceRelationshipService.listByDeviceIds(deviceIds)
+                .stream()
+                .filter(r -> r.getCategoryId() != null) // 过滤掉分类ID为null的记录
+                .toList();
 
-        // 4. 获取分类ID列表并查询分类信息
+        // 5. 构建设备到分类关系的映射
+        Map<Long, Long> deviceToCategoryMap = relationships.stream()
+                .collect(Collectors.toMap(
+                        CategoryDeviceRelationship::getDeviceId,
+                        CategoryDeviceRelationship::getCategoryId,
+                        (existing, replacement) -> existing // 如果有重复的设备ID，保留现有的
+                ));
+
+        // 6. 获取所有分类ID并查询分类信息
         List<Long> categoryIds = relationships.stream()
                 .map(CategoryDeviceRelationship::getCategoryId)
+                .distinct()
                 .collect(Collectors.toList());
         Map<Long, Category> categoryMap = categoryService.listByIds(categoryIds).stream()
                 .collect(Collectors.toMap(Category::getId, category -> category));
 
-        // 5. 构建设备与分类的关系映射
-        Map<Long, Long> deviceToCategoryMap = relationships.stream()
-                .collect(Collectors.toMap(
-                        CategoryDeviceRelationship::getDeviceId,
-                        CategoryDeviceRelationship::getCategoryId
-                ));
-
-        // 6. 构建返回结果
+        // 7. 构建返回结果
         List<DeviceMasterVO> deviceMasterVOList = masterPage.getRecords().stream().map(masterDevice -> {
             DeviceMasterVO vo = new DeviceMasterVO();
             vo.setDeviceName(masterDevice.getDeviceName());
 
-            // 获取分类ID
+            // 设置房间信息
+            if (masterDevice.getDeviceRoom() != null) {
+                Room room = roomMap.get(masterDevice.getDeviceRoom());
+                if (room != null) {
+                    vo.setRoomName(room.getClassroomCode());
+                }
+            }
+
+            // 设置分类信息
             Long categoryId = deviceToCategoryMap.get(masterDevice.getId());
             if (categoryId != null) {
                 Category category = categoryMap.get(categoryId);
                 if (category != null) {
                     vo.setCategoryName(category.getCategoryName());
+                } else {
+                    // 分类不存在，可以设置默认值或记录日志
+                    vo.setCategoryName("未分类");
                 }
+            } else {
+                // 没有分类关系，设置默认值
+                vo.setCategoryName("未分类");
             }
+
             return vo;
         }).collect(Collectors.toList());
 
@@ -224,6 +252,7 @@ public class DeviceController {
 
         return PageResult.success(resultPage);
     }
+
 
 
     @Operation(summary = "网关设备下拉列表")
