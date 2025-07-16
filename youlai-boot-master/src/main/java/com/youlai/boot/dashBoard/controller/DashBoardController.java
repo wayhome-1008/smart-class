@@ -170,19 +170,6 @@ public class DashBoardController {
         return Result.success(result);
     }
 
-    // 获取时间模板（周一到周日）
-    private List<String> getTimeTemplate() {
-        List<String> times = new ArrayList<>(7);
-        times.add("周一");
-        times.add("周二");
-        times.add("周三");
-        times.add("周四");
-        times.add("周五");
-        times.add("周六");
-        times.add("周日");
-        return times;
-    }
-
     // 查询设备一周数据
     private List<Double> queryDeviceWeeklyData(String deviceCode) {
         InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
@@ -246,7 +233,7 @@ public class DashBoardController {
         return Result.failed();
     }
 
-    @Operation(summary = "房间当天用电信息")
+    @Operation(summary = "房间当天用电信息(仅显示总用电、功率、电压)")
     @GetMapping("/room/electricity")
     public Result<RoomElectricity> getRoomElectricityData(
             @Parameter(description = "房间id")
@@ -844,7 +831,7 @@ public class DashBoardController {
         };
     }
 
-
+    @SuppressWarnings("Duplicates")
     public static DeviceInfoVO basicPropertyConvert(Device device, String roomCode) {
         DeviceInfoVO deviceInfoVO = new DeviceInfoVO();
         deviceInfoVO.setId(device.getId());
@@ -862,6 +849,7 @@ public class DashBoardController {
         return deviceInfoVO;
     }
 
+    @SuppressWarnings("Duplicates")
     public static DeviceInfoVO basicPropertyConvert(DeviceVO device, String roomCode) {
         DeviceInfoVO deviceInfoVO = new DeviceInfoVO();
         deviceInfoVO.setId(device.getId());
