@@ -1,6 +1,7 @@
 package com.youlai.boot.config.mqtt;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.common.util.MacUtils;
 import com.youlai.boot.device.factory.MsgHandlerFactory;
 import com.youlai.boot.device.handler.service.MsgHandler;
@@ -12,9 +13,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.eclipse.paho.client.mqttv3.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static com.youlai.boot.config.mqtt.TopicConfig.BASE_TOPIC;
 import static com.youlai.boot.config.mqtt.TopicConfig.TOPIC_LIST;
@@ -26,6 +29,8 @@ public class MqttCallback implements MqttCallbackExtended {
     private MsgHandlerFactory factory;
     @Autowired
     private DeviceService deviceService;
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
 
     @Override
     public void connectionLost(Throwable throwable) {
@@ -35,7 +40,14 @@ public class MqttCallback implements MqttCallbackExtended {
     @Override
     public void messageArrived(String topic, MqttMessage message) throws MqttException {
         log.info("【接收到主题{}的消息{}】", topic, message.toString());
+        //获取一条消息则redis+1
+        // 原子性递增消息计数
+        Long count = redisTemplate.opsForValue().increment(RedisConstants.MessageCount.MESSAGE_COUNT_KEY);
 
+        // 设置过期时间（可选），防止key永久存在
+        if (count != null && count == 1) {
+            redisTemplate.expire(RedisConstants.MessageCount.MESSAGE_COUNT_KEY, 30, TimeUnit.DAYS);
+        }
         // 统一处理路径
         String normalizedTopic = normalizeTopic(topic);
         HandlerType type = determineHandlerType(normalizedTopic);

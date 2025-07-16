@@ -13,6 +13,7 @@ import com.youlai.boot.category.model.entity.Category;
 import com.youlai.boot.category.service.CategoryService;
 import com.youlai.boot.categoryDeviceRelationship.model.CategoryDeviceRelationship;
 import com.youlai.boot.categoryDeviceRelationship.service.CategoryDeviceRelationshipService;
+import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.common.result.PageResult;
 import com.youlai.boot.common.result.Result;
 import com.youlai.boot.common.util.InfluxQueryBuilder;
@@ -46,6 +47,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -79,6 +81,7 @@ public class DashBoardController {
     private final ConfigService configService;
     private final CategoryService categoryService;
     private final CategoryDeviceRelationshipService categoryDeviceRelationshipService;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Operation(summary = "查询配置分类用电量")
     @GetMapping("/category/electricity")
@@ -202,7 +205,7 @@ public class DashBoardController {
         dashCount.setLogCount(logService.count());
         dashCount.setRoomCount(roomService.count());
         dashCount.setDemo1Count(logService.countWarning());
-        dashCount.setDemo2Count(10086L);
+        dashCount.setDemo2Count((Integer) redisTemplate.opsForValue().get(RedisConstants.MessageCount.MESSAGE_COUNT_KEY));
         return Result.success(dashCount);
     }
 

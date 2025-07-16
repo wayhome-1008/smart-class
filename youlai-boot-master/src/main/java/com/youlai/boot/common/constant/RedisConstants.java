@@ -64,6 +64,10 @@ public interface RedisConstants {
 ////        String DEVICE = "mqtt:device";                 // mqtt设备返回信息
 //        String GateWay= "mqtt:gateway";
 //    }
+    interface MessageCount{
+      String  MESSAGE_COUNT_KEY = "mqtt:message:count";
+    }
+
 
     /**
      * 设备info模块
