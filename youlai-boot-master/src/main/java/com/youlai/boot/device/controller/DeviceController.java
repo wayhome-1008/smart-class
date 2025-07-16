@@ -179,8 +179,7 @@ public class DeviceController {
         if (ObjectUtils.isEmpty(masterPage.getRecords())) {
             return PageResult.success(new Page<>());
         }
-
-        // 2. 获取房间信息
+        // 2. 获取房间内信息
         List<Long> roomIds = masterPage.getRecords().stream()
                 .map(Device::getDeviceRoom)
                 .filter(Objects::nonNull)
@@ -188,26 +187,22 @@ public class DeviceController {
                 .collect(Collectors.toList());
         Map<Long, Room> roomMap = roomService.listByIds(roomIds).stream()
                 .collect(Collectors.toMap(Room::getId, room -> room));
-
         // 3. 获取设备ID列表
         List<Long> deviceIds = masterPage.getRecords().stream()
                 .map(Device::getId)
                 .collect(Collectors.toList());
-
         // 4. 查询设备分类关系并过滤掉分类ID为null的记录
         List<CategoryDeviceRelationship> relationships = categoryDeviceRelationshipService.listByDeviceIds(deviceIds)
                 .stream()
-                .filter(r -> r.getCategoryId() != null) // 过滤掉分类ID为null的记录
+                .filter(r -> r.getCategoryId() != null)
                 .toList();
-
         // 5. 构建设备到分类关系的映射
         Map<Long, Long> deviceToCategoryMap = relationships.stream()
                 .collect(Collectors.toMap(
                         CategoryDeviceRelationship::getDeviceId,
                         CategoryDeviceRelationship::getCategoryId,
-                        (existing, replacement) -> existing // 如果有重复的设备ID，保留现有的
+                        (existing, replacement) -> existing
                 ));
-
         // 6. 获取所有分类ID并查询分类信息
         List<Long> categoryIds = relationships.stream()
                 .map(CategoryDeviceRelationship::getCategoryId)
@@ -215,20 +210,17 @@ public class DeviceController {
                 .collect(Collectors.toList());
         Map<Long, Category> categoryMap = categoryService.listByIds(categoryIds).stream()
                 .collect(Collectors.toMap(Category::getId, category -> category));
-
         // 7. 构建返回结果
         List<DeviceMasterVO> deviceMasterVOList = masterPage.getRecords().stream().map(masterDevice -> {
             DeviceMasterVO vo = new DeviceMasterVO();
             vo.setDeviceName(masterDevice.getDeviceName());
-
-            // 设置房间信息
+            // 设置房间内信息
             if (masterDevice.getDeviceRoom() != null) {
                 Room room = roomMap.get(masterDevice.getDeviceRoom());
                 if (room != null) {
                     vo.setRoomName(room.getClassroomCode());
                 }
             }
-
             // 设置分类信息
             Long categoryId = deviceToCategoryMap.get(masterDevice.getId());
             if (categoryId != null) {
@@ -236,23 +228,18 @@ public class DeviceController {
                 if (category != null) {
                     vo.setCategoryName(category.getCategoryName());
                 } else {
-                    // 分类不存在，可以设置默认值或记录日志
                     vo.setCategoryName("未分类");
                 }
             } else {
                 // 没有分类关系，设置默认值
                 vo.setCategoryName("未分类");
             }
-
             return vo;
         }).collect(Collectors.toList());
-
         IPage<DeviceMasterVO> resultPage = new Page<>(masterPage.getCurrent(), masterPage.getSize(), masterPage.getTotal());
         resultPage.setRecords(deviceMasterVOList);
-
         return PageResult.success(resultPage);
     }
-
 
 
     @Operation(summary = "网关设备下拉列表")

@@ -103,24 +103,69 @@ public class DashBoardController {
                 }
             }
         }
-        // 3. 获取时间基准（从任意一个分类查询获取即可）
-        List<String> timeTemplate = getTimeTemplate();
-        result.setTimes(timeTemplate);
-
-        // 4. 处理每个分类
-        for (Category category : categoriesAll) {
-            // 查询该分类的设备数据
-            List<CategoryDeviceRelationship> relationships = categoryDeviceRelationshipService.listByCategoryId(category.getId());
+//        // 3. 获取时间基准（从任意一个分类查询获取即可）
+//        List<String> timeTemplate = getTimeTemplate();
+//        result.setTimes(timeTemplate);
+        // 3. 获取时间模板（从第一个分类的第一个设备获取）
+        if (!categoriesAll.isEmpty()) {
+            List<CategoryDeviceRelationship> relationships =
+                    categoryDeviceRelationshipService.listByCategoryId(categoriesAll.get(0).getId());
             if (!relationships.isEmpty()) {
-                CategoryElectricityVO.CategoryData data = new CategoryElectricityVO.CategoryData();
                 Device device = deviceService.getById(relationships.get(0).getDeviceId());
-                List<Double> values = queryDeviceWeeklyData(device.getDeviceCode());
-                data.setCategoryName(category.getCategoryName());
-                data.setValues(values);
-                categoryDataList.add(data);
+                List<InfluxMqttPlug> sampleTables = influxDBClient.getQueryApi()
+                        .query(InfluxQueryBuilder.newBuilder()
+                                        .bucket(influxDBProperties.getBucket())
+                                        .range(7, "d")
+                                        .measurement("device")
+                                        .fields("Total")
+                                        .tag("deviceCode", device.getDeviceCode())
+                                        .window("1d", "last")
+                                        .build(),
+                                influxDBProperties.getOrg(),
+                                InfluxMqttPlug.class);
+                // 按时间排序并提取时间字符串
+                List<String> times = sampleTables.stream()
+                        .sorted(Comparator.comparing(InfluxMqttPlug::getTime)) // 再次确保排序
+                        .map(table -> formatTime(table.getTime(), "w"))
+                        .collect(Collectors.toList());
+                result.setTimes(times);
             }
         }
+        // 4. 处理每个分类
+        for (Category category : categoriesAll) {
+            List<CategoryDeviceRelationship> relationships =
+                    categoryDeviceRelationshipService.listByCategoryId(category.getId());
+            if (!relationships.isEmpty()) {
+                List<Long> deviceIds = relationships.stream()
+                        .map(CategoryDeviceRelationship::getDeviceId)
+                        .collect(Collectors.toList());
 
+                List<Device> masterDevices = deviceService.listByIds(deviceIds).stream()
+                        .filter(device -> device.getIsMaster() == 1)
+                        .toList();
+
+                if (!masterDevices.isEmpty()) {
+                    CategoryElectricityVO.CategoryData data = new CategoryElectricityVO.CategoryData();
+                    data.setCategoryName(category.getCategoryName());
+
+                    List<Double> totalValues = null;
+                    for (Device masterDevice : masterDevices) {
+                        List<Double> deviceValues = queryDeviceWeeklyData(masterDevice.getDeviceCode());
+                        if (totalValues == null) {
+                            totalValues = new ArrayList<>(deviceValues);
+                        } else {
+                            for (int i = 0; i < deviceValues.size(); i++) {
+                                if (i < totalValues.size()) {
+                                    totalValues.set(i, totalValues.get(i) + deviceValues.get(i));
+                                }
+                            }
+                        }
+                    }
+                    data.setValues(totalValues);
+                    categoryDataList.add(data);
+                }
+            }
+        }
         result.setData(categoryDataList);
         return Result.success(result);
     }
@@ -757,16 +802,27 @@ public class DashBoardController {
             //显示日期
             case "mo" -> String.format("%02d", time.atZone(utcZone).getMonthValue()) + "/" +
                     String.format("%02d", time.atZone(utcZone).getDayOfMonth());
-            case "w" -> { // 显示中文星期
+            case "w" -> { // 显示中文星期，区分本周和上周
+                // 获取当前周一的日期
+                Instant now = Instant.now();
+                Instant currentMonday = now.atZone(utcZone)
+                        .with(java.time.DayOfWeek.MONDAY)
+                        .toLocalDate()
+                        .atStartOfDay(utcZone)
+                        .toInstant();
+
+                // 判断记录时间是本周还是上周
+                String prefix = time.isBefore(currentMonday) ? "上" : "";
+
                 int dayOfWeek = time.atZone(utcZone).getDayOfWeek().getValue();
                 yield switch (dayOfWeek) {
-                    case 1 -> "周一";
-                    case 2 -> "周二";
-                    case 3 -> "周三";
-                    case 4 -> "周四";
-                    case 5 -> "周五";
-                    case 6 -> "周六";
-                    case 7 -> "周日";
+                    case 1 -> prefix + "周一";
+                    case 2 -> prefix + "周二";
+                    case 3 -> prefix + "周三";
+                    case 4 -> prefix + "周四";
+                    case 5 -> prefix + "周五";
+                    case 6 -> prefix + "周六";
+                    case 7 -> prefix + "周日";
                     default -> String.valueOf(dayOfWeek);
                 };
             }
