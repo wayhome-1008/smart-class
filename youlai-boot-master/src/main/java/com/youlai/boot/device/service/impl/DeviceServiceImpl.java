@@ -409,6 +409,20 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
         );
     }
 
+    @Override
+    public void masterSlaveDel(String ids) {
+        List<Long> idList = Arrays.stream(ids.split(","))
+                .map(Long::parseLong)
+                .toList();
+        List<Device> devices = this.listByIds(idList);
+        for (Device device : devices) {
+            device.setIsMaster(0);
+            //缓存同步
+            redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
+        }
+        this.updateBatchById(devices);
+    }
+
     private List<Device> listByIdAndRoomId(List<Long> idList, Long roomId) {
         if (idList.size() == 1) {
             if (idList.get(0) == -1) {

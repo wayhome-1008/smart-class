@@ -231,9 +231,10 @@ public class DeviceController {
         Map<Long, Category> categoryMap = categoryService.listByIds(categoryIds).stream()
                 .collect(Collectors.toMap(Category::getId, category -> category));
         // 7. 构建返回结果
-        List<DeviceMasterVO> deviceMasterVOList =  filteredDevices.stream().map(masterDevice -> {
+        List<DeviceMasterVO> deviceMasterVOList = filteredDevices.stream().map(masterDevice -> {
             DeviceMasterVO vo = new DeviceMasterVO();
             vo.setDeviceName(masterDevice.getDeviceName());
+            vo.setDeviceId(masterDevice.getId());
             // 设置房间内信息
             if (masterDevice.getDeviceRoom() != null) {
                 Room room = roomMap.get(masterDevice.getDeviceRoom());
@@ -493,6 +494,17 @@ public class DeviceController {
         deviceService.masterSlave(ids, isMaster, roomId);
         return Result.success();
     }
+
+    @Operation(summary = "解绑主从设备")
+    @GetMapping("/masterSlaveDel")
+    @Log(value = "解绑主从设备", module = LogModuleEnum.DEVICE)
+    public Result<Void> masterSlaveDel(
+            @Parameter(description = "设备ID") @RequestParam String ids
+    ) {
+        deviceService.masterSlaveDel(ids);
+        return Result.success();
+    }
+
 
     private void mqttDeviceDel(Device device) {
         //删缓存

@@ -95,4 +95,6 @@ public interface DeviceService extends IService<Device> {
     void masterSlave(String ids, Boolean isMaster, Long roomId);
 
     IPage<Device> listAllMasterDevices(Page<Device> objectPage);
+
+    void masterSlaveDel(String ids);
 }
