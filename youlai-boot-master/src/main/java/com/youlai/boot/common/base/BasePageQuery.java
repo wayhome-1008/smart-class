@@ -25,5 +25,7 @@ public class BasePageQuery implements Serializable {
     @Schema(description = "每页记录数", requiredMode = Schema.RequiredMode.REQUIRED, example = "10")
     private int pageSize = 10;
 
+    private String roomIds ;
+
 
 }

@@ -43,6 +43,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -179,18 +180,37 @@ public class DeviceController {
         if (ObjectUtils.isEmpty(masterPage.getRecords())) {
             return PageResult.success(new Page<>());
         }
-        // 2. 获取房间内信息
-        List<Long> roomIds = masterPage.getRecords().stream()
-                .map(Device::getDeviceRoom)
-                .filter(Objects::nonNull)
-                .distinct()
-                .collect(Collectors.toList());
+// 2. 获取房间ID列表（优先使用传入的roomIds过滤）
+        List<Long> roomIds;
+        if (StringUtils.isNotEmpty(queryParams.getRoomIds())) {
+            // 如果传入了roomIds参数，只处理这些房间
+            roomIds = Arrays.stream(queryParams.getRoomIds().split(","))
+                    .map(Long::parseLong)
+                    .collect(Collectors.toList());
+        } else {
+            // 否则获取所有相关房间
+            roomIds = masterPage.getRecords().stream()
+                    .map(Device::getDeviceRoom)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .collect(Collectors.toList());
+        }
+        // 3. 查询房间信息
         Map<Long, Room> roomMap = roomService.listByIds(roomIds).stream()
                 .collect(Collectors.toMap(Room::getId, room -> room));
+        // 4. 过滤设备 - 只保留指定房间的设备
+        List<Device> filteredDevices = masterPage.getRecords().stream()
+                .filter(device -> roomIds.contains(device.getDeviceRoom()))
+                .toList();
+        // 如果过滤后没有设备，返回空页
+        if (filteredDevices.isEmpty()) {
+            return PageResult.success(new Page<>());
+        }
         // 3. 获取设备ID列表
-        List<Long> deviceIds = masterPage.getRecords().stream()
+        List<Long> deviceIds = filteredDevices.stream()
                 .map(Device::getId)
                 .collect(Collectors.toList());
+
         // 4. 查询设备分类关系并过滤掉分类ID为null的记录
         List<CategoryDeviceRelationship> relationships = categoryDeviceRelationshipService.listByDeviceIds(deviceIds)
                 .stream()
@@ -211,7 +231,7 @@ public class DeviceController {
         Map<Long, Category> categoryMap = categoryService.listByIds(categoryIds).stream()
                 .collect(Collectors.toMap(Category::getId, category -> category));
         // 7. 构建返回结果
-        List<DeviceMasterVO> deviceMasterVOList = masterPage.getRecords().stream().map(masterDevice -> {
+        List<DeviceMasterVO> deviceMasterVOList =  filteredDevices.stream().map(masterDevice -> {
             DeviceMasterVO vo = new DeviceMasterVO();
             vo.setDeviceName(masterDevice.getDeviceName());
             // 设置房间内信息
