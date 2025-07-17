@@ -356,15 +356,15 @@ public class DashBoardController {
                 }
                 List<Double> resultValue = new ArrayList<>();
                 for (InfluxMqttPlugVO influxMqttPlugVO : influxMqttPlugVOS) {
-                    List<Double> value = influxMqttPlugVO.getValue();
+                    List<Double> value = influxMqttPlugVO.getValue().stream().map(MathUtils::formatDouble).toList();
                     if (ObjectUtils.isEmpty(resultValue)) {
                         resultValue = new ArrayList<>(value); // 创建新列表避免引用问题
                     } else {
                         // 确保两个列表长度相同
                         int minSize = Math.min(resultValue.size(), value.size());
                         for (int i = 0; i < minSize; i++) {
-                            Double v1 = resultValue.get(i);
-                            Double v2 = value.get(i);
+                            Double v1 = MathUtils.formatDouble(resultValue.get(i));
+                            Double v2 = MathUtils.formatDouble(value.get(i));
                             // 处理null值
                             if (v1 == null) v1 = 0.0;
                             if (v2 == null) v2 = 0.0;

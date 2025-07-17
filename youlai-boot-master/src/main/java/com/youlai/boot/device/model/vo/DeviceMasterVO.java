@@ -9,6 +9,7 @@ import lombok.Data;
  */
 @Data
 public class DeviceMasterVO {
+    private Long id;
     private String categoryName;
     private String deviceName;
     private String roomName;

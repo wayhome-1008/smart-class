@@ -219,6 +219,7 @@ public class DeviceController {
                 Room room = roomMap.get(masterDevice.getDeviceRoom());
                 if (room != null) {
                     vo.setRoomName(room.getClassroomCode());
+                    vo.setId(room.getId());
                 }
             }
             // 设置分类信息
