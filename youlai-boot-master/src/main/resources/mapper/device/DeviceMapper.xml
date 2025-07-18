@@ -61,8 +61,13 @@
             <if test="queryParams.deviceNo != null and queryParams.deviceNo != ''">
                 AND device_no LIKE CONCAT('%', #{queryParams.deviceNo}, '%')
             </if>
-            <if test="queryParams.deviceRoom != null">
-                AND device_room = #{queryParams.deviceRoom}
+            <!-- 修改为支持roomIds字符串查询 -->
+            <if test="queryParams.roomIds != null and queryParams.roomIds != ''">
+                AND d.device_room IN
+                <foreach collection="queryParams.roomIds.split(',')" item="roomId"
+                         open="(" separator="," close=")">
+                    #{roomId}
+                </foreach>
             </if>
             <if test="queryParams.deviceMac != null and queryParams.deviceMac != ''">
                 AND device_gateway_id = #{queryParams.deviceMac}

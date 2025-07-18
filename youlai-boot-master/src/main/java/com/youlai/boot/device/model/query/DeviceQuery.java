@@ -22,7 +22,7 @@ public class DeviceQuery extends BasePageQuery {
     @Schema(description = "设备编号")
     private String deviceCode;
     @Schema(description = "教室")
-    private Long deviceRoom;
+    private String roomIds;
     @Schema(description = "网关")
     private String deviceMac;
     @Schema(description = "设备类型")
