@@ -6,6 +6,7 @@
     <select id="getAlertRulePage" resultType="com.youlai.boot.system.model.vo.AlertRuleVO">
         SELECT
                 id,
+                rule_name,
                 level,
                 min_threshold,
                 max_value,

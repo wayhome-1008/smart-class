@@ -2,6 +2,8 @@ package com.youlai.boot.device.handler.mqtt;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.domain.WritePrecision;
 import com.youlai.boot.common.constant.RedisConstants;
@@ -17,6 +19,8 @@ import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
+
+import java.util.Optional;
 
 import static com.youlai.boot.common.util.JsonUtils.mergeJson;
 import static com.youlai.boot.common.util.JsonUtils.stringToJsonNode;
@@ -56,10 +60,15 @@ public class State8Handler implements MsgHandler {
     }
 
     private void handlerPlug(String jsonMsg, Device device) throws JsonProcessingException {
-
         JsonNode jsonNode = stringToJsonNode(jsonMsg);
+        //只获取需要的数据merge
+        ObjectNode metrics = JsonNodeFactory.instance.objectNode();
         //接受得数据与旧数据合并
-        JsonNode mergeJson = mergeJson(device.getDeviceInfo(), jsonNode);
+        metrics.put("power", jsonNode.get("StatusSNS").get("ENERGY").get("Power").asInt());
+        metrics.put("voltage", jsonNode.get("StatusSNS").get("ENERGY").get("Voltage").asDouble());
+        metrics.put("current", jsonNode.get("StatusSNS").get("ENERGY").get("Current").asDouble());
+        metrics.put("total", jsonNode.get("StatusSNS").get("ENERGY").get("Total").asDouble());
+        JsonNode mergeJson = mergeJson(Optional.of(device).map(Device::getDeviceInfo).orElse(null), metrics);
         device.setDeviceInfo(mergeJson);
         //创建influx数据
         InfluxMqttPlug influxPlug = new InfluxMqttPlug();
@@ -88,7 +97,7 @@ public class State8Handler implements MsgHandler {
                     influxPlug
             );
         }
-        log.info("插座数据:{}", influxPlug);
+        log.info("MQTT插座数据:{}", influxPlug);
     }
 
     @Override

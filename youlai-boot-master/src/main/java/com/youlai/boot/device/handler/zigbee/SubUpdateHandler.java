@@ -29,6 +29,7 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
 import java.util.Optional;
 
 import static com.youlai.boot.common.util.JsonUtils.*;
@@ -250,42 +251,38 @@ public class SubUpdateHandler implements MsgHandler {
         JsonNode jsonNode = stringToJsonNode(jsonMsg);
         //获取params
         JsonNode params = jsonNode.get("params");
-        if (ObjectUtils.isEmpty(deviceCache.getDeviceInfo())) return;
-
-        //接受得数据与旧数据合并
-        JsonNode mergeJson = mergeJson(deviceCache.getDeviceInfo(), jsonNode);
-        deviceCache.setDeviceInfo(mergeJson);
-
-        //获取旧设备数据信息- 使用deepCopy创建独立拷贝
-        JsonNode oldParams = deviceCache.getDeviceInfo().get("params").deepCopy();
-        //获取合并后的params节点
-        JsonNode mergeParams = mergeJson.get("params");
-
-        //校验缓存与本次数据是否相同,从而判断是否需要更新数据库
-        boolean needUpdate = false;
-        if (params != null) {
-            String[] fieldTiCheck = {"switches", "activePowerA", "activePowerB", "activePowerC", "RMS_VoltageA", "RMS_VoltageB", "RMS_VoltageC", "RMS_CurrentA", "RMS_CurrentB", "RMS_CurrentC", "electricalEnergy"};
-            String matched = matchedFields(fieldTiCheck, params);
-            if (StringUtils.isNotEmpty(matched)) {
-                //开关单独处理
-                if (matched.equals("switches")) {
-                    needUpdate = true;
-                } else {
-                    //已知传入的字段 再根据oldParams比对
-                    double newValue = params.get(matched).asDouble();
-                    double oldValue = oldParams.get(matched).asDouble();
-                    if (newValue != oldValue) {
-                        log.info("字段:{}不同,需要更新数据库,改前为{},改后为{}", matched, oldValue, newValue);
-                        needUpdate = true;
-                    }
-                }
-
-            }
-            if (needUpdate) {
-                deviceCache.setStatus(1);
-//                deviceService.updateById(deviceCache);
+        ObjectNode metrics = JsonNodeFactory.instance.objectNode();
+        //开关状态
+        if (params.has("switches")) {
+            JsonNode switchesArray = params.get("switches");
+            for (JsonNode switchNode : switchesArray) {
+                metrics.put("count", 1);
+                metrics.put("switch1", Objects.equals(switchNode.get("switch").asText(), "on") ? "ON" : "OFF");
             }
         }
+        //电压
+        if (params.has("RMS_VoltageA")) {
+            metrics.put("voltage", params.get("RMS_VoltageA").asDouble());
+        }
+        //电流
+        if (params.has("RMS_CurrentA")) {
+            metrics.put("current", params.get("RMS_CurrentA").asDouble());
+        }
+        //功率
+        if (params.has("activePowerA")) {
+            metrics.put("power", params.get("activePowerA").asDouble());
+        }
+        //总用电量
+        if (params.has("electricalEnergy") ) {
+            metrics.put("total", params.get("electricalEnergy").asDouble());
+        }
+        //接受得数据与旧数据合并
+        JsonNode mergeJson = mergeJson(Optional.of(deviceCache).map(Device::getDeviceInfo).orElse(null), metrics);
+        deviceCache.setDeviceInfo(mergeJson);
+        //获取旧设备数据信息- 使用deepCopy创建独立拷贝
+//        JsonNode oldParams = deviceCache.getDeviceInfo().get("params").deepCopy();
+        //获取合并后的params节点
+        JsonNode mergeParams = deviceCache.getDeviceInfo();
 
         //创建influx数据
         InfluxMqttPlug influxPlug = new InfluxMqttPlug();
@@ -298,21 +295,21 @@ public class SubUpdateHandler implements MsgHandler {
         //处理插座数据
         if (mergeParams != null) {
             //电压
-            if (mergeParams.has("RMS_VoltageA") && mergeParams.get("RMS_VoltageA").isNumber()) {
-                influxPlug.setVoltage(mergeParams.get("RMS_VoltageA").asDouble());
+            if (mergeParams.has("voltage")) {
+                influxPlug.setVoltage(mergeParams.get("voltage").asDouble());
             }
             //电流
-            if (mergeParams.has("RMS_CurrentA") && mergeParams.get("RMS_CurrentA").isNumber()) {
-                influxPlug.setCurrent(mergeParams.get("RMS_CurrentA").asDouble());
+            if (mergeParams.has("current")) {
+                influxPlug.setCurrent(mergeParams.get("current").asDouble());
             }
             //功率
-            if (mergeParams.has("activePowerA") && mergeParams.get("activePowerA").isNumber()) {
+            if (mergeParams.has("power")) {
 //                influxPlug.setActivePowerA(mergeParams.get("activePowerA").asDouble());
-                influxPlug.setPower((int) mergeParams.get("activePowerA").asDouble());
+                influxPlug.setPower((int) mergeParams.get("power").asDouble());
             }
             //总用电量
-            if (mergeParams.has("electricalEnergy") && mergeParams.get("electricalEnergy").isNumber()) {
-                influxPlug.setTotal(mergeParams.get("electricalEnergy").asDouble());
+            if (mergeParams.has("total")) {
+                influxPlug.setTotal(mergeParams.get("total").asDouble());
             }
 //            if (mergeParams.has("activePowerB") && mergeParams.get("activePowerB").isInt()) {
 //                influxPlug.setActivePowerB(mergeParams.get("activePowerB").asInt());
@@ -335,7 +332,7 @@ public class SubUpdateHandler implements MsgHandler {
 //                influxPlug.setRMS_CurrentC(mergeParams.get("RMS_CurrentC").asInt());
 //            }
             log.info("插座数据:{}", influxPlug);
-            if (deviceCache.getIsMaster()==1) {
+            if (deviceCache.getIsMaster() == 1) {
                 influxDBClient.getWriteApiBlocking().writeMeasurement(
                         influxProperties.getBucket(),
                         influxProperties.getOrg(),
@@ -353,60 +350,37 @@ public class SubUpdateHandler implements MsgHandler {
         JsonNode jsonNode = stringToJsonNode(jsonMsg);
         //2.获取params
         JsonNode params = jsonNode.get("params");
-        if (ObjectUtils.isEmpty(deviceCache.getDeviceInfo())) return;
-        //3.获取旧设备数据信息-使用deepCopy创建独立拷贝
-        JsonNode oldParams = deviceCache.getDeviceInfo().get("params").deepCopy();
-
-        //接收的数据与旧数据合并
-        JsonNode mergeJson = mergeJson(deviceCache.getDeviceInfo(), jsonNode);
-        deviceCache.setDeviceInfo(mergeJson);
-
-        //获取合并后的params节点
-        JsonNode mergedParams = mergeJson.get("params");
-
-        //校验缓存与本次数据是否相同 从而判断是否更新数据库
-        boolean needUpdate = false;
-
-        if (params != null) {
-            String[] fieldsToCheck = {"battery", "Occupancy"};
-            String matched = matchedFields(fieldsToCheck, params);
-            if (StringUtils.isNotEmpty(matched)) {
-                //对比
-                int newValue = params.get(matched).asInt();
-                int oldValue = oldParams.get(matched).asInt();
-                if (newValue != oldValue) {
-                    log.info("{}字段值有变化,{}->{}", matched, oldValue, newValue);
-                    needUpdate = true;
-                }
-            }
-            if (needUpdate) {
-                deviceCache.setStatus(1);
-//                deviceService.updateById(deviceCache);
-            }
+        ObjectNode metrics = JsonNodeFactory.instance.objectNode();
+        if (params.has("battery")) {
+            metrics.put("battery", params.get("battery").asInt());
         }
+        if (params.has("Occupancy")) {
+            metrics.put("motion", params.get("motion").asInt());
+        }
+        //接收的数据与旧数据合并
+        JsonNode mergeJson = mergeJson(Optional.of(deviceCache).map(Device::getDeviceInfo).orElse(null), metrics);
+        deviceCache.setDeviceInfo(mergeJson);
         //创建influx数据
         InfluxHumanRadarSensor point = new InfluxHumanRadarSensor();
         //tag为设备编号
         point.setDeviceCode(deviceCache.getDeviceCode());
         point.setRoomId(deviceCache.getDeviceRoom().toString());
         //处理数据
-        if (mergedParams != null) {
-            if (mergedParams.has("battery") && mergedParams.get("battery").isNumber()) {
-                point.setBattery(mergedParams.get("battery").asInt());
-            }
-            if (mergedParams.has("Occupancy") && mergedParams.get("Occupancy").isNumber()) {
-                point.setMotion(mergedParams.get("motion").asInt());
-            }
-            influxDBClient.getWriteApiBlocking().writeMeasurement(
-                    influxProperties.getBucket(),
-                    influxProperties.getOrg(),
-                    WritePrecision.MS,
-                    point
-            );
-            log.info("人体传感器数据:{}", point);
-            redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCache.getDeviceCode(), deviceCache);
-            RspMqtt(topic, mqttClient, deviceCache.getDeviceCode(), sequence);
+        if (mergeJson.has("battery")) {
+            point.setBattery(mergeJson.get("battery").asInt());
         }
+        if (mergeJson.has("motion")) {
+            point.setMotion(mergeJson.get("motion").asInt());
+        }
+        influxDBClient.getWriteApiBlocking().writeMeasurement(
+                influxProperties.getBucket(),
+                influxProperties.getOrg(),
+                WritePrecision.MS,
+                point
+        );
+        log.info("人体传感器数据:{}", point);
+        redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCache.getDeviceCode(), deviceCache);
+        RspMqtt(topic, mqttClient, deviceCache.getDeviceCode(), sequence);
 
     }
 
@@ -415,36 +389,25 @@ public class SubUpdateHandler implements MsgHandler {
         JsonNode jsonNode = stringToJsonNode(jsonMsg);
         //2.获取params
         JsonNode params = jsonNode.get("params");
-        if (ObjectUtil.isEmpty(deviceCache.getDeviceInfo())) return;
-        //接收得数据于旧数据合并
-        JsonNode mergeJson = mergeJson(deviceCache.getDeviceInfo(), jsonNode);
-        deviceCache.setDeviceInfo(mergeJson);
-        //3.获取旧设备数据信息-使用deepCopy创建独立拷贝
-        JsonNode oldParams = deviceCache.getDeviceInfo().get("params").deepCopy();
-
-        // 获取合并后的params节点
-        JsonNode mergedParams = mergeJson.get("params");
-
-        //校验缓存于本次数据是否相同 从而判断是否更新数据库
-        boolean needUpdate = false;
-        if (params != null) {
-            String[] fieldsToCheck = {"battery", "temperature", "humidity", "Illuminance", "motion"};
-            String matched = matchedFields(fieldsToCheck, params);
-            if (StringUtils.isNotEmpty(matched)) {
-                //对比
-                int newValue = params.get(matched).asInt();
-                int oldValue = oldParams.get(matched).asInt();
-                if (newValue != oldValue) {
-                    log.info("字段:{}不同,需要更新数据库,改前为{},改后为{}", matched, oldValue, newValue);
-                    needUpdate = true;
-                }
-            }
-            if (needUpdate) {
-                deviceCache.setStatus(1);
-//                deviceService.updateById(deviceCache);
-            }
+        ObjectNode metrics = JsonNodeFactory.instance.objectNode();
+        if (params.has("battery") ) {
+            metrics.put("battery", params.get("battery").asInt());
         }
-
+        if (params.has("temperature") ) {
+            metrics.put("temperature", params.get("temperature").asDouble() / 100);
+        }
+        if (params.has("humidity")) {
+            metrics.put("humidity", params.get("humidity").asDouble() / 100);
+        }
+        if (params.has("Illuminance")) {
+            metrics.put("illuminance", params.get("Illuminance").asDouble());
+        }
+        if (params.has("motion")) {
+            metrics.put("motion", params.get("motion").asInt());
+        }
+        //接收得数据于旧数据合并
+        JsonNode mergeJson = mergeJson(Optional.of(deviceCache).map(Device::getDeviceInfo).orElse(null), metrics);
+        deviceCache.setDeviceInfo(mergeJson);
         //创建influx数据
         InfluxSensor point = new InfluxSensor();
         //tag为设备编号
@@ -452,21 +415,21 @@ public class SubUpdateHandler implements MsgHandler {
         //tag为房间编号
         point.setRoomId(deviceCache.getDeviceRoom().toString());
         // 处理传感器数据
-        if (mergedParams != null) {
-            if (mergedParams.has("battery") && mergedParams.get("battery").isInt()) {
-                point.setBattery(mergedParams.get("battery").asInt());
+        if (mergeJson != null) {
+            if (mergeJson.has("battery")) {
+                point.setBattery(mergeJson.get("battery").asInt());
             }
-            if (mergedParams.has("temperature") && mergedParams.get("temperature").isTextual()) {
-                point.setTemperature(mergedParams.get("temperature").asDouble() / 100);
+            if (mergeJson.has("temperature")) {
+                point.setTemperature(mergeJson.get("temperature").asDouble() / 100);
             }
-            if (mergedParams.has("humidity") && mergedParams.get("humidity").isTextual()) {
-                point.setHumidity(mergedParams.get("humidity").asDouble() / 100);
+            if (mergeJson.has("humidity") ) {
+                point.setHumidity(mergeJson.get("humidity").asDouble() / 100);
             }
-            if (mergedParams.has("Illuminance") && mergedParams.get("Illuminance").isTextual()) {
-                point.setIlluminance(mergedParams.get("Illuminance").asDouble());
+            if (mergeJson.has("illuminance") ) {
+                point.setIlluminance(mergeJson.get("illuminance").asDouble());
             }
-            if (mergedParams.has("motion") && mergedParams.get("motion").isInt()) {
-                point.setMotion(mergedParams.get("motion").asInt());
+            if (mergeJson.has("motion")) {
+                point.setMotion(mergeJson.get("motion").asInt());
             }
             point.setRoomId(deviceCache.getDeviceRoom().toString());
             influxDBClient.getWriteApiBlocking().writeMeasurement(
