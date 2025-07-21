@@ -24,8 +24,8 @@ public class ZigBeeHumanSensorParser implements DeviceInfoParser {
                    properties.add(new DeviceInfo("battery", sensorData.get("battery").asInt()));
                }
                //是否有人
-               if (sensorData.has("Occupancy")) {
-                   properties.add(new DeviceInfo("Occupancy", sensorData.get("Occupancy").asInt()));
+               if (sensorData.has("motion")) {
+                   properties.add(new DeviceInfo("motion", sensorData.get("motion").asInt()));
                }
            }
            return properties;

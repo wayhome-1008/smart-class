@@ -395,7 +395,7 @@ public class SubUpdateHandler implements MsgHandler {
                 point.setBattery(mergedParams.get("battery").asInt());
             }
             if (mergedParams.has("Occupancy") && mergedParams.get("Occupancy").isNumber()) {
-                point.setMotion(mergedParams.get("Occupancy").asInt());
+                point.setMotion(mergedParams.get("motion").asInt());
             }
             influxDBClient.getWriteApiBlocking().writeMeasurement(
                     influxProperties.getBucket(),
