@@ -2,7 +2,9 @@ package com.youlai.boot.system.model.entity;
 
 import lombok.Getter;
 import lombok.Setter;
+
 import java.time.LocalDateTime;
+
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.youlai.boot.common.base.BaseEntity;
 
@@ -17,7 +19,7 @@ import com.youlai.boot.common.base.BaseEntity;
 @TableName("alert_rule")
 public class AlertRule extends BaseEntity {
 
-    private static final long serialVersionUID = 1L;
+    private String ruleName;
 
     private Long deviceId;
     /**
