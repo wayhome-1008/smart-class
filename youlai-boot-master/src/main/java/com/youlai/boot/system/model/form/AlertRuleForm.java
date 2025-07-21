@@ -23,8 +23,7 @@ import jakarta.validation.constraints.*;
 @Schema(description = "报警配置表单对象")
 public class AlertRuleForm implements Serializable {
 
-    @Serial
-    private static final long serialVersionUID = 1L;
+    private Long id;
 
     @Schema(description = "规则名称")
     private String ruleName;
