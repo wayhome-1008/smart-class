@@ -32,37 +32,37 @@ public class AlertRuleForm implements Serializable {
     private Long deviceId;
 
     @Schema(description = "报警级别（1 - 紧急，2 - 重要，3 - 一般，用于后续通知策略）")
-    @NotNull(message = "报警级别（1 - 紧急，2 - 重要，3 - 一般，用于后续通知策略）不能为空")
+//    @NotNull(message = "报警级别（1 - 紧急，2 - 重要，3 - 一般，用于后续通知策略）不能为空")
     private Integer level;
 
     @Schema(description = "范围下限（当 compare_type 为 “range” 时生效，如 min=10，max=30 表示超出 [10,30] 报警）")
-    @NotNull(message = "范围下限（当 compare_type 为 “range” 时生效，如 min=10，max=30 表示超出 [10,30] 报警）不能为空")
+//    @NotNull(message = "范围下限（当 compare_type 为 “range” 时生效，如 min=10，max=30 表示超出 [10,30] 报警）不能为空")
     private Long minThreshold;
 
     @Schema(description = "范围上限（同上）")
-    @NotNull(message = "范围上限（同上）不能为空")
+//    @NotNull(message = "范围上限（同上）不能为空")
     private Long maxValue;
 
     @Schema(description = "对应设备传入属性")
-    @NotBlank(message = "对应设备传入属性不能为空")
+//    @NotBlank(message = "对应设备传入属性不能为空")
     @Size(max = 255, message = "对应设备传入属性长度不能超过255个字符")
     private String metricKey;
 
     @Schema(description = "比较类型（>、<、>=、<=、==、!=，或 “range” 表示范围）")
-    @NotBlank(message = "比较类型（>、<、>=、<=、==、!=，或 “range” 表示范围）不能为空")
+//    @NotBlank(message = "比较类型（>、<、>=、<=、==、!=，或 “range” 表示范围）不能为空")
     @Size(max = 255, message = "比较类型（>、<、>=、<=、==、!=，或 “range” 表示范围）长度不能超过255个字符")
     private String compareType;
 
     @Schema(description = "阈值（如 35，表示 “temperature>35” 报警）")
-    @NotNull(message = "阈值（如 35，表示 “temperature>35” 报警）不能为空")
+//    @NotNull(message = "阈值（如 35，表示 “temperature>35” 报警）不能为空")
     private Long thresholdValue;
 
     @Schema(description = "时间窗口（秒，如 60，表示 “1 分钟内连续 3 次超阈值” 报警）")
-    @NotNull(message = "时间窗口（秒，如 60，表示 “1 分钟内连续 3 次超阈值” 报警）不能为空")
+//    @NotNull(message = "时间窗口（秒，如 60，表示 “1 分钟内连续 3 次超阈值” 报警）不能为空")
     private Integer timeWindow;
 
     @Schema(description = "连续次数（如 3，配合 time_window 使用）")
-    @NotNull(message = "连续次数（如 3，配合 time_window 使用）不能为空")
+//    @NotNull(message = "连续次数（如 3，配合 time_window 使用）不能为空")
     private Integer consecutiveCount;
 
     @Schema(description = "备注信息")

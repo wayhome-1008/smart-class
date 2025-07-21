@@ -114,27 +114,33 @@ public class StateHandler implements MsgHandler {
             String deviceCode = getCodeByTopic(topic);
             //从设备缓存获取看是否存在
             Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
-            if (ObjectUtils.isEmpty(device)) {
-                device = deviceService.getByCode(deviceCode);
-            }
             if (ObjectUtils.isNotEmpty(device)) {
                 JsonNode jsonNode = stringToJsonNode(jsonMsg);
                 JsonNode mergeJson = mergeJson(device.getDeviceInfo(), jsonNode);
-                device.setDeviceInfo(mergeJson);
-                Device deviceCache = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
-                if (ObjectUtils.isNotEmpty(deviceCache)) {
-                    device.setStatus(1);
-                    redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
-                } else {
-                    device.setStatus(1);
+                device.setStatus(1);
+                if (device.getDeviceInfo().has("DHT11")) {
+                    ObjectNode newData = JsonNodeFactory.instance.objectNode();
+                    JsonNode data = device.getDeviceInfo().get("DHT11");
+                    //温度
+                    if (data.has("Temperature")) {
+                        newData.put("temperature", data.get("Temperature").asDouble());
+                    }
+                    //湿度
+                    if (data.has("Humidity")) {
+                        newData.put("humidity", data.get("Humidity").asDouble());
+                    }
+                    mergeJson(device.getDeviceInfo(), newData);
                 }
-                JsonNode deviceInfo = deviceCache.getDeviceInfo();
+                device.setDeviceInfo(mergeJson);
+                redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
+
+                JsonNode deviceInfo = device.getDeviceInfo();
                 //创建influx数据
                 InfluxSensor point = new InfluxSensor();
                 //tag为设备编号
-                point.setDeviceCode(deviceCache.getDeviceCode());
+                point.setDeviceCode(device.getDeviceCode());
                 //tag为房间编号
-                point.setRoomId(deviceCache.getDeviceRoom().toString());
+                point.setRoomId(device.getDeviceRoom().toString());
                 if (deviceInfo.has("DHT11")) {
                     JsonNode data = deviceInfo.get("DHT11");
                     //温度
