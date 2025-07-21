@@ -167,74 +167,113 @@ public class StateHandler implements MsgHandler {
 
     private void handlerSensor3On1(String topic, String jsonMsg) {
         try {
-            //topic是code 唯一的
-            //截取code
             String deviceCode = getCodeByTopic(topic);
-            //从设备缓存获取看是否存在
-            Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
-            if (ObjectUtils.isEmpty(device)) {
-                device = deviceService.getByCode(deviceCode);
+            Device device = getDeviceFromCacheOrDB(deviceCode);
+
+            if (device == null) {
+                log.warn("Device {} not found", deviceCode);
+                return;
             }
-            if (ObjectUtils.isNotEmpty(device)) {
-                JsonNode jsonNode = stringToJsonNode(jsonMsg);
-                JsonNode mergeJson = mergeJson(device.getDeviceInfo(), jsonNode);
-                device.setDeviceInfo(mergeJson);
-                Device deviceCache = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
-                if (ObjectUtils.isNotEmpty(deviceCache)) {
-                    device.setStatus(1);
-                    redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
-                } else {
-                    device.setStatus(1);
-                }
-                JsonNode deviceInfo = deviceCache.getDeviceInfo();
-                //创建influx数据
-                InfluxSensor point = new InfluxSensor();
-                //tag为设备编号
-                point.setDeviceCode(deviceCache.getDeviceCode());
-                //tag为房间编号
-                point.setRoomId(deviceCache.getDeviceRoom().toString());
-                if (deviceInfo.has("DHT11")) {
-                    JsonNode data = deviceInfo.get("DHT11");
-                    //温度
-                    if (data.has("Temperature")) {
-                        point.setTemperature(data.get("Temperature").asDouble());
-                    }
-                    //湿度
-                    if (data.has("Humidity")) {
-                        point.setHumidity(data.get("Humidity").asDouble());
-                    }
-                }
-                if (deviceInfo.has("BH1750")) {
-                    JsonNode light = deviceInfo.get("BH1750");
-                    //亮度
-                    if (light.has("Illuminance")) {
-                        point.setIlluminance(light.get("Illuminance").asDouble());
-                    }
-                }
-                //人
-                if (deviceInfo.has("LD2402")) {
-                    JsonNode person = deviceInfo.get("LD2402");
-                    //亮度
-                    if (person.has("Distance")) {
-                        double distance = person.get("Distance").asDouble();
-                        if (distance > 0) {
-                            point.setMotion(1);
-                        } else {
-                            point.setMotion(0);
-                        }
-                    }
-                }
-                influxDBClient.getWriteApiBlocking().writeMeasurement(
-                        influxProperties.getBucket(),
-                        influxProperties.getOrg(),
-                        WritePrecision.MS,
-                        point
-                );
-            }
+
+            // 1. 处理设备信息更新
+            JsonNode jsonNode = stringToJsonNode(jsonMsg);
+            updateDeviceInfo(device, jsonNode);
+
+            // 2. 准备InfluxDB数据
+            InfluxSensor point = prepareInfluxData(device);
+
+            // 3. 写入InfluxDB
+            writeToInfluxDB(point);
+
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            log.error("处理三合一传感器数据失败: {}", e.getMessage(), e);
+            throw new RuntimeException("三合一传感器处理异常", e);
         }
     }
+
+    private Device getDeviceFromCacheOrDB(String deviceCode) {
+        Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
+        if (device == null) {
+            device = deviceService.getByCode(deviceCode);
+        }
+        return device;
+    }
+
+    private void updateDeviceInfo(Device device, JsonNode jsonNode) {
+        // 合并原始数据
+        JsonNode mergedInfo = mergeJson(device.getDeviceInfo(), jsonNode);
+        device.setDeviceInfo(mergedInfo);
+        device.setStatus(1);
+        // 标准化字段命名
+        if (device.getDeviceInfo().has("DHT11")) {
+            ObjectNode standardizedData = standardizeFieldNames(device.getDeviceInfo().get("DHT11"));
+            mergeJson(device.getDeviceInfo(), standardizedData);
+        }
+
+        // 更新缓存
+        redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
+    }
+
+    private ObjectNode standardizeFieldNames(JsonNode data) {
+        ObjectNode newData = JsonNodeFactory.instance.objectNode();
+        if (data.has("Temperature")) {
+            newData.put("temperature", data.get("Temperature").asDouble());
+        }
+        if (data.has("Humidity")) {
+            newData.put("humidity", data.get("Humidity").asDouble());
+        }
+        if (data.has("Illuminance")) {
+            newData.put("illuminance", data.get("Illuminance").asDouble());
+        }
+        return newData;
+    }
+
+    private InfluxSensor prepareInfluxData(Device device) {
+        InfluxSensor point = new InfluxSensor();
+        point.setDeviceCode(device.getDeviceCode());
+        point.setRoomId(device.getDeviceRoom().toString());
+
+        JsonNode deviceInfo = device.getDeviceInfo();
+
+        // 处理温湿度数据
+        if (deviceInfo.has("DHT11")) {
+            JsonNode data = deviceInfo.get("DHT11");
+            if (data.has("Temperature")) {
+                point.setTemperature(data.get("Temperature").asDouble());
+            }
+            if (data.has("Humidity")) {
+                point.setHumidity(data.get("Humidity").asDouble());
+            }
+        }
+
+        // 处理光照数据
+        if (deviceInfo.has("BH1750")) {
+            JsonNode light = deviceInfo.get("BH1750");
+            if (light.has("Illuminance")) {
+                point.setIlluminance(light.get("Illuminance").asDouble());
+            }
+        }
+
+        // 处理人体感应数据
+        if (deviceInfo.has("LD2402")) {
+            JsonNode person = deviceInfo.get("LD2402");
+            if (person.has("Distance")) {
+                point.setMotion(person.get("Distance").asDouble() > 0 ? 1 : 0);
+            }
+        }
+
+        return point;
+    }
+
+    private void writeToInfluxDB(InfluxSensor point) {
+        influxDBClient.getWriteApiBlocking().writeMeasurement(
+                influxProperties.getBucket(),
+                influxProperties.getOrg(),
+                WritePrecision.MS,
+                point
+        );
+    }
+
 
     @Override
     public HandlerType getType() {

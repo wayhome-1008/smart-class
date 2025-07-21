@@ -21,19 +21,19 @@ public class MqttSensor3On1Parser implements DeviceInfoParser {
             if (deviceInfo.has("DHT11")) {
                 JsonNode data = deviceInfo.get("DHT11");
                 //温度
-                if (data.has("Temperature")) {
-                    properties.add(new DeviceInfo("temperature", data.get("Temperature").asDouble()));
+                if (data.has("temperature")) {
+                    properties.add(new DeviceInfo("temperature", data.get("temperature").asDouble()));
                 }
                 //湿度
-                if (data.has("Humidity")) {
-                    properties.add(new DeviceInfo("humidity", data.get("Humidity").asDouble()));
+                if (data.has("humidity")) {
+                    properties.add(new DeviceInfo("humidity", data.get("humidity").asDouble()));
                 }
             }
             if (deviceInfo.has("BH1750")) {
                 JsonNode light = deviceInfo.get("BH1750");
                 //亮度
-                if (light.has("Illuminance")) {
-                    properties.add(new DeviceInfo("Illuminance", light.get("Illuminance").asDouble()));
+                if (light.has("illuminance")) {
+                    properties.add(new DeviceInfo("illuminance", light.get("illuminance").asDouble()));
                 }
             }
             //人
