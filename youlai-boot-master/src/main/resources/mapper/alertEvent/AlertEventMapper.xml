@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.youlai.boot.alertEvent.mapper.AlertEventMapper">
+
+    <!-- 获取报警记录分页列表 -->
+    <select id="getAlertEventPage" resultType="com.youlai.boot.alertEvent.model.vo.AlertEventVO">
+        SELECT
+                id,
+                rule_id,
+                create_time,
+                create_by,
+                device_id,
+                metric_key,
+                current_value,
+                alarm_content,
+                level,
+                status
+        FROM
+            alert_event
+        <where>
+            <if test="queryParams.ruleId != null">
+                AND rule_id = #{queryParams.ruleId}
+            </if>
+            <if test="queryParams.deviceId != null">
+                AND device_id = #{queryParams.deviceId}
+            </if>
+            <if test="queryParams.level != null">
+                AND level = #{queryParams.level}
+            </if>
+            <if test="queryParams.status != null and queryParams.status != ''">
+                AND status = #{queryParams.status}
+            </if>
+        </where>
+    </select>
+
+</mapper>

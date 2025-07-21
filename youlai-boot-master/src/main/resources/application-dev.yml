@@ -197,7 +197,7 @@ springdoc:
         - com.youlai.boot.shared.file.controller
         - com.youlai.boot.shared.codegen.controller
         - com.youlai.boot.shared.system.controller
-        - com.youlai.boot.system.system.controller
+        - com.youlai.boot.system.controller
         - com.youlai.boot.deviceJob.controller
         - com.youlai.boot.category.controller
   default-flat-param-object: true
