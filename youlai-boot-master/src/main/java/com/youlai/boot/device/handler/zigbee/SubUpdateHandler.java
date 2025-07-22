@@ -212,26 +212,26 @@ public class SubUpdateHandler implements MsgHandler {
      * @date: 2025/6/3 10:19
      **/
     private void processFreePosting(String topic, MqttClient mqttClient, Device device, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
-            JsonNode jsonNode = stringToJsonNode(jsonMsg);
-            //获取params
-            JsonNode params = jsonNode.get("params");
-            // 1. 准备存储所有开关状态的对象
-            ObjectNode allSwitchStates = JsonNodeFactory.instance.objectNode();
-            JsonNode mergeJson;
-            //2.根据返回的key决定是几路
-            if (params.has("outlet")) {
-                int way = params.get("outlet").asInt() + 1;
-                allSwitchStates.put("switch" + way, params.get("key").asText());
-            }
-            if (params.has("battery")) {
-                allSwitchStates.put("battery", params.get("battery").asText());
-            }
-            mergeJson = mergeJson(Optional.ofNullable(device).map(Device::getDeviceInfo).orElse(null), allSwitchStates);
-            if (device != null) {
-                device.setDeviceInfo(mergeJson);
-                redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
-                RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
-            }
+        JsonNode jsonNode = stringToJsonNode(jsonMsg);
+        //获取params
+        JsonNode params = jsonNode.get("params");
+        // 1. 准备存储所有开关状态的对象
+        ObjectNode allSwitchStates = JsonNodeFactory.instance.objectNode();
+        JsonNode mergeJson;
+        //2.根据返回的key决定是几路
+        if (params.has("outlet")) {
+            int way = params.get("outlet").asInt() + 1;
+            allSwitchStates.put("switch" + way, params.get("key").asText());
+        }
+        if (params.has("battery")) {
+            allSwitchStates.put("battery", params.get("battery").asText());
+        }
+        mergeJson = mergeJson(Optional.ofNullable(device).map(Device::getDeviceInfo).orElse(null), allSwitchStates);
+        if (device != null) {
+            device.setDeviceInfo(mergeJson);
+            redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
+            RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
+        }
     }
 
     private void processPlug(String topic, MqttClient mqttClient, Device deviceCache, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
@@ -266,8 +266,17 @@ public class SubUpdateHandler implements MsgHandler {
         //接受得数据与旧数据合并
         JsonNode mergeJson = mergeJson(Optional.of(deviceCache).map(Device::getDeviceInfo).orElse(null), metrics);
         deviceCache.setDeviceInfo(mergeJson);
-        //获取旧设备数据信息- 使用deepCopy创建独立拷贝
-//        JsonNode oldParams = deviceCache.getDeviceInfo().get("params").deepCopy();
+
+        //校验警报配置
+        AlertRule alertRule = alertRuleEngine.checkAlertConfig(deviceCache.getId(), metrics);
+        if (ObjectUtils.isNotEmpty(alertRule)) {
+            boolean checkRule = alertRuleEngine.checkRule(alertRule, metrics.get(alertRule.getMetricKey()).asLong());
+            //满足条件
+            if (checkRule) {
+                //创建AlertEvent
+                alertRuleEngine.constructAlertEvent(deviceCache, alertRule, metrics);
+            }
+        }
         //获取合并后的params节点
         JsonNode mergeParams = deviceCache.getDeviceInfo();
 
@@ -347,6 +356,16 @@ public class SubUpdateHandler implements MsgHandler {
         //接收的数据与旧数据合并
         JsonNode mergeJson = mergeJson(Optional.of(deviceCache).map(Device::getDeviceInfo).orElse(null), metrics);
         deviceCache.setDeviceInfo(mergeJson);
+        //校验警报配置
+        AlertRule alertRule = alertRuleEngine.checkAlertConfig(deviceCache.getId(), metrics);
+        if (ObjectUtils.isNotEmpty(alertRule)) {
+            boolean checkRule = alertRuleEngine.checkRule(alertRule, metrics.get(alertRule.getMetricKey()).asLong());
+            //满足条件
+            if (checkRule) {
+                //创建AlertEvent
+                alertRuleEngine.constructAlertEvent(deviceCache, alertRule, metrics);
+            }
+        }
         //创建influx数据
         InfluxHumanRadarSensor point = new InfluxHumanRadarSensor();
         //tag为设备编号
