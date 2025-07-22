@@ -31,7 +31,7 @@ public class AlertRuleVO implements Serializable {
     @Schema(description = "报警级别（1 - 紧急，2 - 重要，3 - 一般，用于后续通知策略）")
     private Integer level;
     @Schema(description = "范围下限（当 compare_type 为 “range” 时生效，如 min=10，max=30 表示超出 [10,30] 报警）")
-    private Long minThreshold;
+    private Long minValue;
     @Schema(description = "范围上限（同上）")
     private Long maxValue;
     @Schema(description = "对应设备传入属性")

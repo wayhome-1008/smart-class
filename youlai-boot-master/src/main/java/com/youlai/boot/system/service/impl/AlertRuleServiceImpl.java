@@ -1,6 +1,12 @@
 package com.youlai.boot.system.service.impl;
 
+import cn.hutool.core.collection.CollectionUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.youlai.boot.common.constant.RedisConstants;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -28,16 +34,53 @@ import cn.hutool.core.util.StrUtil;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AlertRuleServiceImpl extends ServiceImpl<AlertRuleMapper, AlertRule> implements AlertRuleService {
 
     private final AlertRuleConverter alertRuleConverter;
 
+    private final RedisTemplate<String, Object> redisTemplate;
+
     /**
-    * 获取报警配置分页列表
-    *
-    * @param queryParams 查询参数
-    * @return {@link IPage<AlertRuleVO>} 报警配置分页列表
-    */
+     * 初始化报警配置缓存
+     */
+    @PostConstruct
+    public void initAlertRuleCache() {
+        log.info("初始化报警配置缓存... ");
+        refreshAlertRuleCache();
+    }
+
+    private void refreshAlertRuleCache() {
+        // 清理报警配置缓存
+        redisTemplate.delete(RedisConstants.Alert.Alert);
+
+        List<AlertRule> alertRules = this.list();
+        if (CollectionUtil.isNotEmpty(alertRules)) {
+            alertRules.forEach(item -> {
+                // 构建复合key: deviceId:metric
+                String cacheKey = item.getDeviceId() + ":" + item.getMetricKey();
+                redisTemplate.opsForHash().put(
+                        RedisConstants.Alert.Alert,
+                        cacheKey,
+                        item
+                );
+            });
+        }
+    }
+
+    // 查询方法示例
+    public AlertRule getAlertRuleByDeviceAndMetric(String deviceId, String metric) {
+        String cacheKey = deviceId + ":" + metric;
+        return (AlertRule) redisTemplate.opsForHash().get(RedisConstants.Alert.Alert, cacheKey);
+    }
+
+
+    /**
+     * 获取报警配置分页列表
+     *
+     * @param queryParams 查询参数
+     * @return {@link IPage<AlertRuleVO>} 报警配置分页列表
+     */
     @Override
     public IPage<AlertRuleVO> getAlertRulePage(AlertRuleQuery queryParams) {
         Page<AlertRuleVO> pageVO = this.baseMapper.getAlertRulePage(
@@ -46,7 +89,7 @@ public class AlertRuleServiceImpl extends ServiceImpl<AlertRuleMapper, AlertRule
         );
         return pageVO;
     }
-    
+
     /**
      * 获取报警配置表单数据
      *
@@ -58,7 +101,7 @@ public class AlertRuleServiceImpl extends ServiceImpl<AlertRuleMapper, AlertRule
         AlertRule entity = this.getById(id);
         return alertRuleConverter.toForm(entity);
     }
-    
+
     /**
      * 新增报警配置
      *
@@ -70,7 +113,7 @@ public class AlertRuleServiceImpl extends ServiceImpl<AlertRuleMapper, AlertRule
         AlertRule entity = alertRuleConverter.toEntity(formData);
         return this.save(entity);
     }
-    
+
     /**
      * 更新报警配置
      *
@@ -79,11 +122,11 @@ public class AlertRuleServiceImpl extends ServiceImpl<AlertRuleMapper, AlertRule
      * @return 是否修改成功
      */
     @Override
-    public boolean updateAlertRule(Long id,AlertRuleForm formData) {
+    public boolean updateAlertRule(Long id, AlertRuleForm formData) {
         AlertRule entity = alertRuleConverter.toEntity(formData);
         return this.updateById(entity);
     }
-    
+
     /**
      * 删除报警配置
      *

@@ -37,7 +37,7 @@ public class AlertRuleForm implements Serializable {
 
     @Schema(description = "范围下限（当 compare_type 为 “range” 时生效，如 min=10，max=30 表示超出 [10,30] 报警）")
 //    @NotNull(message = "范围下限（当 compare_type 为 “range” 时生效，如 min=10，max=30 表示超出 [10,30] 报警）不能为空")
-    private Long minThreshold;
+    private Long minValue;
 
     @Schema(description = "范围上限（同上）")
 //    @NotNull(message = "范围上限（同上）不能为空")

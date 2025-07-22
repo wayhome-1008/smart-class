@@ -45,7 +45,6 @@ public class ResultHandler implements MsgHandler {
             // 1. 转换消息为JSON
             JsonNode jsonNode = stringToJsonNode(jsonMsg);
             String deviceCode = getCodeByTopic(topic);
-
             // 2. 获取设备信息（缓存优先）
             Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
             if (ObjectUtils.isEmpty(device)) {
@@ -85,39 +84,33 @@ public class ResultHandler implements MsgHandler {
             String fieldName = fieldNames.next();
             if (fieldName.startsWith("POWER")) {
                 if (fieldName.equals("POWER")) {
-                    if (device.getIsMaster() == 1) {
-                        String status = jsonNode.get(fieldName).asText();
-                        lightStatus.put("switch1", status);
-                        InfluxSwitch influxSwitch = new InfluxSwitch();
-                        influxSwitch.setDeviceCode(deviceCode);
-                        influxSwitch.setRoomId(device.getDeviceRoom().toString());
-                        influxSwitch.setSwitchState(lightStatus.toString());
-                        influxDBClient.getWriteApiBlocking().writeMeasurement(
-                                influxProperties.getBucket(),
-                                influxProperties.getOrg(),
-                                WritePrecision.MS,
-                                influxSwitch
-                        );
-                    }
-
+                    String status = jsonNode.get(fieldName).asText();
+                    lightStatus.put("switch1", status);
+                    InfluxSwitch influxSwitch = new InfluxSwitch();
+                    influxSwitch.setDeviceCode(deviceCode);
+                    influxSwitch.setRoomId(device.getDeviceRoom().toString());
+                    influxSwitch.setSwitchState(lightStatus.toString());
+                    influxDBClient.getWriteApiBlocking().writeMeasurement(
+                            influxProperties.getBucket(),
+                            influxProperties.getOrg(),
+                            WritePrecision.MS,
+                            influxSwitch
+                    );
                 } else {
-                    if (device.getIsMaster() == 1) {
-                        String status = jsonNode.get(fieldName).asText();
-                        lightStatus.put(fieldName.replace("POWER", "switch"), status);
-                        InfluxSwitch influxSwitch = new InfluxSwitch();
-                        influxSwitch.setDeviceCode(deviceCode);
-                        influxSwitch.setRoomId(device.getDeviceRoom().toString());
-                        influxSwitch.setSwitchState(lightStatus.toString());
-                        influxDBClient.getWriteApiBlocking().writeMeasurement(
-                                influxProperties.getBucket(),
-                                influxProperties.getOrg(),
-                                WritePrecision.MS,
-                                influxSwitch
-                        );
-                        log.debug("灯光路数 {} 状态: {}", fieldName, status);
-                    }
+                    String status = jsonNode.get(fieldName).asText();
+                    lightStatus.put(fieldName.replace("POWER", "switch"), status);
+                    InfluxSwitch influxSwitch = new InfluxSwitch();
+                    influxSwitch.setDeviceCode(deviceCode);
+                    influxSwitch.setRoomId(device.getDeviceRoom().toString());
+                    influxSwitch.setSwitchState(lightStatus.toString());
+                    influxDBClient.getWriteApiBlocking().writeMeasurement(
+                            influxProperties.getBucket(),
+                            influxProperties.getOrg(),
+                            WritePrecision.MS,
+                            influxSwitch
+                    );
+                    log.debug("灯光路数 {} 状态: {}", fieldName, status);
                 }
-
             }
         }
         // 4. 更新设备信息

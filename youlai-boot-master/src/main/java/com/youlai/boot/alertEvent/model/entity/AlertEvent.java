@@ -17,16 +17,11 @@ import com.youlai.boot.common.base.BaseEntity;
 @TableName("alert_event")
 public class AlertEvent extends BaseEntity {
 
-    private static final long serialVersionUID = 1L;
-
     /**
      * 关联的规则 ID
      */
     private Long ruleId;
-    /**
-     * 创建人ID
-     */
-    private Long createBy;
+
     /**
      * 触发报警的设备 ID
      */

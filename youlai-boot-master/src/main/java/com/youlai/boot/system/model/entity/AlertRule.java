@@ -29,7 +29,7 @@ public class AlertRule extends BaseEntity {
     /**
      * 范围下限（当 compare_type 为 “range” 时生效，如 min=10，max=30 表示超出 [10,30] 报警）
      */
-    private Long minThreshold;
+    private Long minValue;
     /**
      * 范围上限（同上）
      */
