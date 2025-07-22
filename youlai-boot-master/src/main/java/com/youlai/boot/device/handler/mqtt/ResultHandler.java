@@ -50,9 +50,11 @@ public class ResultHandler implements MsgHandler {
             if (ObjectUtils.isEmpty(device)) {
                 device = deviceService.getByCode(deviceCode);
             }
+            //计量插座
             if (device.getDeviceTypeId() == 4) {
                 plug(jsonNode, device, deviceCode);
             }
+            //灯
             if (device.getDeviceTypeId() == 8) {
                 light(jsonNode, device, deviceCode);
             }
@@ -70,10 +72,8 @@ public class ResultHandler implements MsgHandler {
         lightStatus.put("count", 1);
         JsonNode mergedInfo = mergeJson(device.getDeviceInfo(), lightStatus);
         device.setDeviceInfo(mergedInfo);
-        // 双写：Redis缓存 + 数据库
         device.setStatus(1);
         redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
-//        deviceService.updateById(device);
     }
 
     private void light(JsonNode jsonNode, Device device, String deviceCode) {

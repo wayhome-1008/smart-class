@@ -11,7 +11,9 @@ import com.youlai.boot.device.handler.service.MsgHandler;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.influx.InfluxSensor;
 import com.youlai.boot.device.service.DeviceService;
+import com.youlai.boot.device.service.impl.AlertRuleEngine;
 import com.youlai.boot.device.topic.HandlerType;
+import com.youlai.boot.system.model.entity.AlertRule;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
@@ -38,6 +40,7 @@ public class StateHandler implements MsgHandler {
     private final DeviceService deviceService;
     private final InfluxDBClient influxDBClient;
     private final InfluxDBProperties influxProperties;
+    private final AlertRuleEngine alertRuleEngine;
 
     @Override
     public void process(String topic, String jsonMsg, MqttClient mqttClient) {
@@ -119,21 +122,30 @@ public class StateHandler implements MsgHandler {
                 JsonNode mergeJson = mergeJson(device.getDeviceInfo(), jsonNode);
                 device.setStatus(1);
                 if (device.getDeviceInfo().has("DHT11")) {
-                    ObjectNode newData = JsonNodeFactory.instance.objectNode();
+                    ObjectNode metrics = JsonNodeFactory.instance.objectNode();
                     JsonNode data = device.getDeviceInfo().get("DHT11");
                     //温度
                     if (data.has("Temperature")) {
-                        newData.put("temperature", data.get("Temperature").asDouble());
+                        metrics.put("temperature", data.get("Temperature").asDouble());
                     }
                     //湿度
                     if (data.has("Humidity")) {
-                        newData.put("humidity", data.get("Humidity").asDouble());
+                        metrics.put("humidity", data.get("Humidity").asDouble());
                     }
-                    mergeJson(device.getDeviceInfo(), newData);
+                    mergeJson(device.getDeviceInfo(), metrics);
+                    //校验警报配置
+                    AlertRule alertRule = alertRuleEngine.checkAlertConfig(device.getId(), metrics);
+                    if (ObjectUtils.isNotEmpty(alertRule)) {
+                        boolean checkRule = alertRuleEngine.checkRule(alertRule, metrics.get(alertRule.getMetricKey()).asLong());
+                        //满足条件
+                        if (checkRule) {
+                            //创建AlertEvent
+                            alertRuleEngine.constructAlertEvent(device, alertRule, metrics);
+                        }
+                    }
                 }
                 device.setDeviceInfo(mergeJson);
                 redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
-
                 JsonNode deviceInfo = device.getDeviceInfo();
                 //创建influx数据
                 InfluxSensor point = new InfluxSensor();

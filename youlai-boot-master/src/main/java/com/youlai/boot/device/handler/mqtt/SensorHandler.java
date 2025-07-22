@@ -12,9 +12,12 @@ import com.youlai.boot.device.handler.service.MsgHandler;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.influx.InfluxMqttPlug;
 import com.youlai.boot.device.service.DeviceService;
+import com.youlai.boot.device.service.impl.AlertRuleEngine;
 import com.youlai.boot.device.topic.HandlerType;
+import com.youlai.boot.system.model.entity.AlertRule;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
@@ -38,6 +41,7 @@ public class SensorHandler implements MsgHandler {
     private final DeviceService deviceService;
     private final InfluxDBClient influxDBClient;
     private final InfluxDBProperties influxProperties;
+    private final AlertRuleEngine alertRuleEngine;
 
     @Override
     public void process(String topic, String jsonMsg, MqttClient mqttClient) throws JsonProcessingException {
@@ -83,8 +87,17 @@ public class SensorHandler implements MsgHandler {
         metrics.put("total", jsonNode.get("ENERGY").get("Total").asDouble());
         JsonNode mergeJson = mergeJson(Optional.of(device).map(Device::getDeviceInfo).orElse(null), metrics);
         device.setDeviceInfo(mergeJson);
+        //校验警报配置
+        AlertRule alertRule = alertRuleEngine.checkAlertConfig(device.getId(), metrics);
+        if (ObjectUtils.isNotEmpty(alertRule)) {
+            boolean checkRule = alertRuleEngine.checkRule(alertRule, metrics.get(alertRule.getMetricKey()).asLong());
+            //满足条件
+            if (checkRule) {
+                //创建AlertEvent
+                alertRuleEngine.constructAlertEvent(device, alertRule, metrics);
+            }
+        }
         device.setStatus(1);
-//            deviceService.updateById(device);
         //创建influx数据
         InfluxMqttPlug influxPlug = new InfluxMqttPlug();
         //tag为设备编号

@@ -12,9 +12,12 @@ import com.youlai.boot.device.handler.service.MsgHandler;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.influx.InfluxMqttPlug;
 import com.youlai.boot.device.service.DeviceService;
+import com.youlai.boot.device.service.impl.AlertRuleEngine;
 import com.youlai.boot.device.topic.HandlerType;
+import com.youlai.boot.system.model.entity.AlertRule;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -40,6 +43,7 @@ public class State8Handler implements MsgHandler {
     private final DeviceService deviceService;
     private final InfluxDBClient influxDBClient;
     private final InfluxDBProperties influxProperties;
+    private final AlertRuleEngine alertRuleEngine;
 
     @Override
     public void process(String topic, String jsonMsg, MqttClient mqttClient) throws MqttException, JsonProcessingException {
@@ -55,7 +59,6 @@ public class State8Handler implements MsgHandler {
         } else {
             device.setStatus(1);
             redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
-//            deviceService.updateById(device);
         }
     }
 
@@ -70,6 +73,16 @@ public class State8Handler implements MsgHandler {
         metrics.put("total", jsonNode.get("StatusSNS").get("ENERGY").get("Total").asDouble());
         JsonNode mergeJson = mergeJson(Optional.of(device).map(Device::getDeviceInfo).orElse(null), metrics);
         device.setDeviceInfo(mergeJson);
+        //校验警报配置
+        AlertRule alertRule = alertRuleEngine.checkAlertConfig(device.getId(), metrics);
+        if (ObjectUtils.isNotEmpty(alertRule)) {
+            boolean checkRule = alertRuleEngine.checkRule(alertRule, metrics.get(alertRule.getMetricKey()).asLong());
+            //满足条件
+            if (checkRule) {
+                //创建AlertEvent
+                alertRuleEngine.constructAlertEvent(device, alertRule, metrics);
+            }
+        }
         //创建influx数据
         InfluxMqttPlug influxPlug = new InfluxMqttPlug();
         //tag为设备编号
@@ -79,7 +92,6 @@ public class State8Handler implements MsgHandler {
         influxPlug.setTotal(jsonNode.get("StatusSNS").get("ENERGY").get("Total").asDouble());
         influxPlug.setYesterday(jsonNode.get("StatusSNS").get("ENERGY").get("Yesterday").asDouble());
         influxPlug.setToday(jsonNode.get("StatusSNS").get("ENERGY").get("Today").asDouble());
-//            influxPlug.setPeriod(jsonNode.get("ENERGY").get("Period").asDouble());
         influxPlug.setPower(jsonNode.get("StatusSNS").get("ENERGY").get("Power").asInt());
         influxPlug.setApparentPower(jsonNode.get("StatusSNS").get("ENERGY").get("ApparentPower").asInt());
         influxPlug.setReactivePower(jsonNode.get("StatusSNS").get("ENERGY").get("ReactivePower").asInt());
@@ -88,8 +100,7 @@ public class State8Handler implements MsgHandler {
         influxPlug.setCurrent(jsonNode.get("StatusSNS").get("ENERGY").get("Current").asDouble());
         device.setStatus(1);
         redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
-//        deviceService.updateById(device);
-        if (device.getIsMaster()==1) {
+        if (device.getIsMaster() == 1) {
             influxDBClient.getWriteApiBlocking().writeMeasurement(
                     influxProperties.getBucket(),
                     influxProperties.getOrg(),
