@@ -87,7 +87,7 @@ public class RoomController {
                                 .ifPresent(roomVO::setTemperature);
                         DeviceInfo.getValueByName(device.getDeviceInfo(), "humidity", Double.class)
                                 .ifPresent(roomVO::setHumidity);
-                        DeviceInfo.getValueByName(device.getDeviceInfo(), "Illuminance", Double.class)
+                        DeviceInfo.getValueByName(device.getDeviceInfo(), "illuminance", Double.class)
                                 .ifPresent(roomVO::setIlluminance);
                         break;
 
@@ -108,7 +108,7 @@ public class RoomController {
                         break;
 
                     case 6: // 6->人体存在感应
-                        DeviceInfo.getValueByName(device.getDeviceInfo(), "Occupancy", Integer.class)
+                        DeviceInfo.getValueByName(device.getDeviceInfo(), "motion", Integer.class)
                                 .filter(occupancy -> occupancy == 1)
                                 .ifPresent(occupancy -> roomVO.setHuman(true));
                         break;

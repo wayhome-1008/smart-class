@@ -93,7 +93,7 @@ public class FloorController {
                                 .ifPresent(floor::setTemperature);
                         DeviceInfo.getValueByName(device.getDeviceInfo(), "humidity", Double.class)
                                 .ifPresent(floor::setHumidity);
-                        DeviceInfo.getValueByName(device.getDeviceInfo(), "Illuminance", Double.class)
+                        DeviceInfo.getValueByName(device.getDeviceInfo(), "illuminance", Double.class)
                                 .ifPresent(floor::setIlluminance);
                         break;
 
@@ -113,7 +113,7 @@ public class FloorController {
                         break;
 
                     case 6: // 6->人体存在感应
-                        DeviceInfo.getValueByName(device.getDeviceInfo(), "Occupancy", Integer.class)
+                        DeviceInfo.getValueByName(device.getDeviceInfo(), "motion", Integer.class)
                                 .filter(occupancy -> occupancy == 1)
                                 .ifPresent(occupancy -> floor.setHuman(true));
                         break;

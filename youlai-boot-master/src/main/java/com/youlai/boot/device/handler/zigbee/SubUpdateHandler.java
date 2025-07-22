@@ -355,7 +355,7 @@ public class SubUpdateHandler implements MsgHandler {
             metrics.put("battery", params.get("battery").asInt());
         }
         if (params.has("Occupancy")) {
-            metrics.put("motion", params.get("motion").asInt());
+            metrics.put("motion", params.get("Occupancy").asInt());
         }
         //接收的数据与旧数据合并
         JsonNode mergeJson = mergeJson(Optional.of(deviceCache).map(Device::getDeviceInfo).orElse(null), metrics);
