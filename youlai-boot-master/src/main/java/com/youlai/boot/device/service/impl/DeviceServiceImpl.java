@@ -35,9 +35,7 @@ import com.youlai.boot.floor.model.vo.FloorVO;
 import com.youlai.boot.room.model.entity.Room;
 import com.youlai.boot.room.model.vo.RoomVO;
 import com.youlai.boot.room.service.RoomService;
-import com.youlai.boot.system.model.entity.AlertRule;
 import com.youlai.boot.system.model.entity.DictItem;
-import com.youlai.boot.system.service.AlertRuleService;
 import com.youlai.boot.system.service.DictItemService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -70,7 +68,6 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     private final RoomService roomService;
     private final CategoryDeviceRelationshipService categoryDeviceRelationshipService;
     private final CategoryService categoryService;
-    private final AlertRuleService alertRuleService;
 
     @PostConstruct
     public void init() {

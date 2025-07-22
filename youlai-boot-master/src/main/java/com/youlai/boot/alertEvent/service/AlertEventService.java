@@ -1,11 +1,10 @@
 package com.youlai.boot.alertEvent.service;
 
-import com.youlai.boot.alertEvent.model.entity.AlertEvent;
-import com.youlai.boot.alertEvent.model.form.AlertEventForm;
-import com.youlai.boot.alertEvent.model.query.AlertEventQuery;
-import com.youlai.boot.alertEvent.model.vo.AlertEventVO;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.youlai.boot.alertEvent.model.entity.AlertEvent;
+import com.youlai.boot.alertEvent.model.query.AlertEventQuery;
+import com.youlai.boot.alertEvent.model.vo.AlertEventVO;
 
 /**
  * 报警记录服务类

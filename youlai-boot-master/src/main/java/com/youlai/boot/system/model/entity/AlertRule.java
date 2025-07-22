@@ -1,12 +1,9 @@
 package com.youlai.boot.system.model.entity;
 
-import lombok.Getter;
-import lombok.Setter;
-
-import java.time.LocalDateTime;
-
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.youlai.boot.common.base.BaseEntity;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * 报警配置实体对象

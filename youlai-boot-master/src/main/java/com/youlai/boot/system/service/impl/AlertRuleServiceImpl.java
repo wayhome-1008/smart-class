@@ -1,30 +1,27 @@
 package com.youlai.boot.system.service.impl;
 
 import cn.hutool.core.collection.CollectionUtil;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import cn.hutool.core.lang.Assert;
+import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.youlai.boot.common.constant.RedisConstants;
+import com.youlai.boot.system.converter.AlertRuleConverter;
+import com.youlai.boot.system.mapper.AlertRuleMapper;
+import com.youlai.boot.system.model.entity.AlertRule;
+import com.youlai.boot.system.model.form.AlertRuleForm;
+import com.youlai.boot.system.model.query.AlertRuleQuery;
+import com.youlai.boot.system.model.vo.AlertRuleVO;
+import com.youlai.boot.system.service.AlertRuleService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.youlai.boot.system.mapper.AlertRuleMapper;
-import com.youlai.boot.system.service.AlertRuleService;
-import com.youlai.boot.system.model.entity.AlertRule;
-import com.youlai.boot.system.model.form.AlertRuleForm;
-import com.youlai.boot.system.model.query.AlertRuleQuery;
-import com.youlai.boot.system.model.vo.AlertRuleVO;
-import com.youlai.boot.system.converter.AlertRuleConverter;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
-
-import cn.hutool.core.lang.Assert;
-import cn.hutool.core.util.StrUtil;
 
 /**
  * 报警配置服务实现类
@@ -68,13 +65,6 @@ public class AlertRuleServiceImpl extends ServiceImpl<AlertRuleMapper, AlertRule
         }
     }
 
-    // 查询方法示例
-    public AlertRule getAlertRuleByDeviceAndMetric(String deviceId, String metric) {
-        String cacheKey = deviceId + ":" + metric;
-        return (AlertRule) redisTemplate.opsForHash().get(RedisConstants.Alert.Alert, cacheKey);
-    }
-
-
     /**
      * 获取报警配置分页列表
      *
@@ -83,11 +73,10 @@ public class AlertRuleServiceImpl extends ServiceImpl<AlertRuleMapper, AlertRule
      */
     @Override
     public IPage<AlertRuleVO> getAlertRulePage(AlertRuleQuery queryParams) {
-        Page<AlertRuleVO> pageVO = this.baseMapper.getAlertRulePage(
+        return this.baseMapper.getAlertRulePage(
                 new Page<>(queryParams.getPageNum(), queryParams.getPageSize()),
                 queryParams
         );
-        return pageVO;
     }
 
     /**

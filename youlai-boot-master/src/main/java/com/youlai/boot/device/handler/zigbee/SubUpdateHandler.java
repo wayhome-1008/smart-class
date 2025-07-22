@@ -9,8 +9,6 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.domain.WritePrecision;
-import com.youlai.boot.alertEvent.model.entity.AlertEvent;
-import com.youlai.boot.alertEvent.service.AlertEventService;
 import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.config.property.InfluxDBProperties;
 import com.youlai.boot.device.handler.service.MsgHandler;
@@ -32,7 +30,6 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
-import java.util.Iterator;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -52,7 +49,6 @@ public class SubUpdateHandler implements MsgHandler {
     private final RedisTemplate<String, Object> redisTemplate;
     private final InfluxDBClient influxDBClient;
     private final InfluxDBProperties influxProperties;
-    private final AlertEventService alertEventService;
     private final AlertRuleEngine alertRuleEngine;
 
     /**
@@ -216,7 +212,6 @@ public class SubUpdateHandler implements MsgHandler {
      * @date: 2025/6/3 10:19
      **/
     private void processFreePosting(String topic, MqttClient mqttClient, Device device, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
-        if (ObjectUtil.isNotEmpty(device)) {
             JsonNode jsonNode = stringToJsonNode(jsonMsg);
             //获取params
             JsonNode params = jsonNode.get("params");
@@ -234,27 +229,9 @@ public class SubUpdateHandler implements MsgHandler {
             mergeJson = mergeJson(Optional.ofNullable(device).map(Device::getDeviceInfo).orElse(null), allSwitchStates);
             if (device != null) {
                 device.setDeviceInfo(mergeJson);
-                Device deviceCache = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, device.getDeviceCode());
-                if (deviceCache != null) {
-                    try {
-                        //并且是电量
-                        if (params.has("battery")) {
-                            //查看缓存和新的电量是否一致
-                            if (!deviceCache.getDeviceInfo().get("battery").asText().equals(params.get("battery").asText())) {
-//                                deviceService.updateById(device);
-                            }
-                        }
-                    } catch (NullPointerException e) {
-                        log.error(e.getMessage());
-                        device.setStatus(1);
-//                        deviceService.updateById(device);
-                    }
-                }
                 redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
                 RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
             }
-
-        }
     }
 
     private void processPlug(String topic, MqttClient mqttClient, Device deviceCache, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {

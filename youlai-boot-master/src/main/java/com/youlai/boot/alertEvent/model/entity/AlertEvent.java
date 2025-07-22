@@ -6,8 +6,6 @@ import com.youlai.boot.common.base.BaseEntity;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.Instant;
-
 /**
  * 报警记录实体对象
  *
