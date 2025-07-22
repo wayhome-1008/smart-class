@@ -1,10 +1,12 @@
 package com.youlai.boot.alertEvent.model.entity;
 
-import lombok.Getter;
-import lombok.Setter;
-import java.time.LocalDateTime;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.youlai.boot.common.base.BaseEntity;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.time.Instant;
 
 /**
  * 报警记录实体对象
@@ -46,4 +48,7 @@ public class AlertEvent extends BaseEntity {
      * 事件状态（0 - 未处理，1 - 已处理，2 - 已忽略）
      */
     private String status;
+
+    @TableField(exist = false)
+    private Long eventTime;
 }

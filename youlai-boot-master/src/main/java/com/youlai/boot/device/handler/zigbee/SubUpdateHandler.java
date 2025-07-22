@@ -21,6 +21,7 @@ import com.youlai.boot.device.model.influx.InfluxMqttPlug;
 import com.youlai.boot.device.model.influx.InfluxSensor;
 import com.youlai.boot.device.model.influx.InfluxSwitch;
 import com.youlai.boot.device.service.DeviceService;
+import com.youlai.boot.device.service.impl.AlertRuleEngine;
 import com.youlai.boot.device.topic.HandlerType;
 import com.youlai.boot.system.model.entity.AlertRule;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +32,6 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
 import java.util.Iterator;
 import java.util.Objects;
 import java.util.Optional;
@@ -53,7 +53,12 @@ public class SubUpdateHandler implements MsgHandler {
     private final InfluxDBClient influxDBClient;
     private final InfluxDBProperties influxProperties;
     private final AlertEventService alertEventService;
+    private final AlertRuleEngine alertRuleEngine;
 
+    /**
+     * @description: zigBee设备统一分处理方法
+     * @author: way
+     **/
     @Override
     public void process(String topic, String jsonMsg, MqttClient mqttClient) {
         try {
@@ -389,11 +394,19 @@ public class SubUpdateHandler implements MsgHandler {
 
     }
 
+    /**
+     * @description: ZigBee温湿度传感器、ZigBee运动传感器motion
+     * @author: way
+     * @date: 2025/7/22 16:45
+     * @param: [topic, mqttClient, deviceCache, jsonMsg, sequence]
+     * @return: void
+     **/
     private void processSensor(String topic, MqttClient mqttClient, Device deviceCache, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
-        //1.字符串转jsonNode
+        //字符串转jsonNode
         JsonNode jsonNode = stringToJsonNode(jsonMsg);
-        //2.获取params
+        //获取params
         JsonNode params = jsonNode.get("params");
+        //新建node用于存储接受设备传入信息
         ObjectNode metrics = JsonNodeFactory.instance.objectNode();
         if (params.has("battery")) {
             metrics.put("battery", params.get("battery").asInt());
@@ -414,13 +427,13 @@ public class SubUpdateHandler implements MsgHandler {
         JsonNode mergeJson = mergeJson(Optional.of(deviceCache).map(Device::getDeviceInfo).orElse(null), metrics);
         deviceCache.setDeviceInfo(mergeJson);
         //校验警报配置
-        AlertRule alertRule = checkAlertConfig(deviceCache.getId(), metrics);
+        AlertRule alertRule = alertRuleEngine.checkAlertConfig(deviceCache.getId(), metrics);
         if (ObjectUtils.isNotEmpty(alertRule)) {
-            boolean checkRule = checkRule(alertRule, metrics.get(alertRule.getMetricKey()).asLong());
+            boolean checkRule = alertRuleEngine.checkRule(alertRule, metrics.get(alertRule.getMetricKey()).asLong());
             //满足条件
             if (checkRule) {
                 //创建AlertEvent
-                construtAlertEvent(deviceCache, alertRule, metrics);
+                alertRuleEngine.constructAlertEvent(deviceCache, alertRule, metrics);
             }
         }
         //创建influx数据
@@ -463,17 +476,6 @@ public class SubUpdateHandler implements MsgHandler {
         }
     }
 
-    private void construtAlertEvent(Device deviceCache, AlertRule alertRule, JsonNode metrics) {
-        AlertEvent alertEvent = new AlertEvent();
-        alertEvent.setRuleId(alertRule.getId());
-        alertEvent.setDeviceId(deviceCache.getId());
-        alertEvent.setMetricKey(alertRule.getMetricKey());
-        alertEvent.setCurrentValue(metrics.get(alertRule.getMetricKey()).asLong());
-        alertEvent.setAlarmContent(alertRule.getRuleName());
-        alertEvent.setLevel(alertRule.getLevel());
-        alertEvent.setStatus("0");
-        alertEventService.save(alertEvent);
-    }
 
     private static void RspMqtt(String topic, MqttClient mqttClient, String deviceId, int sequence) throws
             MqttException {
@@ -484,51 +486,6 @@ public class SubUpdateHandler implements MsgHandler {
         mqttClient.publish(topic + "_rsp", JSON.toJSONString(subUpdateSensorRsp).getBytes(), 2, false);
     }
 
-    /**
-     * 检查设备报警配置
-     * @param deviceId 设备ID
-     * @param params 上报的参数对象
-     * @return 匹配的报警规则对象，如果没有则返回null
-     */
-    private AlertRule checkAlertConfig(Long deviceId, JsonNode params) {
-        if (params == null || params.isNull() || params.isEmpty()) {
-            return null;
-        }
-
-        // 获取第一个参数名作为指标名称
-        Iterator<String> fieldNames = params.fieldNames();
-        if (!fieldNames.hasNext()) {
-            return null;
-        }
-
-        String metric = fieldNames.next();
-        String alertKey = deviceId + ":" + metric;  // 组合键格式 deviceId:metric
-
-        // 从Redis查询并返回报警配置
-        Object alertRuleObj = redisTemplate.opsForHash().get(RedisConstants.Alert.Alert, alertKey);
-        if (alertRuleObj instanceof AlertRule) {
-            return (AlertRule) alertRuleObj;
-        }
-        return null;
-    }
-
-    /**
-     * 检查规则是否触发报警
-     */
-    private boolean checkRule(AlertRule rule, Long currentValue) {
-        String compareType = rule.getCompareType();
-        return switch (compareType) {
-            case ">" -> currentValue.compareTo(rule.getThresholdValue()) > 0;
-            case "<" -> currentValue.compareTo(rule.getThresholdValue()) < 0;
-            case ">=" -> currentValue.compareTo(rule.getThresholdValue()) >= 0;
-            case "<=" -> currentValue.compareTo(rule.getThresholdValue()) <= 0;
-            case "==" -> currentValue.compareTo(rule.getThresholdValue()) == 0;
-            case "!=" -> currentValue.compareTo(rule.getThresholdValue()) != 0;
-            case "range" -> currentValue.compareTo(rule.getMinValue()) < 0 ||
-                    currentValue.compareTo(rule.getMaxValue()) > 0;
-            default -> false;
-        };
-    }
 
     @Override
     public HandlerType getType() {
