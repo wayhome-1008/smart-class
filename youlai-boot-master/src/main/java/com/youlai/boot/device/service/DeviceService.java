@@ -97,4 +97,6 @@ public interface DeviceService extends IService<Device> {
     IPage<Device> listAllMasterDevices(Page<Device> objectPage);
 
     void masterSlaveDel(String ids);
+
+    List<String> listMetric(Long id);
 }

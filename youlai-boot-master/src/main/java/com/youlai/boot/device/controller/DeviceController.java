@@ -271,6 +271,14 @@ public class DeviceController {
         return Result.success(list);
     }
 
+    @Operation(summary = "根据设备id查询出该设备软属性")
+    @GetMapping("/{id}/metric")
+    public Result<List<String>> listMetric(
+            @Parameter(description = "设备ID") @PathVariable Long id
+    ) {
+        return Result.success(deviceService.listMetric(id));
+    }
+
     @Operation(summary = "新增设备管理")
     @PostMapping
     @PreAuthorize("@ss.hasPerm('device:device:add')")

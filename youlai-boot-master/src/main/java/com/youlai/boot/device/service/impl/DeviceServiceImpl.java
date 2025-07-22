@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.youlai.boot.category.model.entity.Category;
 import com.youlai.boot.category.service.CategoryService;
 import com.youlai.boot.categoryDeviceRelationship.model.CategoryDeviceRelationship;
@@ -34,7 +35,9 @@ import com.youlai.boot.floor.model.vo.FloorVO;
 import com.youlai.boot.room.model.entity.Room;
 import com.youlai.boot.room.model.vo.RoomVO;
 import com.youlai.boot.room.service.RoomService;
+import com.youlai.boot.system.model.entity.AlertRule;
 import com.youlai.boot.system.model.entity.DictItem;
+import com.youlai.boot.system.service.AlertRuleService;
 import com.youlai.boot.system.service.DictItemService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -67,6 +70,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     private final RoomService roomService;
     private final CategoryDeviceRelationshipService categoryDeviceRelationshipService;
     private final CategoryService categoryService;
+    private final AlertRuleService alertRuleService;
 
     @PostConstruct
     public void init() {
@@ -421,6 +425,28 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
             redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
         }
         this.updateBatchById(devices);
+    }
+
+    @Override
+    public List<String> listMetric(Long deviceId) {
+        Device device = this.getById(deviceId);
+        if (device == null) {
+            return null;
+        }
+        if (device.getDeviceInfo()== null)
+        {
+            return null;
+        }
+        JsonNode deviceInfo = device.getDeviceInfo();
+        //把软属性key列成列表
+        List<String> metricList = new ArrayList<>();
+        // 遍历设备信息中的所有字段名
+        Iterator<String> fieldNames = deviceInfo.fieldNames();
+        while (fieldNames.hasNext()) {
+            metricList.add(fieldNames.next());
+        }
+        return metricList;
+
     }
 
     private List<Device> listByIdAndRoomId(List<Long> idList, Long roomId) {
