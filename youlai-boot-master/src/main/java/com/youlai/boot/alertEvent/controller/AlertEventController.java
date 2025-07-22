@@ -28,54 +28,16 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/api/v1/alert-event")
 @RequiredArgsConstructor
-public class AlertEventController  {
+public class AlertEventController {
 
     private final AlertEventService alertEventService;
 
     @Operation(summary = "报警记录分页列表")
     @GetMapping("/page")
     @PreAuthorize("@ss.hasPerm('alertEvent:alertEvent:query')")
-    public PageResult<AlertEventVO> getAlertEventPage(AlertEventQuery queryParams ) {
+    public PageResult<AlertEventVO> getAlertEventPage(AlertEventQuery queryParams) {
         IPage<AlertEventVO> result = alertEventService.getAlertEventPage(queryParams);
         return PageResult.success(result);
     }
 
-//    @Operation(summary = "新增报警记录")
-//    @PostMapping
-//    @PreAuthorize("@ss.hasPerm('alertEvent:alert-event:add')")
-//    public Result<Void> saveAlertEvent(@RequestBody @Valid AlertEventForm formData ) {
-//        boolean result = alertEventService.saveAlertEvent(formData);
-//        return Result.judge(result);
-//    }
-//
-//    @Operation(summary = "获取报警记录表单数据")
-//    @GetMapping("/{id}/form")
-//    @PreAuthorize("@ss.hasPerm('alertEvent:alert-event:edit')")
-//    public Result<AlertEventForm> getAlertEventForm(
-//        @Parameter(description = "报警记录ID") @PathVariable Long id
-//    ) {
-//        AlertEventForm formData = alertEventService.getAlertEventFormData(id);
-//        return Result.success(formData);
-//    }
-//
-//    @Operation(summary = "修改报警记录")
-//    @PutMapping(value = "/{id}")
-//    @PreAuthorize("@ss.hasPerm('alertEvent:alert-event:edit')")
-//    public Result<Void> updateAlertEvent(
-//            @Parameter(description = "报警记录ID") @PathVariable Long id,
-//            @RequestBody @Validated AlertEventForm formData
-//    ) {
-//        boolean result = alertEventService.updateAlertEvent(id, formData);
-//        return Result.judge(result);
-//    }
-//
-//    @Operation(summary = "删除报警记录")
-//    @DeleteMapping("/{ids}")
-//    @PreAuthorize("@ss.hasPerm('alertEvent:alert-event:delete')")
-//    public Result<Void> deleteAlertEvents(
-//        @Parameter(description = "报警记录ID，多个以英文逗号(,)分割") @PathVariable String ids
-//    ) {
-//        boolean result = alertEventService.deleteAlertEvents(ids);
-//        return Result.judge(result);
-//    }
 }

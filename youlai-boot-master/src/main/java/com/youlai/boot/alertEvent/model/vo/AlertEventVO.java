@@ -31,6 +31,8 @@ public class AlertEventVO implements Serializable {
     private Long createBy;
     @Schema(description = "触发报警的设备 ID")
     private Long deviceId;
+    @Schema(description = "触发报警的设备名称")
+    private String deviceName;
     @Schema(description = "触发的指标")
     private String metricKey;
     @Schema(description = "当前值（如 36.5℃）")

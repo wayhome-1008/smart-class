@@ -5,30 +5,32 @@
     <!-- 获取报警记录分页列表 -->
     <select id="getAlertEventPage" resultType="com.youlai.boot.alertEvent.model.vo.AlertEventVO">
         SELECT
-                id,
-                rule_id,
-                create_time,
-                create_by,
-                device_id,
-                metric_key,
-                current_value,
-                alarm_content,
-                level,
-                status
+        ae.id,
+        ae.rule_id,
+        ae.create_time,
+        ae.create_by,
+        ae.device_id,
+        d.device_name,
+        ae.metric_key,
+        ae.current_value,
+        ae.alarm_content,
+        ae.level,
+        ae.status
         FROM
-            alert_event
+        alert_event ae
+        LEFT JOIN device d ON ae.device_id = d.id
         <where>
             <if test="queryParams.ruleId != null">
-                AND rule_id = #{queryParams.ruleId}
+                AND ae.rule_id = #{queryParams.ruleId}
             </if>
             <if test="queryParams.deviceId != null">
-                AND device_id = #{queryParams.deviceId}
+                AND ae.device_id = #{queryParams.deviceId}
             </if>
             <if test="queryParams.level != null">
-                AND level = #{queryParams.level}
+                AND ae.level = #{queryParams.level}
             </if>
             <if test="queryParams.status != null and queryParams.status != ''">
-                AND status = #{queryParams.status}
+                AND ae.status = #{queryParams.status}
             </if>
         </where>
     </select>

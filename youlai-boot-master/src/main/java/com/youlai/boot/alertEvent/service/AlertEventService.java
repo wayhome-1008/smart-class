@@ -22,37 +22,4 @@ public interface AlertEventService extends IService<AlertEvent> {
      */
     IPage<AlertEventVO> getAlertEventPage(AlertEventQuery queryParams);
 
-    /**
-     * 获取报警记录表单数据
-     *
-     * @param id 报警记录ID
-     * @return 报警记录表单数据
-     */
-     AlertEventForm getAlertEventFormData(Long id);
-
-    /**
-     * 新增报警记录
-     *
-     * @param formData 报警记录表单对象
-     * @return 是否新增成功
-     */
-    boolean saveAlertEvent(AlertEventForm formData);
-
-    /**
-     * 修改报警记录
-     *
-     * @param id   报警记录ID
-     * @param formData 报警记录表单对象
-     * @return 是否修改成功
-     */
-    boolean updateAlertEvent(Long id, AlertEventForm formData);
-
-    /**
-     * 删除报警记录
-     *
-     * @param ids 报警记录ID，多个以英文逗号(,)分割
-     * @return 是否删除成功
-     */
-    boolean deleteAlertEvents(String ids);
-
 }

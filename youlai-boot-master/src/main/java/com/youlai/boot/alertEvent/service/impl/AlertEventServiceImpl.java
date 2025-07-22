@@ -33,71 +33,17 @@ public class AlertEventServiceImpl extends ServiceImpl<AlertEventMapper, AlertEv
     private final AlertEventConverter alertEventConverter;
 
     /**
-    * 获取报警记录分页列表
-    *
-    * @param queryParams 查询参数
-    * @return {@link IPage<AlertEventVO>} 报警记录分页列表
-    */
+     * 获取报警记录分页列表
+     *
+     * @param queryParams 查询参数
+     * @return {@link IPage<AlertEventVO>} 报警记录分页列表
+     */
     @Override
     public IPage<AlertEventVO> getAlertEventPage(AlertEventQuery queryParams) {
-        Page<AlertEventVO> pageVO = this.baseMapper.getAlertEventPage(
+        return this.baseMapper.getAlertEventPage(
                 new Page<>(queryParams.getPageNum(), queryParams.getPageSize()),
                 queryParams
         );
-        return pageVO;
-    }
-    
-    /**
-     * 获取报警记录表单数据
-     *
-     * @param id 报警记录ID
-     * @return 报警记录表单数据
-     */
-    @Override
-    public AlertEventForm getAlertEventFormData(Long id) {
-        AlertEvent entity = this.getById(id);
-        return alertEventConverter.toForm(entity);
-    }
-    
-    /**
-     * 新增报警记录
-     *
-     * @param formData 报警记录表单对象
-     * @return 是否新增成功
-     */
-    @Override
-    public boolean saveAlertEvent(AlertEventForm formData) {
-        AlertEvent entity = alertEventConverter.toEntity(formData);
-        return this.save(entity);
-    }
-    
-    /**
-     * 更新报警记录
-     *
-     * @param id   报警记录ID
-     * @param formData 报警记录表单对象
-     * @return 是否修改成功
-     */
-    @Override
-    public boolean updateAlertEvent(Long id,AlertEventForm formData) {
-        AlertEvent entity = alertEventConverter.toEntity(formData);
-        return this.updateById(entity);
-    }
-    
-    /**
-     * 删除报警记录
-     *
-     * @param ids 报警记录ID，多个以英文逗号(,)分割
-     * @return 是否删除成功
-     */
-    @Override
-    public boolean deleteAlertEvents(String ids) {
-        Assert.isTrue(StrUtil.isNotBlank(ids), "删除的报警记录数据为空");
-        // 逻辑删除
-        List<Long> idList = Arrays.stream(ids.split(","))
-                .map(Long::parseLong)
-                .toList();
-        return this.removeByIds(idList);
     }
 
 }
