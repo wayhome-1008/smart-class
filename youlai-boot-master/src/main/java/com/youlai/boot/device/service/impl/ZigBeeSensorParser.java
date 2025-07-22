@@ -17,25 +17,23 @@ public class ZigBeeSensorParser implements DeviceInfoParser {
     public List<DeviceInfo> parse(JsonNode deviceInfo) {
         if (deviceInfo!=null){
             List<DeviceInfo> properties = new ArrayList<>();
-            if (deviceInfo.has("params")) {
-                JsonNode sensorData = deviceInfo.get("params");
                 //电量
-                if (sensorData.has("battery")) {
-                    properties.add(new DeviceInfo("battery", sensorData.get("battery").asInt()));
+                if (deviceInfo.has("battery")) {
+                    properties.add(new DeviceInfo("battery", deviceInfo.get("battery").asInt()));
                 }
                 //温度
-                if (sensorData.has("temperature")) {
-                    properties.add(new DeviceInfo("temperature", sensorData.get("temperature").asDouble() / 100));
+                if (deviceInfo.has("temperature")) {
+                    properties.add(new DeviceInfo("temperature", deviceInfo.get("temperature").asDouble()));
                 }
                 //湿度
-                if (sensorData.has("humidity")) {
-                    properties.add(new DeviceInfo("humidity", sensorData.get("humidity").asDouble() / 100));
+                if (deviceInfo.has("humidity")) {
+                    properties.add(new DeviceInfo("humidity", deviceInfo.get("humidity").asDouble()));
                 }
                 //光照
-                if (sensorData.has("Illuminance")) {
-                    properties.add(new DeviceInfo("Illuminance", sensorData.get("Illuminance").asDouble()));
+                if (deviceInfo.has("illuminance")) {
+                    properties.add(new DeviceInfo("illuminance", deviceInfo.get("illuminance").asDouble()));
                 }
-            }
+
             return properties;
         }
         return null;

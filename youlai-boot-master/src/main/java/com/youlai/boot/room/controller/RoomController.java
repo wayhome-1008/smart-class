@@ -84,10 +84,15 @@ public class RoomController {
                 switch (device.getDeviceTypeId().intValue()) {
                     case 2: // 2->温湿度传感器
                         DeviceInfo.getValueByName(device.getDeviceInfo(), "temperature", Double.class)
+                                .map(temp -> Double.parseDouble(String.format("%.2f", temp)))
                                 .ifPresent(roomVO::setTemperature);
+
                         DeviceInfo.getValueByName(device.getDeviceInfo(), "humidity", Double.class)
+                                .map(hum -> Double.parseDouble(String.format("%.2f", hum)))
                                 .ifPresent(roomVO::setHumidity);
+
                         DeviceInfo.getValueByName(device.getDeviceInfo(), "illuminance", Double.class)
+                                .map(ill -> Double.parseDouble(String.format("%.2f", ill)))
                                 .ifPresent(roomVO::setIlluminance);
                         break;
 

@@ -15,21 +15,18 @@ import java.util.List;
 public class MqttSensorParser implements DeviceInfoParser {
     @Override
     public List<DeviceInfo> parse(JsonNode deviceInfo) {
-    if (deviceInfo!=null){
-        List<DeviceInfo> properties = new ArrayList<>();
-        if (deviceInfo.has("DHT11")) {
-            JsonNode data = deviceInfo.get("DHT11");
+        if (deviceInfo != null) {
+            List<DeviceInfo> properties = new ArrayList<>();
             //温度
-            if (data.has("temperature")) {
-                properties.add(new DeviceInfo("temperature", data.get("Temperature").asDouble()));
+            if (deviceInfo.has("temperature")) {
+                properties.add(new DeviceInfo("temperature", deviceInfo.get("Temperature").asDouble()));
             }
             //湿度
-            if (data.has("humidity")) {
-                properties.add(new DeviceInfo("humidity", data.get("Humidity").asDouble()));
+            if (deviceInfo.has("humidity")) {
+                properties.add(new DeviceInfo("humidity", deviceInfo.get("Humidity").asDouble()));
             }
+            return properties;
         }
-        return properties;
-    }
-    return null;
+        return null;
     }
 }

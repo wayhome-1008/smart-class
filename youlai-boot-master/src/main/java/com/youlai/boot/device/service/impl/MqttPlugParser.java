@@ -21,25 +21,26 @@ public class MqttPlugParser implements DeviceInfoParser {
             if (deviceInfo.has("count")) {
                 int lightCount = deviceInfo.get("count").asInt();
                 properties.add(new DeviceInfo("count", lightCount));
+            }
+            //开关状态
+            if (deviceInfo.has("switch1")) {
                 properties.add(new DeviceInfo("switch1", deviceInfo.get("switch1").asText()));
             }
-            if (deviceInfo.has("StatusSNS")) {
-                JsonNode statusSNS = deviceInfo.get("StatusSNS");
-                if (statusSNS.has("ENERGY")) {
-                    JsonNode energy = statusSNS.get("ENERGY");
-                    properties.add(new DeviceInfo("ApparentPower", energy.get("ApparentPower").asInt()));
-                    properties.add(new DeviceInfo("ReactivePower", energy.get("ReactivePower").asInt()));
-                    properties.add(new DeviceInfo("Factor", energy.get("Factor").asDouble()));
-                    properties.add(new DeviceInfo("Voltage", energy.get("Voltage").asDouble()));
-                    properties.add(new DeviceInfo("Current", energy.get("Current").asDouble()));
-                    properties.add(new DeviceInfo("Power", energy.get("Power").asInt()));
-                    properties.add(new DeviceInfo("Today", energy.get("Today").asDouble()));
-                    properties.add(new DeviceInfo("Yesterday", energy.get("Yesterday").asDouble()));
-                    properties.add(new DeviceInfo("Total", energy.get("Total").asDouble()));
-                    properties.add(new DeviceInfo("Yesterday", energy.get("Yesterday").asDouble()));
-//                    properties.add(new DeviceInfo("Period", energy.get("Period").asDouble()));
-                    properties.add(new DeviceInfo("Power", energy.get("Power").asInt()));
-                }
+            //电压
+            if (deviceInfo.has("voltage")) {
+                properties.add(new DeviceInfo("voltage", deviceInfo.get("voltage").asDouble()));
+            }
+            //电流
+            if (deviceInfo.has("current")) {
+                properties.add(new DeviceInfo("current", deviceInfo.get("current").asDouble()));
+            }
+            //功率
+            if (deviceInfo.has("power")) {
+                properties.add(new DeviceInfo("power", deviceInfo.get("power").asDouble()));
+            }
+            //累计
+            if (deviceInfo.has("total")) {
+                properties.add(new DeviceInfo("total", deviceInfo.get("total").asDouble()));
             }
             return properties;
         }
