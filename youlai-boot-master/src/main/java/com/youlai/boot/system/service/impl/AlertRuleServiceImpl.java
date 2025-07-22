@@ -111,6 +111,8 @@ public class AlertRuleServiceImpl extends ServiceImpl<AlertRuleMapper, AlertRule
     @Override
     public boolean saveAlertRule(AlertRuleForm formData) {
         AlertRule entity = alertRuleConverter.toEntity(formData);
+        //同步缓存
+        refreshAlertRuleCache();
         return this.save(entity);
     }
 
@@ -124,6 +126,8 @@ public class AlertRuleServiceImpl extends ServiceImpl<AlertRuleMapper, AlertRule
     @Override
     public boolean updateAlertRule(Long id, AlertRuleForm formData) {
         AlertRule entity = alertRuleConverter.toEntity(formData);
+        //同步缓存
+        refreshAlertRuleCache();
         return this.updateById(entity);
     }
 
@@ -140,6 +144,8 @@ public class AlertRuleServiceImpl extends ServiceImpl<AlertRuleMapper, AlertRule
         List<Long> idList = Arrays.stream(ids.split(","))
                 .map(Long::parseLong)
                 .toList();
+        //同步缓存
+        refreshAlertRuleCache();
         return this.removeByIds(idList);
     }
 
