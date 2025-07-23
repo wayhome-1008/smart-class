@@ -102,7 +102,6 @@ public class AlertRuleEngine {
         alertEvent.setCurrentValue(metrics.get(rule.getMetricKey()).asLong());
         alertEvent.setAlarmContent(rule.getRuleName());
         alertEvent.setLevel(rule.getLevel());
-        alertEvent.setStatus("0"); // 未处理状态
         alertEvent.setEventTime(System.currentTimeMillis());
 
         alertEventService.save(alertEvent);

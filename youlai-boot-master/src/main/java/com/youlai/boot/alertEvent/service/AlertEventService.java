@@ -21,4 +21,5 @@ public interface AlertEventService extends IService<AlertEvent> {
      */
     IPage<AlertEventVO> getAlertEventPage(AlertEventQuery queryParams);
 
+    boolean updateStatus(String ids, Integer status);
 }

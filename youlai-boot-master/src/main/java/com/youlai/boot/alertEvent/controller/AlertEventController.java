@@ -5,13 +5,12 @@ import com.youlai.boot.alertEvent.model.query.AlertEventQuery;
 import com.youlai.boot.alertEvent.model.vo.AlertEventVO;
 import com.youlai.boot.alertEvent.service.AlertEventService;
 import com.youlai.boot.common.result.PageResult;
+import com.youlai.boot.common.result.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * 报警记录前端控制层
@@ -35,4 +34,13 @@ public class AlertEventController {
         return PageResult.success(result);
     }
 
+    @Operation(summary = "批量修改报警记录状态")
+    @PostMapping("/status")
+    @PreAuthorize("@ss.hasPerm('alertEvent:alertEvent:edit')")
+    public Result<Void> updateStatus(
+            @RequestParam String ids,
+            @RequestParam Integer status) {
+        boolean result = alertEventService.updateStatus(ids, status);
+        return result ? Result.success() : Result.failed("状态更新失败");
+    }
 }

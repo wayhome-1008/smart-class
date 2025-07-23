@@ -162,11 +162,11 @@ oss:
 sms:
   # 阿里云短信
   aliyun:
-    accessKeyId: LTAI5tSMgfxxxxxxdiBJLyR
-    accessKeySecret: SoOWRqpjtS7xxxxxxZ2PZiMTJOVC
-    domain: dysmsapi.aliyuncs.com
-    regionId: cn-shanghai
-    signName: 有来技术
+    accessKeyId: 1
+    accessKeySecret: 2
+    domain: 3
+    regionId: 4
+    signName: way
     templates:
       #  注册短信验证码模板
       register: SMS_22xxx771
@@ -200,6 +200,7 @@ springdoc:
         - com.youlai.boot.system.controller
         - com.youlai.boot.deviceJob.controller
         - com.youlai.boot.category.controller
+        - com.youlai.boot.alertEvent.controller
   default-flat-param-object: true
 
 # knife4j 接口文档配置
