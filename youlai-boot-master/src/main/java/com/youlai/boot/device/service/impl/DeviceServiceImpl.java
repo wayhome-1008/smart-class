@@ -430,8 +430,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
         if (device == null) {
             return null;
         }
-        if (device.getDeviceInfo()== null)
-        {
+        if (device.getDeviceInfo() == null) {
             return null;
         }
         JsonNode deviceInfo = device.getDeviceInfo();
@@ -444,6 +443,12 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
         }
         return metricList;
 
+    }
+
+    @Override
+    public List<Option<Long>> listDeviceOptions() {
+        List<Device> list = this.list(new LambdaQueryWrapper<Device>().eq(Device::getStatus, 1));
+        return deviceConverter.toOptions(list);
     }
 
     private List<Device> listByIdAndRoomId(List<Long> idList, Long roomId) {

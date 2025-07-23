@@ -114,8 +114,8 @@ public class RoomController {
 
                     case 6: // 6->人体存在感应
                         DeviceInfo.getValueByName(device.getDeviceInfo(), "motion", Integer.class)
-                                .filter(occupancy -> occupancy == 1)
-                                .ifPresent(occupancy -> roomVO.setHuman(true));
+                                .filter(motion -> motion == 1)
+                                .ifPresent(motion -> roomVO.setHuman(true));
                         break;
                 }
             }

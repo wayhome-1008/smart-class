@@ -20,4 +20,7 @@ public class AlertRuleQuery extends BasePageQuery {
     @Schema(description = "规则名称")
     private String ruleName;
 
+    @Schema(description = "设备Id")
+    private Long deviceId;
+
 }

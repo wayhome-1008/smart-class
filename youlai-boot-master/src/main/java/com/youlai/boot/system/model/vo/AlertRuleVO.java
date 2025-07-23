@@ -24,8 +24,11 @@ public class AlertRuleVO implements Serializable {
 
     @Schema(description = "规则名称")
     private String ruleName;
-
     private Long id;
+    @Schema(description = "报警的设备 ID")
+    private Long deviceId;
+    @Schema(description = "报警的设备名称")
+    private String deviceName;
     @Schema(description = "报警级别（1 - 紧急，2 - 重要，3 - 一般，用于后续通知策略）")
     private Integer level;
     @Schema(description = "范围下限（当 compare_type 为 “range” 时生效，如 min=10，max=30 表示超出 [10,30] 报警）")

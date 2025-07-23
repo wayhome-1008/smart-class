@@ -5,24 +5,33 @@
     <!-- 获取报警配置分页列表 -->
     <select id="getAlertRulePage" resultType="com.youlai.boot.system.model.vo.AlertRuleVO">
         SELECT
-                id,
-                rule_name,
-                level,
-                min_value,
-                max_value,
-                metric_key,
-                compare_type,
-                threshold_value,
-                time_window,
-                consecutive_count,
-                remark,
-                create_time,
-                create_by,
-                update_time,
-                update_by
+        ar.id,
+        ar.rule_name,
+        ar.level,
+        ar.min_value,
+        ar.max_value,
+        ar.metric_key,
+        ar.compare_type,
+        ar.threshold_value,
+        ar.time_window,
+        ar.consecutive_count,
+        ar.remark,
+        ar.create_time,
+        ar.create_by,
+        ar.update_time,
+        ar.update_by,
+        ar.device_id,
+        d.device_name
         FROM
-            alert_rule
+        alert_rule ar
+        LEFT JOIN device d ON ar.device_id = d.id
         <where>
+            <if test="queryParams.ruleName != null and queryParams.ruleName != ''">
+                AND ar.rule_name LIKE CONCAT('%', #{queryParams.ruleName}, '%')
+            </if>
+            <if test="queryParams.deviceId != null">
+                AND ar.device_id = #{queryParams.deviceId}
+            </if>
         </where>
     </select>
 

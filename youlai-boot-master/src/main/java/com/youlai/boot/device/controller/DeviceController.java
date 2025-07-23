@@ -271,6 +271,13 @@ public class DeviceController {
         return Result.success(list);
     }
 
+    @Operation(summary = "设备下拉列表")
+    @GetMapping("/options/device")
+    public Result<List<Option<Long>>> listDeviceOptions() {
+        List<Option<Long>> list = deviceService.listDeviceOptions();
+        return Result.success(list);
+    }
+
     @Operation(summary = "根据设备id查询出该设备软属性")
     @GetMapping("/{id}/metric")
     public Result<List<String>> listMetric(
