@@ -35,9 +35,6 @@
             <if test="queryParams.level != null">
                 AND ar.level = #{queryParams.level}
             </if>
-            <if test="queryParams.status != null and queryParams.status != ''">
-                AND ar.status = #{queryParams.status}
-            </if>
         </where>
     </select>
 
