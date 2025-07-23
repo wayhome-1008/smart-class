@@ -4,6 +4,7 @@ import com.youlai.boot.common.base.BasePageQuery;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -13,13 +14,11 @@ import java.util.List;
  * @author way
  * @since 2025-07-21 12:16
  */
-@Schema(description ="报警记录查询对象")
+@Schema(description = "报警记录查询对象")
 @Getter
 @Setter
 public class AlertEventQuery extends BasePageQuery {
 
-    @Schema(description = "关联的规则 ID")
-    private Long ruleId;
     @Schema(description = "触发报警的设备 ID")
     private Long deviceId;
     @Schema(description = "报警级别（继承规则的 level）")

@@ -20,9 +20,6 @@
         alert_event ae
         LEFT JOIN device d ON ae.device_id = d.id
         <where>
-            <if test="queryParams.ruleId != null">
-                AND ae.rule_id = #{queryParams.ruleId}
-            </if>
             <if test="queryParams.deviceId != null">
                 AND ae.device_id = #{queryParams.deviceId}
             </if>
