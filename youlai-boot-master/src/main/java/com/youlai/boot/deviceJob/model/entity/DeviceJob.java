@@ -21,6 +21,17 @@ public class DeviceJob extends BaseEntity {
      */
     private Long deviceId;
 
+    /** 设备名称 */
+    private String deviceName;
+
+    /** 执行动作 */
+    private String actions;
+
+    /** 告警触发器 */
+    private String alertTrigger;
+
+    /** 是否并发执行（0允许 1禁止） */
+    private String concurrent;
     private String jobName; // 任务名称，唯一标识一个任务
 
     private String jobGroup; // 任务组名，用于对任务进行分组管理
@@ -32,9 +43,8 @@ public class DeviceJob extends BaseEntity {
      * 任务类型
      */
     private Long typeId;
-    /**
-     * cron表达式
-     */
+
+    /** cron执行表达式 */
     private String cron;
     /**
      * 0:暂停 1:运行
