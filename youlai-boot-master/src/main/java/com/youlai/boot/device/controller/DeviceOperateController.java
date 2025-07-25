@@ -56,9 +56,7 @@ public class DeviceOperateController {
 
     @Operation(summary = "串口透传demo")
     @GetMapping(value = "/serial{id}")
-    public Result<SerialDataDown> serialTransfer(@Parameter(description = "设备ID") @PathVariable Long id,
-                                                 @RequestParam(required = false) String data
-    ) {
+    public Result<SerialDataDown> serialTransfer(@Parameter(description = "设备ID") @PathVariable Long id, @RequestParam(required = false) String data) {
         //根据设备发送mqtt
         Device device = deviceService.getById(id);
         if (ObjectUtils.isEmpty(device)) return Result.failed("设备不存在");
@@ -138,6 +136,23 @@ public class DeviceOperateController {
         //状态
         if (device.getStatus() != 1) return Result.failed("该设备非正常状态，无法操作");
         return operate(deviceOperate.getOperate(), deviceOperate.getWay(), deviceOperate.getCount(), device.getDeviceCode(), device.getDeviceGatewayId(), device.getCommunicationModeItemId(), device.getDeviceTypeId());
+    }
+
+    public void operate(DeviceOperate deviceOperate, Long deviceId) {
+        Device device = deviceService.getById(deviceId);
+        if (ObjectUtils.isEmpty(device)) return;
+        if (device.getDeviceTypeId() != 4 && device.getDeviceTypeId() != 7 && device.getDeviceTypeId() != 10 && device.getDeviceTypeId() != 8)
+            return;
+        //根据通信协议去发送不同协议报文
+        switch (CommunicationModeEnum.getNameById(device.getCommunicationModeItemId())) {
+            case "ZigBee" ->
+                //zigBee
+                    zigBeeDevice(device.getDeviceCode(), device.getDeviceGatewayId(), deviceOperate.getOperate(), deviceOperate.getWay(), deviceOperate.getCount());
+            case "WiFi" ->
+                //WiFi
+                    wifiDevice(device.getDeviceCode(), deviceOperate.getOperate(), deviceOperate.getWay(), deviceOperate.getCount());
+            default -> Result.failed("暂不支持该协议");
+        }
     }
 
     private Result<Void> operate(String operate, String way, Integer lightCount, String deviceCode, Long deviceGatewayId, Long deviceCommunicationModeItemId, Long deviceTypeId) {

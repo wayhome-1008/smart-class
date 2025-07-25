@@ -7,6 +7,7 @@
         SELECT
                 id,
                 device_id,
+                device_name,
                 type_id,
                 cron,
                 status,

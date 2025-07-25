@@ -5,6 +5,7 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.youlai.boot.common.constant.ScheduleConstants;
 import com.youlai.boot.deviceJob.converter.DeviceJobConverter;
 import com.youlai.boot.deviceJob.job.DeviceSyncJob;
 import com.youlai.boot.deviceJob.mapper.DeviceJobMapper;
@@ -13,9 +14,11 @@ import com.youlai.boot.deviceJob.model.form.DeviceJobForm;
 import com.youlai.boot.deviceJob.model.query.DeviceJobQuery;
 import com.youlai.boot.deviceJob.model.vo.DeviceJobVO;
 import com.youlai.boot.deviceJob.service.DeviceJobService;
+import com.youlai.boot.deviceJob.util.ScheduleUtils;
 import lombok.RequiredArgsConstructor;
 import org.quartz.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -68,42 +71,12 @@ public class DeviceJobServiceImpl extends ServiceImpl<DeviceJobMapper, DeviceJob
      */
     @Override
     public boolean saveDeviceJob(DeviceJobForm formData) throws SchedulerException {
-        String jobClass = "com.youlai.boot.deviceJob.job.DeviceSyncJob";
-        // 验证Cron表达式
-        if (!checkCronExpression(formData.getCron())) {
-            throw new SchedulerException("无效的Cron表达式: " + formData.getCron());
+        DeviceJob deviceJob = deviceJobConverter.toEntity(formData);
+        boolean save = this.save(deviceJob);
+        if (save) {
+            ScheduleUtils.createScheduleJob(scheduler, deviceJob);
         }
-
-        // 创建JobDetail
-        JobDetail jobDetail = JobBuilder.newJob(DeviceSyncJob.class)
-                .withIdentity(formData.getJobName(), formData.getJobGroup())
-                .withDescription(formData.getRemark())
-                .build();
-
-        // 设置任务数据
-        jobDetail.getJobDataMap().put("deviceId", formData.getDeviceId());
-        //后续如果deviceId不满足的话 可以再添加新的数据在这里
-//        if (deviceJob.getJobData() != null) {
-//            jobDetail.getJobDataMap().put("jobData", formData.getJobData());
-//        }
-
-        // 创建Trigger
-        CronTrigger trigger = TriggerBuilder.newTrigger()
-                .withIdentity(formData.getJobName(), formData.getJobGroup())
-                .withSchedule(CronScheduleBuilder.cronSchedule(formData.getCron()))
-                .build();
-
-        // 注册任务和触发器
-        scheduler.scheduleJob(jobDetail, trigger);
-        DeviceJob entity = deviceJobConverter.toEntity(formData);
-        // 1. 自动生成jobName（设备ID+时间戳）
-        String jobName = generateUniqueJobName(String.valueOf(formData.getDeviceId()));
-        // 2. 自动生成jobGroup（根据设备类型）
-        String jobGroup = determineJobGroup(String.valueOf(formData.getTypeId()));
-        entity.setJobName(jobName);
-        entity.setJobGroup(jobGroup);
-        entity.setJobClass(jobClass);
-        return this.save(entity);
+        return save;
     }
 
     /**
@@ -116,30 +89,17 @@ public class DeviceJobServiceImpl extends ServiceImpl<DeviceJobMapper, DeviceJob
     @Override
     public boolean updateDeviceJob(Long id, DeviceJobForm formData) throws SchedulerException {
         DeviceJob entity = deviceJobConverter.toEntity(formData);
-        // 验证Cron表达式
-        if (!checkCronExpression(entity.getCron())) {
-            throw new SchedulerException("无效的Cron表达式: " + entity.getCron());
-        }
 
         // 获取原始任务
         DeviceJob originalJob = this.getById(id);
         if (originalJob == null) {
             throw new SchedulerException("任务不存在，ID: " + id);
         }
-
-        // 停止当前任务
-        scheduler.pauseTrigger(TriggerKey.triggerKey(originalJob.getJobName(), originalJob.getJobGroup()));
-        scheduler.unscheduleJob(TriggerKey.triggerKey(originalJob.getJobName(), originalJob.getJobGroup()));
-
-        // 创建新的Trigger
-        CronTrigger trigger = TriggerBuilder.newTrigger()
-                .withIdentity(originalJob.getJobName(), originalJob.getJobGroup())
-                .withSchedule(CronScheduleBuilder.cronSchedule(formData.getCron()))
-                .build();
-
-        // 重新调度任务
-        scheduler.rescheduleJob(TriggerKey.triggerKey(originalJob.getJobName(), originalJob.getJobGroup()), trigger);
-        return this.updateById(entity);
+        boolean updated = this.updateById(entity);
+        if (updated) {
+            updateSchedulerJob(entity, entity.getJobGroup());
+        }
+        return updated;
     }
 
     /**
@@ -149,7 +109,7 @@ public class DeviceJobServiceImpl extends ServiceImpl<DeviceJobMapper, DeviceJob
      * @return 是否删除成功
      */
     @Override
-    public boolean deleteDeviceJobs(String ids) throws SchedulerException {
+    public void deleteDeviceJobs(String ids) throws SchedulerException {
         Assert.isTrue(StrUtil.isNotBlank(ids), "删除的任务管理数据为空");
         // 逻辑删除
         List<Long> idList = Arrays.stream(ids.split(","))
@@ -158,78 +118,85 @@ public class DeviceJobServiceImpl extends ServiceImpl<DeviceJobMapper, DeviceJob
         //全部获取
         List<DeviceJob> jobs = this.listByIds(idList);
         for (DeviceJob job : jobs) {
-            // 停止并删除任务
-            scheduler.pauseTrigger(TriggerKey.triggerKey(job.getJobName(), job.getJobGroup()));
-            scheduler.unscheduleJob(TriggerKey.triggerKey(job.getJobName(), job.getJobGroup()));
-            scheduler.deleteJob(JobKey.jobKey(job.getJobName(), job.getJobGroup()));
+            deleteJob(job);
         }
-        return this.removeByIds(idList);
+    }
+
+    @Override
+    public boolean changeStatus(DeviceJob newJob) throws SchedulerException {
+        boolean result = false;
+        Integer status = newJob.getStatus();
+        if (ScheduleConstants.Status.NORMAL.getValue().equals(String.valueOf(status))) {
+            result = resumeJob(newJob);
+        } else if (ScheduleConstants.Status.PAUSE.getValue().equals(String.valueOf(status))) {
+            result = pauseJob(newJob);
+        }
+        return result;
+    }
+
+    @Override
+    public void run(DeviceJobForm formData) throws SchedulerException {
+        Long jobId = formData.getId();
+        String jobGroup = formData.getJobGroup();
+        DeviceJob properties = this.getById(formData.getId());
+        // 参数
+        JobDataMap dataMap = new JobDataMap();
+        dataMap.put(ScheduleConstants.TASK_PROPERTIES, properties);
+        scheduler.triggerJob(ScheduleUtils.getJobKey(jobId, jobGroup), dataMap);
+    }
+
+    public boolean pauseJob(DeviceJob job) throws SchedulerException {
+        Long jobId = job.getId();
+        String jobGroup = job.getJobGroup();
+        job.setStatus(Integer.valueOf(ScheduleConstants.Status.PAUSE.getValue()));
+        boolean updated = this.updateById(job);
+        if (updated) {
+            scheduler.pauseJob(ScheduleUtils.getJobKey(jobId, jobGroup));
+        }
+        return updated;
+    }
+
+    public Boolean resumeJob(DeviceJob job) throws SchedulerException {
+        Long jobId = job.getId();
+        String jobGroup = job.getJobGroup();
+        job.setStatus(Integer.valueOf(ScheduleConstants.Status.NORMAL.getValue()));
+        boolean updated = this.updateById(job);
+        if (updated) {
+            scheduler.resumeJob(ScheduleUtils.getJobKey(jobId, jobGroup));
+        }
+        return updated;
     }
 
     /**
-     * 暂停设备任务
+     * 删除任务后，所对应的trigger也将被删除
+     *
+     * @param job 调度信息
      */
-    @Override
-    public boolean pauseJob(Long id) throws SchedulerException {
-        DeviceJob job = this.getById(id);
-        if (job == null) {
-            return false;
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteJob(DeviceJob job) throws SchedulerException {
+        Long jobId = job.getId();
+        String jobGroup = job.getJobGroup();
+        boolean removed = this.removeById(jobId);
+        if (removed) {
+            scheduler.deleteJob(ScheduleUtils.getJobKey(jobId, jobGroup));
         }
-        // 暂停任务
-        scheduler.pauseJob(JobKey.jobKey(job.getJobName(), job.getJobGroup()));
-        // 更新状态
-        job.setStatus(0); // 0表示暂停
-        return this.updateById(job);
     }
 
     /**
-     * 恢复设备任务
+     * 更新任务
+     *
+     * @param deviceJob 任务对象
+     * @param jobGroup 任务组名
      */
-    @Override
-    public boolean resumeJob(Long id) throws SchedulerException {
-        DeviceJob deviceJob = this.getById(id);
-        if (deviceJob == null) {
-            return false;
+    public void updateSchedulerJob(DeviceJob deviceJob, String jobGroup) throws SchedulerException {
+        Long jobId = deviceJob.getId();
+        // 判断是否存在
+        JobKey jobKey = ScheduleUtils.getJobKey(jobId, jobGroup);
+        if (scheduler.checkExists(jobKey)) {
+            // 防止创建时存在数据问题 先移除，然后在执行创建操作
+            scheduler.deleteJob(jobKey);
         }
-        // 恢复任务
-        scheduler.resumeJob(JobKey.jobKey(deviceJob.getJobName(), deviceJob.getJobGroup()));
-
-        // 更新状态
-        deviceJob.setStatus(1); // 1表示运行中
-        return this.updateById(deviceJob);
-    }
-
-    /**
-     * 立即执行设备任务
-     */
-    @Override
-    public boolean runOnce(Long id) throws SchedulerException {
-        DeviceJob deviceJob = this.getById(id);
-        if (deviceJob == null) {
-            return false;
-        }
-        // 立即执行一次任务
-        scheduler.triggerJob(JobKey.jobKey(deviceJob.getJobName(), deviceJob.getJobGroup()));
-        return true;
-    }
-
-    @Override
-    public boolean checkCronExpression(String cronExpression) {
-        try {
-            CronScheduleBuilder.cronSchedule(cronExpression);
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    private String generateUniqueJobName(String deviceId) {
-        return deviceId + "_" + LocalDateTime.now()
-                .format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
-    }
-
-    private String determineJobGroup(String deviceType) {
-        return "DeviceType_" + (deviceType != null ? deviceType : "DEFAULT");
+        ScheduleUtils.createScheduleJob(scheduler, deviceJob);
     }
 
 }

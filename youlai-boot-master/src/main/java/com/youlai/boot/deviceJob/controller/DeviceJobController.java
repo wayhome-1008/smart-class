@@ -1,6 +1,8 @@
 package com.youlai.boot.deviceJob.controller;
 
+import com.youlai.boot.deviceJob.model.entity.DeviceJob;
 import com.youlai.boot.deviceJob.service.DeviceJobService;
+import com.youlai.boot.deviceJob.util.CronUtils;
 import lombok.RequiredArgsConstructor;
 import org.quartz.SchedulerException;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -45,6 +47,9 @@ public class DeviceJobController {
     @PostMapping
     @PreAuthorize("@ss.hasPerm('deviceJob:deviceJob:add')")
     public Result<Void> saveDeviceJob(@RequestBody @Valid DeviceJobForm formData) throws SchedulerException {
+        if (!CronUtils.isValid(formData.getCron())) {
+            return Result.failed("新增任务'" + formData.getJobName() + "'失败，Cron表达式不正确");
+        }
         boolean result = deviceJobService.saveDeviceJob(formData);
         return Result.judge(result);
     }
@@ -66,6 +71,9 @@ public class DeviceJobController {
             @Parameter(description = "任务管理ID") @PathVariable Long id,
             @RequestBody @Validated DeviceJobForm formData
     ) throws SchedulerException {
+        if (!CronUtils.isValid(formData.getCron())) {
+            return Result.failed("修改任务'" + formData.getJobName() + "'失败，Cron表达式不正确");
+        }
         boolean result = deviceJobService.updateDeviceJob(id, formData);
         return Result.judge(result);
     }
@@ -76,28 +84,23 @@ public class DeviceJobController {
     public Result<Void> deleteDeviceJobs(
             @Parameter(description = "任务管理ID，多个以英文逗号(,)分割") @PathVariable String ids
     ) throws SchedulerException {
-        boolean result = deviceJobService.deleteDeviceJobs(ids);
-        return Result.judge(result);
+        deviceJobService.deleteDeviceJobs(ids);
+        return Result.success();
     }
 
-    @Operation(summary = "暂停任务")
-    @PostMapping("/{id}/pause")
-    public Result<Void> pause(@PathVariable Long id) throws SchedulerException {
-        boolean result = deviceJobService.pauseJob(id);
-        return Result.judge(result);
-    }
-
-    @Operation(summary = "恢复任务")
-    @PostMapping("/{id}/resume")
-    public Result<Void> resume(@PathVariable Long id) throws SchedulerException {
-        boolean result = deviceJobService.resumeJob(id);
+    @Operation(summary = "定时任务状态修改")
+    @PostMapping("/changeStatus")
+    public Result<Void> changeStatus(@RequestBody @Validated DeviceJobForm formData) throws SchedulerException {
+        DeviceJob newJob = deviceJobService.getById(formData.getId());
+        newJob.setStatus(formData.getStatus());
+        boolean result = deviceJobService.changeStatus(newJob);
         return Result.judge(result);
     }
 
     @Operation(summary = "立即执行任务")
-    @PostMapping("/{id}/run-once")
-    public Result<Void> runOnce(@PathVariable Long id) throws SchedulerException {
-        boolean result = deviceJobService.runOnce(id);
-        return Result.judge(result);
+    @PostMapping("/run")
+    public Result<Void> run(@RequestBody @Validated DeviceJobForm formData) throws SchedulerException {
+        deviceJobService.run(formData);
+        return Result.success();
     }
 }

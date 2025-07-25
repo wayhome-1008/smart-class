@@ -29,7 +29,7 @@ public interface DeviceJobService extends IService<DeviceJob> {
      * @param id 任务管理ID
      * @return 任务管理表单数据
      */
-     DeviceJobForm getDeviceJobFormData(Long id);
+    DeviceJobForm getDeviceJobFormData(Long id);
 
     /**
      * 新增任务管理
@@ -54,15 +54,9 @@ public interface DeviceJobService extends IService<DeviceJob> {
      * @param ids 任务管理ID，多个以英文逗号(,)分割
      * @return 是否删除成功
      */
-    boolean deleteDeviceJobs(String ids) throws SchedulerException;
+    void deleteDeviceJobs(String ids) throws SchedulerException;
 
-    boolean pauseJob(Long id) throws SchedulerException;
+    boolean changeStatus( DeviceJob newJob) throws SchedulerException;
 
-    boolean resumeJob(Long id) throws SchedulerException;
-
-    boolean runOnce(Long id) throws SchedulerException;
-    /**
-     * 验证Cron表达式有效性
-     */
-    boolean checkCronExpression(String cronExpression);
+    void run(DeviceJobForm formData) throws SchedulerException;
 }

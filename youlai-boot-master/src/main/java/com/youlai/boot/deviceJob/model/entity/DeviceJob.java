@@ -16,9 +16,7 @@ import lombok.Setter;
 @TableName("device_job")
 public class DeviceJob extends BaseEntity {
 
-    /**
-     * 定时任务设备
-     */
+    /** 设备id */
     private Long deviceId;
 
     /** 设备名称 */
@@ -27,28 +25,23 @@ public class DeviceJob extends BaseEntity {
     /** 执行动作 */
     private String actions;
 
-    /** 告警触发器 */
-    private String alertTrigger;
-
     /** 是否并发执行（0允许 1禁止） */
-    private String concurrent;
-    private String jobName; // 任务名称，唯一标识一个任务
+    private Integer concurrent;
 
-    private String jobGroup; // 任务组名，用于对任务进行分组管理
+    /** 任务名称 */
+    private String jobName;
 
-    private String jobClass; // 任务执行类，指定任务具体执行逻辑的类名
+    /** 任务组名 */
+    private String jobGroup;
 
-    private Boolean enable;
-    /**
-     * 任务类型
-     */
+
+    /** 定时类型（1=设备定时，2=设备告警，3=场景联动） */
     private Long typeId;
 
     /** cron执行表达式 */
     private String cron;
-    /**
-     * 0:暂停 1:运行
-     */
+
+    /** 任务状态（0正常 1暂停） */
     private Integer status;
     /**
      * 备注信息
@@ -62,8 +55,4 @@ public class DeviceJob extends BaseEntity {
      * 更新人ID
      */
     private Long updateBy;
-    /**
-     * 逻辑删除标识(0-未删除 1-已删除)
-     */
-    private Integer isDeleted;
 }
