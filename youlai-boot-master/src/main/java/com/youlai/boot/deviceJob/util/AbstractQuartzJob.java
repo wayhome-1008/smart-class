@@ -36,9 +36,7 @@ public abstract class AbstractQuartzJob implements Job {
         BeanUtils.copyBeanProp(deviceJob, context.getMergedJobDataMap().get(ScheduleConstants.TASK_PROPERTIES));
         try {
             before(context, deviceJob);
-            if (deviceJob != null) {
-                doExecute(context, deviceJob);
-            }
+            doExecute(context, deviceJob);
             after(context, deviceJob, null);
         } catch (Exception e) {
             log.error("任务执行异常  - ：", e);

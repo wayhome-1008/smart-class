@@ -1,15 +1,9 @@
 package com.youlai.boot.deviceJob.util;
 
 import com.alibaba.fastjson.JSON;
-import com.youlai.boot.common.util.JsonUtils;
-import com.youlai.boot.common.util.SpringUtils;
-import com.youlai.boot.config.mqtt.MqttProducer;
 import com.youlai.boot.device.controller.DeviceOperateController;
-import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.DeviceOperate;
-import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.deviceJob.model.entity.DeviceJob;
-import org.apache.commons.lang3.ObjectUtils;
 
 /**
  * 任务执行工具
