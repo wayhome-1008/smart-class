@@ -18,7 +18,7 @@ public class ScheduleUtils {
      * @return 具体执行任务类
      */
     private static Class<? extends Job> getQuartzJobClass(com.youlai.boot.deviceJob.model.entity.DeviceJob deviceJob) {
-        boolean isConcurrent = "0".equals(deviceJob.getConcurrent());
+        boolean isConcurrent = 0 == deviceJob.getConcurrent();
         return isConcurrent ? QuartzJobExecution.class : QuartzDisallowConcurrentExecution.class;
     }
 
@@ -67,7 +67,7 @@ public class ScheduleUtils {
         scheduler.scheduleJob(jobDetail, trigger);
 
         // 暂停任务
-        if (job.getStatus().equals(ScheduleConstants.Status.PAUSE.getValue())) {
+        if (job.getStatus().equals(Integer.valueOf(ScheduleConstants.Status.PAUSE.getValue()))) {
             scheduler.pauseJob(ScheduleUtils.getJobKey(jobId, jobGroup));
         }
     }

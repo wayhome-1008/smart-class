@@ -7,7 +7,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.youlai.boot.common.constant.ScheduleConstants;
 import com.youlai.boot.deviceJob.converter.DeviceJobConverter;
-import com.youlai.boot.deviceJob.job.DeviceSyncJob;
 import com.youlai.boot.deviceJob.mapper.DeviceJobMapper;
 import com.youlai.boot.deviceJob.model.entity.DeviceJob;
 import com.youlai.boot.deviceJob.model.form.DeviceJobForm;
@@ -16,12 +15,13 @@ import com.youlai.boot.deviceJob.model.vo.DeviceJobVO;
 import com.youlai.boot.deviceJob.service.DeviceJobService;
 import com.youlai.boot.deviceJob.util.ScheduleUtils;
 import lombok.RequiredArgsConstructor;
-import org.quartz.*;
+import org.quartz.JobDataMap;
+import org.quartz.JobKey;
+import org.quartz.Scheduler;
+import org.quartz.SchedulerException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
 
@@ -106,7 +106,6 @@ public class DeviceJobServiceImpl extends ServiceImpl<DeviceJobMapper, DeviceJob
      * 删除任务管理
      *
      * @param ids 任务管理ID，多个以英文逗号(,)分割
-     * @return 是否删除成功
      */
     @Override
     public void deleteDeviceJobs(String ids) throws SchedulerException {

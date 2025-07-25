@@ -1,23 +1,21 @@
 package com.youlai.boot.deviceJob.controller;
 
-import com.youlai.boot.deviceJob.service.DeviceJobLogService;
-import lombok.RequiredArgsConstructor;
-import org.quartz.SchedulerException;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import com.youlai.boot.deviceJob.model.form.DeviceJobLogForm;
-import com.youlai.boot.deviceJob.model.query.DeviceJobLogQuery;
-import com.youlai.boot.deviceJob.model.vo.DeviceJobLogVO;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.youlai.boot.common.result.PageResult;
 import com.youlai.boot.common.result.Result;
+import com.youlai.boot.deviceJob.model.form.DeviceJobLogForm;
+import com.youlai.boot.deviceJob.model.query.DeviceJobLogQuery;
+import com.youlai.boot.deviceJob.model.vo.DeviceJobLogVO;
+import com.youlai.boot.deviceJob.service.DeviceJobLogService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import io.swagger.v3.oas.annotations.Operation;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
-import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * 任务日志前端控制层

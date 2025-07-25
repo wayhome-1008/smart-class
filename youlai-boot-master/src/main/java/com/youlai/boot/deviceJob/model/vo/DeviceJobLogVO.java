@@ -1,11 +1,11 @@
 package com.youlai.boot.deviceJob.model.vo;
 
-import java.io.Serial;
-import java.io.Serializable;
-import java.time.LocalDateTime;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.io.Serial;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**

@@ -1,9 +1,8 @@
 package com.youlai.boot.deviceJob.converter;
 
-import org.mapstruct.Mapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.youlai.boot.deviceJob.model.entity.DeviceJobLog;
 import com.youlai.boot.deviceJob.model.form.DeviceJobLogForm;
+import org.mapstruct.Mapper;
 
 /**
  * 任务日志对象转换器

@@ -51,8 +51,6 @@ public interface DeviceJobService extends IService<DeviceJob> {
     /**
      * 删除任务管理
      *
-     * @param ids 任务管理ID，多个以英文逗号(,)分割
-     * @return 是否删除成功
      */
     void deleteDeviceJobs(String ids) throws SchedulerException;
 

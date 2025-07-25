@@ -1,24 +1,17 @@
 package com.youlai.boot.deviceJob.service.impl;
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.youlai.boot.deviceJob.converter.DeviceJobLogConverter;
 import com.youlai.boot.deviceJob.mapper.DeviceJobLogMapper;
-import com.youlai.boot.deviceJob.service.DeviceJobLogService;
 import com.youlai.boot.deviceJob.model.entity.DeviceJobLog;
 import com.youlai.boot.deviceJob.model.form.DeviceJobLogForm;
 import com.youlai.boot.deviceJob.model.query.DeviceJobLogQuery;
 import com.youlai.boot.deviceJob.model.vo.DeviceJobLogVO;
-import com.youlai.boot.deviceJob.converter.DeviceJobLogConverter;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import cn.hutool.core.lang.Assert;
-import cn.hutool.core.util.StrUtil;
+import com.youlai.boot.deviceJob.service.DeviceJobLogService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
 /**
  * 任务日志服务实现类

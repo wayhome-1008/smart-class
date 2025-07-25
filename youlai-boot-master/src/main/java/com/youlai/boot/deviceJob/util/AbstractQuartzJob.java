@@ -10,12 +10,10 @@ import com.youlai.boot.deviceJob.service.DeviceJobLogService;
 import org.apache.commons.lang3.StringUtils;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
-import org.quartz.JobExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
-import java.util.Date;
 
 /**
  * 抽象quartz调用
@@ -31,7 +29,7 @@ public abstract class AbstractQuartzJob implements Job {
     private static ThreadLocal<LocalDateTime> threadLocal = new ThreadLocal<>();
 
     @Override
-    public void execute(JobExecutionContext context) throws JobExecutionException {
+    public void execute(JobExecutionContext context) {
         DeviceJob deviceJob = new DeviceJob();
         BeanUtils.copyBeanProp(deviceJob, context.getMergedJobDataMap().get(ScheduleConstants.TASK_PROPERTIES));
         try {

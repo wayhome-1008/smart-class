@@ -1,13 +1,11 @@
 package com.youlai.boot.deviceJob.model.form;
 
-import java.io.Serial;
-import java.io.Serializable;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
-import java.time.LocalDateTime;
-import com.fasterxml.jackson.annotation.JsonFormat;
-import jakarta.validation.constraints.*;
+
+import java.io.Serial;
+import java.io.Serializable;
 
 /**
  * 任务日志表单对象
