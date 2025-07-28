@@ -9,6 +9,8 @@ spring:
     url: jdbc:mysql://192.168.80.216:3306/youlai_boot
     username: root
     password: root
+  quartz:
+    job-store-type: memory
   data:
     redis:
       database: 0
@@ -229,22 +231,6 @@ xxl:
       port: 9999 # 执行器通讯端口
       logpath: /data/applogs/xxl-job/jobhandler # 任务运行日志文件存储磁盘路径
       logretentiondays: 30 # 日志保存天数，值大于3时生效
-quartz:
-  properties:
-    org:
-      quartz:
-        scheduler:
-          instanceName: DeviceJobScheduler
-          instanceId: AUTO
-        jobStore:
-          class: org.quartz.impl.jdbcjobstore.JobStoreTX
-          driverDelegateClass: org.quartz.impl.jdbcjobstore.StdJDBCDelegate
-          tablePrefix: QRTZ_
-          isClustered: false
-        threadPool:
-          class: org.quartz.simpl.SimpleThreadPool
-          threadCount: 10
-          threadPriority: 5
 # 验证码配置
 captcha:
   # 验证码类型 circle-圆圈干扰验证码|gif-Gif验证码|line-干扰线验证码|shear-扭曲干扰验证码

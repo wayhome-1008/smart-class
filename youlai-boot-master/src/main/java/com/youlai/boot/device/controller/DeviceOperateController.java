@@ -1,7 +1,11 @@
 package com.youlai.boot.device.controller;
 
 import com.alibaba.fastjson.JSON;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.youlai.boot.common.annotation.Log;
+import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.common.enums.LogModuleEnum;
 import com.youlai.boot.common.result.Result;
 import com.youlai.boot.common.util.MacUtils;
@@ -29,6 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -36,6 +41,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+
+import static com.youlai.boot.common.util.JsonUtils.mergeJson;
 
 /**
  *@Author: way
@@ -47,12 +54,13 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/v1/device/Operate")
 @RequiredArgsConstructor
-@Transactional
+@Transactional(rollbackFor = Exception.class)
 public class DeviceOperateController {
     private final DeviceService deviceService;
     private final MqttProducer mqttProducer;
     private final RoomService roomService;
     private final FloorService floorService;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Operation(summary = "串口透传demo")
     @GetMapping(value = "/serial{id}")
@@ -163,11 +171,68 @@ public class DeviceOperateController {
             case "ZigBee" ->
                 //zigBee
                     zigBeeDevice(deviceCode, deviceGatewayId, operate, way, lightCount);
+
             case "WiFi" ->
                 //WiFi
                     wifiDevice(deviceCode, operate, way, lightCount);
             default -> Result.failed("暂不支持该协议");
         };
+    }
+
+    private void updateAllZigBee(String deviceCode, String operate, String way, Integer lightCount) {
+        //缓存查设备
+        Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
+        if (ObjectUtils.isNotEmpty(device)) {
+            JsonNode deviceInfo = device.getDeviceInfo();
+            ObjectNode metrics = JsonNodeFactory.instance.objectNode();
+            if (ObjectUtils.isNotEmpty(deviceInfo)) {
+                if (way.equals("-1")) {
+                    if (deviceInfo.has("count")) {
+                        int count = deviceInfo.get("count").asInt();
+                        for (int i = 1; i <= count; i++) {
+                            metrics.put("switch" + i, operate);
+                        }
+                        mergeJson(deviceInfo, metrics);
+                    }
+                } else {
+                    if (deviceInfo.has("switch" + way)) {
+                        metrics.put("switch" + way, operate);
+                    }
+                }
+                device.setDeviceInfo(mergeJson(deviceInfo, metrics));
+                deviceService.updateById(device);
+                redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
+                log.info("双更新成功");
+            }
+        }
+    }
+
+    private void updateAllWifi(String deviceCode, String operate, String way, Integer lightCount) {
+        //缓存查设备
+        Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
+        if (ObjectUtils.isNotEmpty(device)) {
+            JsonNode deviceInfo = device.getDeviceInfo();
+            ObjectNode metrics = JsonNodeFactory.instance.objectNode();
+            if (ObjectUtils.isNotEmpty(deviceInfo)) {
+                if (way.equals("-1")) {
+                    if (deviceInfo.has("count")) {
+                        int count = deviceInfo.get("count").asInt();
+                        for (int i = 1; i <= count; i++) {
+                            metrics.put("switch" + i, operate);
+                        }
+                        mergeJson(deviceInfo, metrics);
+                    }
+                } else {
+                    if (deviceInfo.has("switch" + way)) {
+                        metrics.put("switch" + way, operate);
+                    }
+                }
+                device.setDeviceInfo(mergeJson(deviceInfo, metrics));
+                deviceService.updateById(device);
+                redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
+                log.info("双更新成功");
+            }
+        }
     }
 
     private Result<Void> wifiDevice(String deviceCode, String operate, String way, Integer lightCount) {
@@ -215,6 +280,7 @@ public class DeviceOperateController {
                 String gateWayTopic = MacUtils.reParseMACAddress(deviceMac);
                 try {
                     mqttProducer.send("/zbgw/" + gateWayTopic + "/sub/control", 0, false, JSON.toJSONString(control));
+                    updateAllZigBee(deviceCode, operate, way, lightCount);
                 } catch (MqttException e) {
                     log.error(e.getMessage());
                 }
@@ -230,6 +296,7 @@ public class DeviceOperateController {
             log.info(control.toString());
             try {
                 mqttProducer.send("/zbgw/" + gateWayTopic + "/sub/control", 0, false, JSON.toJSONString(control));
+                updateAllZigBee(deviceCode, operate, way, lightCount);
             } catch (MqttException e) {
                 log.error(e.getMessage());
             }

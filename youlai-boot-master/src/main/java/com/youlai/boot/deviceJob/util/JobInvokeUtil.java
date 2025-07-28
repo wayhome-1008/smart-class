@@ -5,6 +5,8 @@ import com.youlai.boot.device.controller.DeviceOperateController;
 import com.youlai.boot.device.model.form.DeviceOperate;
 import com.youlai.boot.deviceJob.model.entity.DeviceJob;
 
+import java.util.List;
+
 /**
  * 任务执行工具
  *
@@ -22,10 +24,13 @@ public class JobInvokeUtil {
      */
     public static void invokeMethod(DeviceJob deviceJob) throws Exception {
         System.out.println("------------------------执行定时任务-----------------------------");
-        if (deviceJob.getTypeId() == 1) {
-            DeviceOperate deviceOperate = JSON.parseObject(deviceJob.getActions(), DeviceOperate.class);
-            // 发布功能
-            messagePublish.operate(deviceOperate, deviceJob.getDeviceId());
+        if (deviceJob.getJobType() == 1) {
+//          // 统一使用 parseArray 处理
+            List<DeviceOperate> deviceOperates = JSON.parseArray(deviceJob.getActions(), DeviceOperate.class);
+            for (DeviceOperate deviceOperate : deviceOperates) {
+                // 发布功能
+                messagePublish.operate(deviceOperate, deviceJob.getDeviceId());
+            }
         }
         // 发布属性
 //            if (propertys.size() > 0) {
