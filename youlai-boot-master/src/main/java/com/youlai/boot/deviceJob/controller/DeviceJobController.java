@@ -1,10 +1,13 @@
 package com.youlai.boot.deviceJob.controller;
 
+import com.youlai.boot.device.model.entity.Device;
+import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.deviceJob.model.entity.DeviceJob;
 import com.youlai.boot.deviceJob.service.DeviceJobService;
 import com.youlai.boot.deviceJob.util.CronUtils;
 import lombok.RequiredArgsConstructor;
 import org.quartz.SchedulerException;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.youlai.boot.deviceJob.model.form.DeviceJobForm;
@@ -31,9 +34,11 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/api/v1/device-job")
 @RequiredArgsConstructor
+@Transactional(rollbackFor = Exception.class)
 public class DeviceJobController {
 
     private final DeviceJobService deviceJobService;
+    private final DeviceService deviceService;
 
     @Operation(summary = "任务管理分页列表")
     @GetMapping("/page")
@@ -48,8 +53,13 @@ public class DeviceJobController {
     @PreAuthorize("@ss.hasPerm('deviceJob:deviceJob:add')")
     public Result<Void> saveDeviceJob(@RequestBody @Valid DeviceJobForm formData) throws SchedulerException {
         if (!CronUtils.isValid(formData.getCron())) {
-            return Result.failed("新增任务'" + formData.getJobName() + "'失败，Cron表达式不正确");
+            return Result.failed("新增任务失败，Cron表达式不正确");
         }
+        Device device = deviceService.getById(formData.getDeviceId());
+        if (device == null) {
+            return Result.failed("设备不存在");
+        }
+        formData.setDeviceName(device.getDeviceName());
         boolean result = deviceJobService.saveDeviceJob(formData);
         return Result.judge(result);
     }
@@ -61,6 +71,11 @@ public class DeviceJobController {
             @Parameter(description = "任务管理ID") @PathVariable Long id
     ) {
         DeviceJobForm formData = deviceJobService.getDeviceJobFormData(id);
+        Device device = deviceService.getById(formData.getDeviceId());
+        if (device == null) {
+            return Result.failed("设备不存在");
+        }
+        formData.setDeviceName(device.getDeviceName());
         return Result.success(formData);
     }
 
@@ -72,8 +87,13 @@ public class DeviceJobController {
             @RequestBody @Validated DeviceJobForm formData
     ) throws SchedulerException {
         if (!CronUtils.isValid(formData.getCron())) {
-            return Result.failed("修改任务'" + formData.getJobName() + "'失败，Cron表达式不正确");
+            return Result.failed("修改任务失败，Cron表达式不正确");
         }
+        Device device = deviceService.getById(formData.getDeviceId());
+        if (device == null) {
+            return Result.failed("设备不存在");
+        }
+        formData.setDeviceName(device.getDeviceName());
         boolean result = deviceJobService.updateDeviceJob(id, formData);
         return Result.judge(result);
     }

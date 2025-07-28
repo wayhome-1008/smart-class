@@ -14,6 +14,7 @@ import com.youlai.boot.deviceJob.model.query.DeviceJobQuery;
 import com.youlai.boot.deviceJob.model.vo.DeviceJobVO;
 import com.youlai.boot.deviceJob.service.DeviceJobService;
 import com.youlai.boot.deviceJob.util.ScheduleUtils;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.quartz.JobDataMap;
 import org.quartz.JobKey;
@@ -36,6 +37,16 @@ import java.util.List;
 public class DeviceJobServiceImpl extends ServiceImpl<DeviceJobMapper, DeviceJob> implements DeviceJobService {
     private final Scheduler scheduler;
     private final DeviceJobConverter deviceJobConverter;
+
+    @PostConstruct
+    public void init() throws SchedulerException {
+        scheduler.clear();
+        // 设备定时任务
+        List<DeviceJob> jobList = this.list();
+        for (DeviceJob deviceJob : jobList) {
+            ScheduleUtils.createScheduleJob(scheduler, deviceJob);
+        }
+    }
 
     /**
      * 获取任务管理分页列表

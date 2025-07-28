@@ -36,7 +36,7 @@ public class DeviceJob extends BaseEntity {
 
 
     /** 定时类型（1=设备定时，2=设备告警，3=场景联动） */
-    private Long typeId;
+    private Long jobType;
 
     /** cron执行表达式 */
     private String cron;

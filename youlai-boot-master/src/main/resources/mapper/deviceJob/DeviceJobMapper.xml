@@ -5,15 +5,16 @@
     <!-- 获取任务管理分页列表 -->
     <select id="getDeviceJobPage" resultType="com.youlai.boot.deviceJob.model.vo.DeviceJobVO">
         SELECT
-                id,
-                device_id,
-                device_name,
-                type_id,
-                cron,
-                status,
-                remark
+        id,
+        job_name,
+        device_id,
+        device_name,
+        job_type,
+        cron,
+        status,
+        remark
         FROM
-            device_job
+        device_job
         <where>
             <if test="queryParams.typeId != null">
                 AND type_id = #{queryParams.typeId}

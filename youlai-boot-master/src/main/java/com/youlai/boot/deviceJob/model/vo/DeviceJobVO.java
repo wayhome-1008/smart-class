@@ -25,7 +25,11 @@ public class DeviceJobVO implements Serializable {
     @Schema(description = "定时任务设备")
     private Long deviceId;
     @Schema(description = "任务类型")
-    private Long typeId;
+    private Long jobType;
+    @Schema(description = "设备名称")
+    private String deviceName;
+    @Schema(description = "任务名称")
+    private String jobName;
     @Schema(description = "cron表达式")
     private String cron;
     @Schema(description = "0:暂停 1:运行")

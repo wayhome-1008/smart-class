@@ -24,7 +24,7 @@ public class DeviceJobForm implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    @NotNull(message = "不能为空")
+
     private Long id;
 
     @Schema(description = "定时任务设备")
@@ -46,7 +46,7 @@ public class DeviceJobForm implements Serializable {
 
     @Schema(description = "1=设备定时，2=设备告警，3=场景联动")
     @NotNull(message = "任务类型不能为空")
-    private Long typeId;
+    private Long jobType;
 
     @Schema(description = "cron表达式")
     @NotBlank(message = "cron表达式不能为空")

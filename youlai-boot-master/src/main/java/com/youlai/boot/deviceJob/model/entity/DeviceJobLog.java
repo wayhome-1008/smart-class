@@ -1,5 +1,7 @@
 package com.youlai.boot.deviceJob.model.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.youlai.boot.common.base.BaseEntity;
 import lombok.Getter;
@@ -16,7 +18,12 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @TableName("device_job_log")
-public class DeviceJobLog extends BaseEntity {
+public class DeviceJobLog {
+    /**
+     * 主键ID
+     */
+    @TableId(type = IdType.AUTO)
+    private Long id;
 
     /**
      * 设备ID
