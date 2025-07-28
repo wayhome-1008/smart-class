@@ -219,10 +219,50 @@ public class DashBoardController {
     @Operation(summary = "根据设备code获取数据")
     @GetMapping("/{code}/info")
     public Result<DeviceInfoVO> getDeviceInfo(@PathVariable String code) {
-        //获取实体对基本类型转换VO
-        Device device = deviceService.getByCode(code);
+        // 优先从Redis缓存获取设备信息
+        Device deviceCache = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, code);
+        if (ObjectUtils.isNotEmpty(deviceCache)) {
+            // 根据roomId查询房间信息
+            Room room = roomService.getById(deviceCache.getDeviceRoom());
+            DeviceInfoVO deviceInfoVO = basicPropertyConvert(deviceCache, room.getClassroomCode());
+
+            // 使用工厂对设备具体信息转换
+            String deviceType = DeviceTypeEnum.getNameById(deviceCache.getDeviceTypeId());
+            String communicationMode = CommunicationModeEnum.getNameById(deviceCache.getCommunicationModeItemId());
+            DeviceInfoParser parser = DeviceInfoParserFactory.getParser(deviceType, communicationMode);
+            List<DeviceInfo> deviceInfos = parser.parse(deviceCache.getDeviceInfo());
+            deviceInfoVO.setDeviceInfo(deviceInfos);
+
+            return Result.success(deviceInfoVO);
+        } else {
+            // 缓存中没有则从数据库查询
+            Device device = deviceService.getByCode(code);
+            if (ObjectUtils.isNotEmpty(device)) {
+                // 根据roomId查询房间信息
+                Room room = roomService.getById(device.getDeviceRoom());
+                DeviceInfoVO deviceInfoVO = basicPropertyConvert(device, room.getClassroomCode());
+
+                // 使用工厂对设备具体信息转换
+                String deviceType = DeviceTypeEnum.getNameById(device.getDeviceTypeId());
+                String communicationMode = CommunicationModeEnum.getNameById(device.getCommunicationModeItemId());
+                DeviceInfoParser parser = DeviceInfoParserFactory.getParser(deviceType, communicationMode);
+                List<DeviceInfo> deviceInfos = parser.parse(device.getDeviceInfo());
+                deviceInfoVO.setDeviceInfo(deviceInfos);
+
+                return Result.success(deviceInfoVO);
+            }
+            return Result.failed("设备不存在");
+        }
+    }
+
+
+    @Operation(summary = "根据设备code获取数据")
+    @GetMapping("/id/{id}/info")
+    public Result<DeviceInfoVO> getDeviceInfoById(@PathVariable Long id) {
+        Device device = deviceService.getById(id);
         //根据roomId查询
         Room room = roomService.getById(device.getDeviceRoom());
+
         DeviceInfoVO deviceInfoVO = basicPropertyConvert(device, room.getClassroomCode());
         //使用工厂对设备具体信息转换
         // 动态获取解析器
@@ -658,7 +698,7 @@ public class DashBoardController {
                         .bucket(influxDBProperties.getBucket())
                         .measurement("device")
                         .fields("Total")
-                        .sum()
+                        .limit(1) // 只取第一条记录（最新的一条）
                         .timeShift("8h");
 
                 // 设置时间范围
@@ -678,7 +718,7 @@ public class DashBoardController {
 
                 // 添加房间ID过滤和聚合
                 builder.tag("roomId", String.valueOf(room.getId()))
-                        .sum();  // 使用专门的sum方法
+                        ;  // 使用专门的sum方法
 
                 String fluxQuery = builder.build();
                 log.info("InfluxDB查询语句: {}", fluxQuery);
