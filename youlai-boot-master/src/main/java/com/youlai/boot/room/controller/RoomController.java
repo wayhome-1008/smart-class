@@ -126,7 +126,7 @@ public class RoomController {
         DeviceInfo.getValueByName(device.getDeviceInfo(), "count", Integer.class)
                 .ifPresent(count -> {
                     for (int i = 0; i < count; i++) {
-                        String switchName = "POWER" + (i + 1);
+                        String switchName = "switch" + (i + 1);
                         Optional<String> switchStatus = DeviceInfo.getValueByName(
                                 device.getDeviceInfo(),
                                 switchName,

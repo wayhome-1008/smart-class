@@ -66,11 +66,11 @@ public class ResultHandler implements MsgHandler {
     }
 
     private void plug(JsonNode jsonNode, Device device, String deviceCode) {
-        ObjectNode lightStatus = JsonNodeFactory.instance.objectNode();
+        ObjectNode metrics = JsonNodeFactory.instance.objectNode();
         String power = jsonNode.get("POWER").asText();
-        lightStatus.put("switch1", power);
-        lightStatus.put("count", 1);
-        JsonNode mergedInfo = mergeJson(device.getDeviceInfo(), lightStatus);
+        metrics.put("switch1", power);
+        metrics.put("count", 1);
+        JsonNode mergedInfo = mergeJson(device.getDeviceInfo(), metrics);
         device.setDeviceInfo(mergedInfo);
         device.setStatus(1);
         redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
@@ -78,18 +78,19 @@ public class ResultHandler implements MsgHandler {
 
     private void light(JsonNode jsonNode, Device device, String deviceCode) {
         // 3. 动态处理所有灯光路数
-        ObjectNode lightStatus = JsonNodeFactory.instance.objectNode();
+        ObjectNode metrics = JsonNodeFactory.instance.objectNode();
         Iterator<String> fieldNames = jsonNode.fieldNames();
         while (fieldNames.hasNext()) {
             String fieldName = fieldNames.next();
+            //这里这么处理是因为单个传POWER  多个则为POWER1 POWER2---
             if (fieldName.startsWith("POWER")) {
                 if (fieldName.equals("POWER")) {
                     String status = jsonNode.get(fieldName).asText();
-                    lightStatus.put("switch1", status);
+                    metrics.put("switch1", status);
                     InfluxSwitch influxSwitch = new InfluxSwitch();
                     influxSwitch.setDeviceCode(deviceCode);
                     influxSwitch.setRoomId(device.getDeviceRoom().toString());
-                    influxSwitch.setSwitchState(lightStatus.toString());
+                    influxSwitch.setSwitchState(metrics.toString());
                     influxDBClient.getWriteApiBlocking().writeMeasurement(
                             influxProperties.getBucket(),
                             influxProperties.getOrg(),
@@ -98,11 +99,11 @@ public class ResultHandler implements MsgHandler {
                     );
                 } else {
                     String status = jsonNode.get(fieldName).asText();
-                    lightStatus.put(fieldName.replace("POWER", "switch"), status);
+                    metrics.put(fieldName.replace("POWER", "switch"), status);
                     InfluxSwitch influxSwitch = new InfluxSwitch();
                     influxSwitch.setDeviceCode(deviceCode);
                     influxSwitch.setRoomId(device.getDeviceRoom().toString());
-                    influxSwitch.setSwitchState(lightStatus.toString());
+                    influxSwitch.setSwitchState(metrics.toString());
                     influxDBClient.getWriteApiBlocking().writeMeasurement(
                             influxProperties.getBucket(),
                             influxProperties.getOrg(),
@@ -115,12 +116,11 @@ public class ResultHandler implements MsgHandler {
         }
         // 4. 更新设备信息
         if (ObjectUtils.isNotEmpty(device)) {
-            JsonNode mergedInfo = mergeJson(device.getDeviceInfo(), lightStatus);
+            JsonNode mergedInfo = mergeJson(device.getDeviceInfo(), metrics);
             device.setDeviceInfo(mergedInfo);
             // 双写：Redis缓存 + 数据库
             device.setStatus(1);
             redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
-//            deviceService.updateById(device);
             log.info("设备 {} 灯光状态更新完成", deviceCode);
         }
     }

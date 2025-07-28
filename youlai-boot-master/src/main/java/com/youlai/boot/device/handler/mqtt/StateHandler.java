@@ -75,21 +75,18 @@ public class StateHandler implements MsgHandler {
             //定义灯光路数
             int lightCount = 0;
             // 3. 动态处理所有灯光路数
-            ObjectNode lightStatus = JsonNodeFactory.instance.objectNode();
+            ObjectNode metrics = JsonNodeFactory.instance.objectNode();
             Iterator<String> fieldNames = jsonNode.fieldNames();
             while (fieldNames.hasNext()) {
                 String fieldName = fieldNames.next();
                 if (fieldName.startsWith("POWER")) {
                     lightCount++;
-                    String status = jsonNode.get(fieldName).asText();
-                    lightStatus.put(fieldName, status);
-                    log.debug("灯光路数 {} 状态: {}", fieldName, status);
                 }
             }
-            lightStatus.put("count", lightCount);
+            metrics.put("count", lightCount);
             // 4. 更新设备信息
             if (ObjectUtils.isNotEmpty(device)) {
-                JsonNode mergedInfo = mergeJson(device.getDeviceInfo(), lightStatus);
+                JsonNode mergedInfo = mergeJson(device.getDeviceInfo(), metrics);
                 device.setDeviceInfo(mergedInfo);
                 Device deviceCache = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
                 if (deviceCache != null) {

@@ -22,14 +22,14 @@ public class MqttLightParser implements DeviceInfoParser {
                 int lightCount = deviceInfo.get("count").asInt();
                 properties.add(new DeviceInfo("count", lightCount));
                 if (lightCount == 1) {
-                    if (deviceInfo.has("POWER")) {
-                        properties.add(new DeviceInfo("POWER1", deviceInfo.get("POWER").asText()));
+                    if (deviceInfo.has("switch1")) {
+                        properties.add(new DeviceInfo("switch1", deviceInfo.get("switch1").asText()));
                     }
                 } else {
                     for (int i = 1; i <= lightCount; i++) {
                         //灯状态
-                        if (deviceInfo.has("POWER" + i)) {
-                            properties.add(new DeviceInfo("POWER" + i, deviceInfo.get("POWER" + i).asText()));
+                        if (deviceInfo.has("switch" + i)) {
+                            properties.add(new DeviceInfo("switch" + i, deviceInfo.get("switch" + i).asText()));
                         }
                     }
                 }
