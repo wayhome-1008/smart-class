@@ -15,7 +15,7 @@ import java.io.Serializable;
  */
 @Getter
 @Setter
-@Schema( description = "任务管理视图对象")
+@Schema(description = "任务管理视图对象")
 public class DeviceJobVO implements Serializable {
 
     @Serial
@@ -32,6 +32,8 @@ public class DeviceJobVO implements Serializable {
     private String jobName;
     @Schema(description = "cron表达式")
     private String cron;
+    @Schema(description = "是否详细corn表达式 1：是，0：否")
+    private Integer isAdvance;
     @Schema(description = "0:暂停 1:运行")
     private Integer status;
     @Schema(description = "备注信息")

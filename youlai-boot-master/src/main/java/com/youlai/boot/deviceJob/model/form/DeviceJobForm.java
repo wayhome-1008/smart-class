@@ -53,6 +53,7 @@ public class DeviceJobForm implements Serializable {
     @Size(max = 255, message = "cron表达式长度不能超过255个字符")
     private String cron;
 
+    private Integer isAdvance;
     @Schema(description = "0:暂停 1:运行")
     @NotNull(message = "0:暂停 1:运行不能为空")
     private Integer status;

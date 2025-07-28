@@ -11,6 +11,7 @@
         device_name,
         job_type,
         cron,
+        is_advance,
         status,
         remark
         FROM

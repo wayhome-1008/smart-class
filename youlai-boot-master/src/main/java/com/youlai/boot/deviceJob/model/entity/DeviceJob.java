@@ -41,6 +41,9 @@ public class DeviceJob extends BaseEntity {
     /** cron执行表达式 */
     private String cron;
 
+    /** 是否详细corn表达式 1：是，0：否 */
+    private Integer isAdvance;
+
     /** 任务状态（0正常 1暂停） */
     private Integer status;
     /**
