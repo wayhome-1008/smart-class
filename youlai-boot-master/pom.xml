@@ -43,6 +43,8 @@
         <!-- 微信 jdk -->
         <weixin-java.version>4.5.5.B</weixin-java.version>
         <caffeine.version>2.9.3</caffeine.version>
+        <liteflow.version>2.12.2</liteflow.version>
+        <commons.text.version>1.10.0</commons.text.version>
     </properties>
 
     <dependencies>
@@ -65,6 +67,30 @@
             <artifactId>lombok-mapstruct-binding</artifactId>
             <version>${lombok-mapstruct-binding.version}</version>
             <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.yomahub</groupId>
+            <artifactId>liteflow-spring-boot-starter</artifactId>
+            <version>${liteflow.version}</version>
+        </dependency>
+        <!--数据库规则配置源插件-->
+        <dependency>
+            <groupId>com.yomahub</groupId>
+            <artifactId>liteflow-rule-sql</artifactId>
+            <version>${liteflow.version}</version>
+        </dependency>
+        <!--groovy脚本插件-->
+        <dependency>
+            <groupId>com.yomahub</groupId>
+            <artifactId>liteflow-script-groovy</artifactId>
+            <version>${liteflow.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-text</artifactId>
+            <version>${commons.text.version}</version>
         </dependency>
 
         <dependency>
