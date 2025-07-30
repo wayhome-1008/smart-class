@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.youlai.boot.scene.mapper.SceneMapper">
+
+    <!-- 获取场景交互分页列表 -->
+    <select id="getScenePage" resultType="com.youlai.boot.scene.model.vo.SceneVO">
+        SELECT
+                id,
+                scene_name,
+                enable
+        FROM
+            scene
+        <where>
+            <if test="queryParams.sceneName != null and queryParams.sceneName != ''">
+                AND scene_name LIKE CONCAT('%', #{queryParams.sceneName}, '%')
+            </if>
+        </where>
+    </select>
+
+</mapper>

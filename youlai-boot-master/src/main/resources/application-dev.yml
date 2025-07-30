@@ -1,7 +1,7 @@
 server:
   port: 19776
 auth-properties:
-  deviceAuthUrl:  http://192.168.80.216:13442/device/auth/
+  deviceAuthUrl: http://192.168.80.216:13442/device/auth/
 spring:
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
@@ -17,7 +17,7 @@ spring:
       host: localhost
       port: 6379
       # 如果Redis 服务未设置密码，需要将password删掉或注释，而不是设置为空字符串
-#      password: 123456
+      #      password: 123456
       timeout: 10s
       lettuce:
         pool:
@@ -145,17 +145,17 @@ oss:
     # 存储桶名称
     bucket-name: testbucket
     # (可选) 自定义域名：配置后，文件 URL 会使用该域名格式
-#    custom-domain:
+  #    custom-domain:
   # 阿里云OSS对象存储服务
-#  aliyun:
-#    # 服务Endpoint
-#    endpoint: oss-cn-hangzhou.aliyuncs.com
-#    # 访问凭据`
-#    access-key-id: your-access-key-id
-#    # 凭据密钥
-#    access-key-secret: your-access-key-secret
-#    # 存储桶名称
-#    bucket-name: default
+  #  aliyun:
+  #    # 服务Endpoint
+  #    endpoint: oss-cn-hangzhou.aliyuncs.com
+  #    # 访问凭据`
+  #    access-key-id: your-access-key-id
+  #    # 凭据密钥
+  #    access-key-secret: your-access-key-secret
+  #    # 存储桶名称
+  #    bucket-name: default
   # 本地存储
 #  local:
 #    # 文件存储路径 请注意下，mac用户请使用 /Users/your-username/your-path/，否则会有权限问题，windows用户请使用 D:/your-path/
@@ -266,30 +266,15 @@ wx:
     app-id: xxxxxx
     app-secret: xxxxxx
 
+# LiteFlow配置
 liteflow:
-  rule-source-ext-data-map:
-    # 应用名称，规则链和脚本组件名称需要一致，不要修改
-    applicationName: way
-    #是否开启SQL日志
-    sqlLogEnabled: true
-    # 规则多时，启用快速加载模式
-    fast-load: false
-    #是否开启SQL数据轮询自动刷新机制 默认不开启
-    pollingEnabled: false
-    pollingIntervalSeconds: 60
-    pollingStartSeconds: 60
-    #以下是chain表的配置
-    chainTableName: scene
-    chainApplicationNameField: application_name
-    chainNameField: chain_name
-    elDataField: el_data
-    chainEnableField: enable
-    #以下是script表的配置
-    scriptTableName: rule_script
-    scriptApplicationNameField: application_name
-    scriptIdField: script_id
-    scriptNameField: script_name
-    scriptDataField: script_data
-    scriptTypeField: script_type
-    scriptLanguageField: script_language
-    scriptEnableField: enable
+  enable: true
+#  rule-source-ext-data-map:
+#    scene-id: 0
+#  enable-dynamic-rule: true  # 启用动态规则
+#  slot-size: 1024
+#  when-max-workers: 100
+#  async-executor:
+#    core-pool-size: 20
+#    max-pool-size: 100
+#    queue-capacity: 2000

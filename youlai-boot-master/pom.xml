@@ -54,13 +54,16 @@
             <!--编译测试环境，不打包在lib-->
             <scope>provided</scope>
         </dependency>
-
         <dependency>
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-all</artifactId>
             <version>${hutool.version}</version>
         </dependency>
-
+        <dependency>
+            <groupId>com.yomahub</groupId>
+            <artifactId>liteflow-core</artifactId>
+            <version>2.12.2</version>
+        </dependency>
         <!-- 允许使用Lombok的Java Bean类中使用MapStruct注解 (Lombok 1.18.20+) -->
         <dependency>
             <groupId>org.projectlombok</groupId>

@@ -19,6 +19,9 @@ public class DeviceJob extends BaseEntity {
     /** 设备id */
     private Long deviceId;
 
+    /** 场景联动ID */
+    private Long sceneId;
+
     /** 设备名称 */
     private String deviceName;
 
