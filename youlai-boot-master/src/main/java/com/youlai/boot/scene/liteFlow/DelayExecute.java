@@ -37,23 +37,20 @@ public class DelayExecute extends NodeComponent {
     @Autowired
     private MqttClient mqttClient;
     private static DeviceService deviceService = com.youlai.boot.common.util.SpringUtils.getBean(DeviceService.class);
+
     @Override
     public void process() throws Exception {
         log.info("=== 延时执行组件开始 ===");
-
         try {
             Scene scene = this.getContextBean(Scene.class);
             log.info("获取场景信息，ID: {}", scene.getId());
-
             Action action = actionService.getOne(new LambdaQueryWrapper<Action>()
                     .eq(Action::getSceneId, scene.getId()));
-
             if (action == null) {
                 log.warn("场景 {} 未配置动作", scene.getId());
                 this.setIsEnd(true);
                 return;
             }
-
             // 执行延时逻辑
             Integer delaySeconds = scene.getDelaySeconds();
             if (delaySeconds != null && delaySeconds > 0 && delaySeconds <= 90) {
@@ -61,12 +58,9 @@ public class DelayExecute extends NodeComponent {
                 Thread.sleep(delaySeconds * 1000L);
                 log.info("延时结束");
             }
-
             // 执行设备操作
             executeDeviceOperations(action);
-
             log.info("=== 延时执行组件完成 ===");
-
         } catch (Exception e) {
             log.error("延时执行组件处理异常: {}", e.getMessage(), e);
             throw e;
@@ -91,7 +85,6 @@ public class DelayExecute extends NodeComponent {
                         try {
                             log.info("执行设备操作 - DeviceId: {}, Operate: {}", deviceId, deviceOperate.getOperate());
                             operate(deviceOperate, Long.valueOf(deviceId));
-//                            mqttClient.publish("cmnd/" + "tasmota_593136" + "/POWER", JSON.toJSONString(deviceOperate).getBytes(), 1, false);
                             log.info("设备 {} 执行操作成功", deviceId);
                         } catch (Exception e) {
                             log.error("设备 {} 执行操作失败: {}", deviceId, e.getMessage(), e);
