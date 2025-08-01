@@ -1,9 +1,18 @@
 package com.youlai.boot.deviceJob.util;
 
 import com.alibaba.fastjson.JSON;
+import com.youlai.boot.common.result.Result;
+import com.youlai.boot.device.Enum.CommunicationModeEnum;
 import com.youlai.boot.device.controller.DeviceOperateController;
+import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.DeviceOperate;
+import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.deviceJob.model.entity.DeviceJob;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
+import org.eclipse.paho.client.mqttv3.MqttClient;
+import org.eclipse.paho.client.mqttv3.MqttException;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 
@@ -12,10 +21,12 @@ import java.util.List;
  *
  * @author kerwincui
  */
+@Slf4j
 public class JobInvokeUtil {
 
     /**获取消息推送接口*/
-    private static DeviceOperateController messagePublish = com.youlai.boot.common.util.SpringUtils.getBean(DeviceOperateController.class);
+    private static MqttClient messagePublish = com.youlai.boot.common.util.SpringUtils.getBean(MqttClient.class);
+    private static DeviceService deviceService = com.youlai.boot.common.util.SpringUtils.getBean(DeviceService.class);
 
     /**
      * 执行方法
@@ -29,35 +40,54 @@ public class JobInvokeUtil {
             List<DeviceOperate> deviceOperates = JSON.parseArray(deviceJob.getActions(), DeviceOperate.class);
             for (DeviceOperate deviceOperate : deviceOperates) {
                 // 发布功能
-                messagePublish.operate(deviceOperate, deviceJob.getDeviceId());
+                messagePublish.publish("cmnd/" + deviceJob + "/POWER", JSON.toJSONString(deviceOperate).getBytes(), 1, false);
             }
         }
-        // 发布属性
-//            if (propertys.size() > 0) {
-//                messagePublish.publishProperty(deviceJob.getProductId(), deviceJob.getSerialNumber(), propertys, 0);
-//            }
-
-//
-//        } else if (deviceJob.getJobType() == 2) {
-//
-//        } else if (deviceJob.getJobType() == 3) {
-//            System.out.println("------------------------定时执行场景联动-----------------------------");
-//            List<Action> actions = JSON.parseArray(deviceJob.getActions(), Action.class);
-//            for (int i = 0; i < actions.size(); i++) {
-//                ThingsModelSimpleItem model = new ThingsModelSimpleItem();
-//                model.setId(actions.get(i).getId());
-//                model.setValue(actions.get(i).getValue());
-//                model.setRemark("场景联动定时触发");
-//                if (actions.get(i).getType() == 1) {
-//                    List<ThingsModelSimpleItem> propertys = new ArrayList<>();
-//                    propertys.add(model);
-//                    messagePublish.publishProperty(actions.get(i).getProductId(), actions.get(i).getSerialNumber(), propertys, 0);
-//                } else if (actions.get(i).getType() == 2) {
-//                    List<ThingsModelSimpleItem> functions = new ArrayList<>();
-//                    functions.add(model);
-//                    messagePublish.publishFunction(actions.get(i).getProductId(), actions.get(i).getSerialNumber(), functions, 0);
-//                }
-//            }
-//        }
     }
+
+//    public void operate(DeviceOperate deviceOperate, Long deviceId) {
+//        Device device = deviceService.getById(deviceId);
+//        if (ObjectUtils.isEmpty(device)) return;
+//        if (device.getDeviceTypeId() != 4 && device.getDeviceTypeId() != 7 && device.getDeviceTypeId() != 10 && device.getDeviceTypeId() != 8)
+//            return;
+//        //根据通信协议去发送不同协议报文
+//        switch (CommunicationModeEnum.getNameById(device.getCommunicationModeItemId())) {
+////            case "ZigBee" ->
+//            //zigBee
+////                    zigBeeDevice(device.getDeviceCode(), device.getDeviceGatewayId(), deviceOperate.getOperate(), deviceOperate.getWay(), deviceOperate.getCount());
+//            case "WiFi" ->
+//                //WiFi
+//                    wifiDevice(device.getDeviceCode(), deviceOperate.getOperate(), deviceOperate.getWay(), deviceOperate.getCount());
+//            default -> Result.failed("暂不支持该协议");
+//        }
+//    }
+
+    private void wifiDevice(String deviceCode, String operate, String way, Integer lightCount) {
+        //目前能控制的就只有灯的开关
+        log.info("正在发送~~~~~~~~~~");
+        //判断几路
+        if (lightCount == 1) {
+            try {
+                messagePublish.publish("cmnd/" + deviceCode + "/POWER", JSON.toJSONString(operate).getBytes(), 1, false);
+            } catch (MqttException e) {
+                log.error("发送消息失败", e);
+            }
+
+        } else if (way.equals("-1")) {
+            try {
+                for (int i = 1; i <= lightCount; i++) {
+                    messagePublish.publish("cmnd/" + deviceCode + "/POWER" + i, JSON.toJSONString(operate).getBytes(), 1, false);
+                }
+            } catch (MqttException e) {
+                log.error("发送消息失败", e);
+            }
+        } else {
+            try {
+                messagePublish.publish("cmnd/" + deviceCode + "/POWER" + way, JSON.toJSONString(operate).getBytes(), 1, false);
+            } catch (MqttException e) {
+                log.error("发送消息失败", e);
+            }
+        }
+    }
+
 }

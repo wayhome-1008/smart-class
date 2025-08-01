@@ -1,9 +1,15 @@
 package com.youlai.boot.scene.liteFlow;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
+import com.yomahub.liteflow.annotation.LiteflowComponent;
 import com.yomahub.liteflow.core.NodeComponent;
 import com.youlai.boot.device.service.DeviceService;
+import com.youlai.boot.scene.model.entity.Scene;
 import com.youlai.boot.scene.model.entity.Trigger;
 import com.youlai.boot.scene.model.form.ThresholdCondition;
+import com.youlai.boot.scene.service.TriggerService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -15,10 +21,13 @@ import java.util.List;
  *@CreateTime: 2025-07-30  17:56
  *@Description: TODO
  */
-@Component("deviceTrigger")
+@LiteflowComponent(id = "deviceTrigger")
+@Slf4j
 public class DeviceTriggerComponent extends NodeComponent {
     @Autowired
     private DeviceService deviceService;
+    @Autowired
+    private TriggerService triggerService;
     @Override
     public boolean isAccess() {
         // 默认返回true，实际触发条件在process方法中判断
@@ -27,14 +36,20 @@ public class DeviceTriggerComponent extends NodeComponent {
 
     @Override
     public void process() throws Exception {
-        Trigger trigger = this.getContextBean(Trigger.class);
-        List<String> deviceIds = Arrays.stream(trigger.getDeviceIds().split(",")).toList();
-        List<ThresholdCondition> conditions = trigger.getThresholdConditions();
-        String logic = trigger.getThresholdLogic();
-        // 检查设备条件并设置执行结果
-        boolean triggerResult = checkTriggerResult(deviceIds, conditions, logic);
-        this.setOutput(triggerResult);
+        Scene scene = this.getContextBean(Scene.class);
+        // 正确的查询方式：使用Service层方法
+        Trigger trigger = triggerService.getOne(new LambdaQueryWrapper<Trigger>()
+                .eq(Trigger::getSceneId, scene.getId()));
+            List<String> deviceIds = Arrays.stream(trigger.getDeviceIds().split(",")).toList();
+            List<ThresholdCondition> conditions = trigger.getThresholdConditions();
+            String logic = trigger.getThresholdLogic();
+            // 检查设备条件并设置执行结果
+            boolean triggerResult = checkTriggerResult(deviceIds, conditions, logic);
+
+//        Trigger trigger = this.getContextBean(Trigger.class);
+//        this.setOutput(triggerResult);
     }
+
     private boolean checkTriggerResult(List<String> deviceIds, List<ThresholdCondition> conditions, String logic) {
         for (String deviceId : deviceIds) {
             if (checkDeviceConditions(deviceId, conditions, logic)) {
@@ -43,15 +58,19 @@ public class DeviceTriggerComponent extends NodeComponent {
         }
         return false;
     }
+
     private boolean checkDeviceConditions(String deviceId, List<ThresholdCondition> conditions, String logic) {
         if (conditions.isEmpty()) {
             return false;
         }
 
         for (ThresholdCondition condition : conditions) {
-            Object actualValue = deviceService.getProperty(deviceId, condition.getProperty());
-            boolean conditionMet = ThresholdComparator.compare(condition, actualValue);
-
+//            Object actualValue = deviceService.getProperty(deviceId, condition.getProperty());
+            List<String> listMetric = deviceService.listMetric(Long.valueOf(deviceId));
+            boolean conditionMet = false;
+            for (String actualValue : listMetric) {
+                conditionMet = ThresholdComparator.compare(condition, actualValue);
+            }
             if ("AND".equals(logic) && !conditionMet) {
                 return false;
             }

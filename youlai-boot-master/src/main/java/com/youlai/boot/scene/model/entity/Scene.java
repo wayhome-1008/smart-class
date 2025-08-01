@@ -28,7 +28,7 @@ public class Scene extends BaseEntity {
     /**
      * 规则名称
      */
-    private String chainName;
+//    private String chainName;
     /**
      * 触发条件类型（ALL/ANY/NOT）
      */
@@ -46,7 +46,7 @@ public class Scene extends BaseEntity {
      */
     private Integer delaySeconds;
     /**
-     * 场景状态（1-启动，2-停止）
+     * 场景状态（ 1启用 0禁用）
      */
     private Integer enable;
 

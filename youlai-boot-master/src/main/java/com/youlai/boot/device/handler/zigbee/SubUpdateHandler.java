@@ -21,6 +21,9 @@ import com.youlai.boot.device.model.influx.InfluxSwitch;
 import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.device.service.impl.AlertRuleEngine;
 import com.youlai.boot.device.topic.HandlerType;
+import com.youlai.boot.scene.liteFlow.SceneExecuteService;
+import com.youlai.boot.scene.model.entity.Scene;
+import com.youlai.boot.scene.service.SceneService;
 import com.youlai.boot.system.model.entity.AlertRule;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,6 +53,8 @@ public class SubUpdateHandler implements MsgHandler {
     private final InfluxDBClient influxDBClient;
     private final InfluxDBProperties influxProperties;
     private final AlertRuleEngine alertRuleEngine;
+    private final SceneExecuteService sceneExecuteService;
+    private final SceneService sceneService;
 
     /**
      * @description: zigBee设备统一分处理方法
@@ -469,9 +474,11 @@ public class SubUpdateHandler implements MsgHandler {
             );
             RspMqtt(topic, mqttClient, deviceCache.getDeviceCode(), sequence);
             log.info("传感器数据:{}", point);
+            //场景
+            Scene byId = sceneService.getById(9);
+            sceneExecuteService.executeScene(byId, deviceCache);
         }
     }
-
 
     private static void RspMqtt(String topic, MqttClient mqttClient, String deviceId, int sequence) throws
             MqttException {

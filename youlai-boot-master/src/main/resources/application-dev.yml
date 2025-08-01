@@ -203,6 +203,7 @@ springdoc:
         - com.youlai.boot.deviceJob.controller
         - com.youlai.boot.category.controller
         - com.youlai.boot.alertEvent.controller
+        - com.youlai.boot.scene.controller
   default-flat-param-object: true
 
 # knife4j 接口文档配置
@@ -269,6 +270,8 @@ wx:
 # LiteFlow配置
 liteflow:
   enable: true
+#  scan:
+#    package: com.youlai.boot.scene.liteFlow
 #  rule-source-ext-data-map:
 #    scene-id: 0
 #  enable-dynamic-rule: true  # 启用动态规则

@@ -1,6 +1,7 @@
 package com.youlai.boot.scene.model.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -14,7 +15,7 @@ import com.youlai.boot.common.base.BaseEntity;
  */
 @Getter
 @Setter
-@TableName("action")
+@TableName("scene_action")
 public class Action extends BaseEntity {
 
     private Long sceneId;
@@ -38,5 +39,6 @@ public class Action extends BaseEntity {
     private String parameters;
 
     @TableField(exist = false)
+    @JsonIgnore
     private Scene scene;
 }

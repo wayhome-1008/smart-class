@@ -1,17 +1,13 @@
 package com.youlai.boot.config.mqtt;
 
-import lombok.Data;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.paho.client.mqttv3.MqttClient;
-import org.eclipse.paho.client.mqttv3.MqttClientPersistence;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.stereotype.Component;
 
 /**
  * @description: mqtt配置初始化
@@ -19,14 +15,12 @@ import org.springframework.stereotype.Component;
  * @date: 2024/7/22 15:03
  **/
 @Configuration
-@Component
-@Data
 @Slf4j
 public class MqttConfig {
     @Autowired
-    private  MqttProperties mqttProperties;
+    private MqttProperties mqttProperties;
     @Autowired
-    private  MqttCallback mqttCallback;
+    private MqttCallback mqttCallback;
 
     @Bean
     public MqttClient mqttClient() {
@@ -35,15 +29,18 @@ public class MqttConfig {
         for (int i = 0; i < maxRetries; i++) {
             try {
                 log.info("===初始化mqttClient====");
+                // 确保客户端ID唯一
+                String clientId = mqttProperties.getClient().getClientId() + "-" + System.currentTimeMillis();
                 MqttClient client = new MqttClient(
                         mqttProperties.getClient().getServerUri(),
-                        mqttProperties.getClient().getClientId(),
-                        mqttClientPersistence()
+                        clientId,
+                        new MemoryPersistence()
                 );
                 client.setManualAcks(true);
                 mqttCallback.setMqttClient(client);
                 client.setCallback(mqttCallback);
                 client.connect(mqttConnectOptions());
+                log.info("MQTT客户端连接成功 - ClientId: {}", clientId);
                 return client;
             } catch (MqttException e) {
                 log.error("MQTT 连接失败，尝试第 {} 次重连...", i + 1, e);
@@ -58,7 +55,7 @@ public class MqttConfig {
                 }
             }
         }
-        return null; // 不会到达这里
+        throw new RuntimeException("MQTT客户端初始化失败");
     }
 
     @Bean
@@ -76,11 +73,8 @@ public class MqttConfig {
         options.setKeepAliveInterval(mqttProperties.getClient().getKeepAliveInterval());
         //设置mqtt版本
         options.setMqttVersion(MqttConnectOptions.MQTT_VERSION_3_1_1);
+        // 增加最大飞行消息数
+        options.setMaxInflight(1000);
         return options;
     }
-
-    public MqttClientPersistence mqttClientPersistence() {
-        return new MemoryPersistence();
-    }
-
 }

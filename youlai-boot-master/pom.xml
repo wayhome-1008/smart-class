@@ -43,7 +43,7 @@
         <!-- 微信 jdk -->
         <weixin-java.version>4.5.5.B</weixin-java.version>
         <caffeine.version>2.9.3</caffeine.version>
-        <liteflow.version>2.12.2</liteflow.version>
+        <liteflow.version>2.13.2</liteflow.version>
         <commons.text.version>1.10.0</commons.text.version>
     </properties>
 
@@ -59,11 +59,6 @@
             <artifactId>hutool-all</artifactId>
             <version>${hutool.version}</version>
         </dependency>
-        <dependency>
-            <groupId>com.yomahub</groupId>
-            <artifactId>liteflow-core</artifactId>
-            <version>2.12.2</version>
-        </dependency>
         <!-- 允许使用Lombok的Java Bean类中使用MapStruct注解 (Lombok 1.18.20+) -->
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -77,19 +72,6 @@
             <artifactId>liteflow-spring-boot-starter</artifactId>
             <version>${liteflow.version}</version>
         </dependency>
-        <!--数据库规则配置源插件-->
-        <dependency>
-            <groupId>com.yomahub</groupId>
-            <artifactId>liteflow-rule-sql</artifactId>
-            <version>${liteflow.version}</version>
-        </dependency>
-        <!--groovy脚本插件-->
-        <dependency>
-            <groupId>com.yomahub</groupId>
-            <artifactId>liteflow-script-groovy</artifactId>
-            <version>${liteflow.version}</version>
-        </dependency>
-
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-text</artifactId>

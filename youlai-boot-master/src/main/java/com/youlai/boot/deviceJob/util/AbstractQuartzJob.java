@@ -87,7 +87,7 @@ public abstract class AbstractQuartzJob implements Job {
      * 执行方法，由子类重载
      *
      * @param context 工作执行上下文对象
-     * @param deviceJob 系统计划任务
+     * @param deviceJob 任务信息实体
      * @throws Exception 执行过程中的异常
      */
     protected abstract void doExecute(JobExecutionContext context, DeviceJob deviceJob) throws Exception;

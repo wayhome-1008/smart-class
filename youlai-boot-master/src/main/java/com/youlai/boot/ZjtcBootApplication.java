@@ -17,6 +17,10 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @ConfigurationPropertiesScan // 开启配置属性绑定
 @EnableConfigurationProperties(MqttProperties.class)
 @EnableScheduling
+@ComponentScan({
+        "com.youlai.boot",           // 主包路径
+        "com.youlai.boot.scene.liteFlow"  // LiteFlow组件包路径
+})
 public class ZjtcBootApplication {
 
     public static void main(String[] args) {

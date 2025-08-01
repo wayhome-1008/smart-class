@@ -1,6 +1,7 @@
 package com.youlai.boot.scene.model.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.youlai.boot.scene.model.form.ThresholdCondition;
@@ -19,7 +20,7 @@ import java.util.List;
  */
 @Getter
 @Setter
-@TableName("trigger")
+@TableName("scene_trigger")
 public class Trigger extends BaseEntity {
 
     private Long sceneId;
@@ -49,9 +50,11 @@ public class Trigger extends BaseEntity {
     private String thresholdLogic;
 
     @TableField(exist = false)
+    @JsonIgnore
     private Scene scene;
 
     // 解析threshold为ThresholdCondition列表
+    @JsonIgnore
     public List<ThresholdCondition> getThresholdConditions() {
         try {
             if (this.threshold == null || this.threshold.isEmpty()) {

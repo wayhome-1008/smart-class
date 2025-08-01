@@ -8,16 +8,12 @@ import com.youlai.boot.scene.model.form.ThresholdCondition;
  *@Description: TODO
  */
 public class ThresholdComparator {
-    public static boolean compare(ThresholdCondition condition, Object actualValue) {
-        if (actualValue == null) {
-            return false;
-        }
+    public static boolean compare(ThresholdCondition condition, String  actualStr) {
 
         String operator = condition.getOperator();
         Object thresholdValue = condition.getValue();
 
         // 统一转为字符串比较
-        String actualStr = actualValue.toString();
         String thresholdStr = thresholdValue.toString();
 
         // 数值类型比较
@@ -47,6 +43,11 @@ public class ThresholdComparator {
         return switch (operator) {
             case "=" -> actual.equals(threshold);
             case "!=" -> !actual.equals(threshold);
+            case ">" -> actual.compareTo(threshold) > 0;
+            case "<" -> actual.compareTo(threshold) < 0;
+            case ">=" -> actual.compareTo(threshold) >= 0;
+            case "<=" -> actual.compareTo(threshold) <= 0;
+
             default -> throw new IllegalArgumentException("字符串不支持的操作符: " + operator);
         };
     }

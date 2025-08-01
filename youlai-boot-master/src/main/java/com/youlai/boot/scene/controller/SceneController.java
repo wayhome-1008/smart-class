@@ -2,6 +2,7 @@ package com.youlai.boot.scene.controller;
 
 import com.youlai.boot.scene.service.SceneService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.youlai.boot.scene.model.form.SceneForm;
@@ -28,6 +29,7 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/api/v1/scene")
 @RequiredArgsConstructor
+@Transactional(rollbackFor = Exception.class)
 public class SceneController  {
 
     private final SceneService sceneService;
