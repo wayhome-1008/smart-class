@@ -44,6 +44,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -449,6 +450,35 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     public List<Option<Long>> listDeviceOptions() {
         List<Device> list = this.list(new LambdaQueryWrapper<Device>().eq(Device::getStatus, 1));
         return deviceConverter.toOptions(list);
+    }
+
+    @Override
+    public List<Option<Long>> listMetricsOption(String ids) {
+        List<Device> devices = this.listByIds(Arrays.stream(ids.split(","))
+                .map(Long::parseLong)
+                .toList());
+        if (devices == null) {
+            return null;
+        }
+        List<Option<Long>> options = new ArrayList<>();
+        for (Device device : devices) {
+            if (device.getDeviceInfo() != null) {
+                Option<Long> option = new Option<>();
+                option.setValue(device.getId());
+                JsonNode deviceInfo = device.getDeviceInfo();
+                //把软属性key列成列表
+                List<String> metricList = new ArrayList<>();
+                // 遍历设备信息中的所有字段名
+                Iterator<String> fieldNames = deviceInfo.fieldNames();
+                while (fieldNames.hasNext()) {
+                    metricList.add(fieldNames.next());
+                }
+                //将metricList所有字段名称以逗号分隔开拼成一个字符串
+                option.setLabel(String.join(",", metricList));
+                options.add(option);
+            }
+        }
+        return options;
     }
 
     private List<Device> listByIdAndRoomId(List<Long> idList, Long roomId) {

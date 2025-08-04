@@ -101,4 +101,6 @@ public interface DeviceService extends IService<Device> {
     List<String> listMetric(Long id);
 
     List<Option<Long>> listDeviceOptions();
+
+    List<Option<Long>> listMetricsOption(String ids);
 }
