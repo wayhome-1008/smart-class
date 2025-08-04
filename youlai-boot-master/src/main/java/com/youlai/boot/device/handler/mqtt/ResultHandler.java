@@ -12,6 +12,9 @@ import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.influx.InfluxSwitch;
 import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.device.topic.HandlerType;
+import com.youlai.boot.scene.liteFlow.SceneExecuteService;
+import com.youlai.boot.scene.model.entity.Scene;
+import com.youlai.boot.scene.service.SceneService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
@@ -20,6 +23,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.Iterator;
+import java.util.List;
 
 import static com.youlai.boot.common.util.JsonUtils.mergeJson;
 import static com.youlai.boot.common.util.JsonUtils.stringToJsonNode;
@@ -38,6 +42,8 @@ public class ResultHandler implements MsgHandler {
     private final DeviceService deviceService;
     private final InfluxDBProperties influxProperties;
     private final InfluxDBClient influxDBClient;
+    private final SceneExecuteService sceneExecuteService;
+    private final SceneService sceneService;
 
     @Override
     public void process(String topic, String jsonMsg, MqttClient mqttClient) {
@@ -74,6 +80,11 @@ public class ResultHandler implements MsgHandler {
         device.setDeviceInfo(mergedInfo);
         device.setStatus(1);
         redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
+        //场景
+        List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceId(device.getId());
+        for (Scene scene : scenesByDeviceId) {
+            sceneExecuteService.executeScene(scene, device);
+        }
     }
 
     private void light(JsonNode jsonNode, Device device, String deviceCode) {
@@ -122,6 +133,11 @@ public class ResultHandler implements MsgHandler {
             device.setStatus(1);
             redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
             log.info("设备 {} 灯光状态更新完成", deviceCode);
+            //场景
+            List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceId(device.getId());
+            for (Scene scene : scenesByDeviceId) {
+                sceneExecuteService.executeScene(scene, device);
+            }
         }
     }
 

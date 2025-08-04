@@ -4,7 +4,6 @@ import com.yomahub.liteflow.core.FlowExecutor;
 import com.yomahub.liteflow.flow.LiteflowResponse;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.scene.model.entity.Scene;
-import com.youlai.boot.scene.service.SceneService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -17,9 +16,6 @@ import org.springframework.stereotype.Service;
 public class SceneExecuteService {
     @Autowired
     private FlowExecutor flowExecutor;
-
-    @Autowired
-    private SceneService sceneService;
 
     /**
      * 执行单个场景的核心方法（内部封装）
@@ -34,7 +30,6 @@ public class SceneExecuteService {
                     null,    // 初始参数（无则传null）
                     scene     // 上下文对象
             );
-
             // 3. 处理执行结果
             if (response.isSuccess()) {
                 log.info("场景[{}:{}]执行成功", scene.getId(), scene.getSceneName());

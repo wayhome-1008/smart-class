@@ -33,6 +33,7 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -113,6 +114,11 @@ public class SubUpdateHandler implements MsgHandler {
     private void processSerialDevice(String topic, MqttClient mqttClient, Device device, String jsonMsg, int sequence) throws MqttException {
         log.info("串口透传设备数据{}", jsonMsg);
         RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
+        //场景
+        List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceId(device.getId());
+        for (Scene scene : scenesByDeviceId) {
+            sceneExecuteService.executeScene(scene, device);
+        }
     }
 
     private void processSocket(String topic, MqttClient mqttClient, Device device, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
@@ -153,8 +159,12 @@ public class SubUpdateHandler implements MsgHandler {
                     WritePrecision.MS,
                     influxSwitch
             );
-//            deviceService.updateById(device);
             RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
+            //场景
+            List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceId(device.getId());
+            for (Scene scene : scenesByDeviceId) {
+                sceneExecuteService.executeScene(scene, device);
+            }
         }
 
     }
@@ -207,6 +217,11 @@ public class SubUpdateHandler implements MsgHandler {
                 redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
 //                deviceService.updateById(device);
                 RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
+                //场景
+                List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceId(device.getId());
+                for (Scene scene : scenesByDeviceId) {
+                    sceneExecuteService.executeScene(scene, device);
+                }
             }
         }
     }
@@ -236,6 +251,11 @@ public class SubUpdateHandler implements MsgHandler {
             device.setDeviceInfo(mergeJson);
             redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
             RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
+        }
+        //场景
+        List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceId(device.getId());
+        for (Scene scene : scenesByDeviceId) {
+            sceneExecuteService.executeScene(scene, device);
         }
     }
 
@@ -344,6 +364,11 @@ public class SubUpdateHandler implements MsgHandler {
         }
         redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCache.getDeviceCode(), deviceCache);
         RspMqtt(topic, mqttClient, deviceCache.getDeviceCode(), sequence);
+        //场景
+        List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceId(deviceCache.getId());
+        for (Scene scene : scenesByDeviceId) {
+            sceneExecuteService.executeScene(scene, deviceCache);
+        }
     }
 
     private void processHumanRadarSensor(String topic, MqttClient mqttClient, Device deviceCache, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
@@ -392,7 +417,11 @@ public class SubUpdateHandler implements MsgHandler {
         log.info("人体传感器数据:{}", point);
         redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCache.getDeviceCode(), deviceCache);
         RspMqtt(topic, mqttClient, deviceCache.getDeviceCode(), sequence);
-
+        //场景
+        List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceId(deviceCache.getId());
+        for (Scene scene : scenesByDeviceId) {
+            sceneExecuteService.executeScene(scene, deviceCache);
+        }
     }
 
     /**
@@ -475,8 +504,10 @@ public class SubUpdateHandler implements MsgHandler {
             RspMqtt(topic, mqttClient, deviceCache.getDeviceCode(), sequence);
             log.info("传感器数据:{}", point);
             //场景
-            Scene byId = sceneService.getById(9);
-            sceneExecuteService.executeScene(byId, deviceCache);
+            List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceId(deviceCache.getId());
+            for (Scene scene : scenesByDeviceId) {
+                sceneExecuteService.executeScene(scene, deviceCache);
+            }
         }
     }
 

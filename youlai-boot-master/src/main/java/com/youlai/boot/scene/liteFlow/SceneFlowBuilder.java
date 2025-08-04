@@ -32,7 +32,6 @@ public class SceneFlowBuilder {
         log.info("注册流程: {}", flowId);
         LiteFlowChainELBuilder.createChain().setChainId(flowId).setEL(
                 elExpr).build();
-//        FlowBus.registerFlow(flowId, elExpr);
     }
 
     /**

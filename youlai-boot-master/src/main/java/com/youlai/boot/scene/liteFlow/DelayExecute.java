@@ -44,9 +44,9 @@ public class DelayExecute extends NodeComponent {
         try {
             Scene scene = this.getContextBean(Scene.class);
             log.info("获取场景信息，ID: {}", scene.getId());
-            Action action = actionService.getOne(new LambdaQueryWrapper<Action>()
-                    .eq(Action::getSceneId, scene.getId()));
-            if (action == null) {
+            // 直接从scene中获取Action列表
+            List<Action> actions = scene.getActions();
+            if (actions == null || actions.isEmpty()) {
                 log.warn("场景 {} 未配置动作", scene.getId());
                 this.setIsEnd(true);
                 return;
@@ -59,7 +59,7 @@ public class DelayExecute extends NodeComponent {
                 log.info("延时结束");
             }
             // 执行设备操作
-            executeDeviceOperations(action);
+            executeDeviceOperations(actions);
             log.info("=== 延时执行组件完成 ===");
         } catch (Exception e) {
             log.error("延时执行组件处理异常: {}", e.getMessage(), e);
@@ -69,30 +69,34 @@ public class DelayExecute extends NodeComponent {
         }
     }
 
-    private void executeDeviceOperations(Action action) {
+    private void executeDeviceOperations(List<Action> actions) {
         try {
-            List<String> deviceIds = Arrays.stream(action.getDeviceIds().split(","))
-                    .filter(id -> !id.trim().isEmpty())
-                    .toList();
-            String parameters = action.getParameters();
+            log.info("准备执行 {} 个动作", actions.size());
 
-            if (parameters != null && !parameters.isEmpty()) {
-                List<DeviceOperate> deviceOperates = JSON.parseArray(parameters, DeviceOperate.class);
-                log.info("准备执行 {} 个操作，涉及 {} 个设备", deviceOperates.size(), deviceIds.size());
+            for (Action action : actions) {
+                List<String> deviceIds = Arrays.stream(action.getDeviceIds().split(","))
+                        .filter(id -> !id.trim().isEmpty())
+                        .toList();
+                String parameters = action.getParameters();
 
-                for (DeviceOperate deviceOperate : deviceOperates) {
-                    for (String deviceId : deviceIds) {
-                        try {
-                            log.info("执行设备操作 - DeviceId: {}, Operate: {}", deviceId, deviceOperate.getOperate());
-                            operate(deviceOperate, Long.valueOf(deviceId));
-                            log.info("设备 {} 执行操作成功", deviceId);
-                        } catch (Exception e) {
-                            log.error("设备 {} 执行操作失败: {}", deviceId, e.getMessage(), e);
+                if (parameters != null && !parameters.isEmpty()) {
+                    List<DeviceOperate> deviceOperates = JSON.parseArray(parameters, DeviceOperate.class);
+                    log.info("准备执行动作，涉及 {} 个设备", deviceIds.size());
+
+                    for (DeviceOperate deviceOperate : deviceOperates) {
+                        for (String deviceId : deviceIds) {
+                            try {
+                                log.info("执行设备操作 - DeviceId: {}, Operate: {}", deviceId, deviceOperate.getOperate());
+                                operate(deviceOperate, Long.valueOf(deviceId));
+                                log.info("设备 {} 执行操作成功", deviceId);
+                            } catch (Exception e) {
+                                log.error("设备 {} 执行操作失败: {}", deviceId, e.getMessage(), e);
+                            }
                         }
                     }
+                } else {
+                    log.warn("动作参数为空，跳过设备操作");
                 }
-            } else {
-                log.warn("动作参数为空，跳过设备操作");
             }
         } catch (Exception e) {
             log.error("执行设备操作时出错: {}", e.getMessage(), e);

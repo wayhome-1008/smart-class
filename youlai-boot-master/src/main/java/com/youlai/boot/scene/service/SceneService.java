@@ -7,6 +7,8 @@ import com.youlai.boot.scene.model.vo.SceneVO;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
 
+import java.util.List;
+
 /**
  * 场景交互服务类
  *
@@ -55,4 +57,5 @@ public interface SceneService extends IService<Scene> {
      */
     boolean deleteScenes(String ids);
 
+    List<Scene> getScenesByDeviceId(Long deviceId);
 }

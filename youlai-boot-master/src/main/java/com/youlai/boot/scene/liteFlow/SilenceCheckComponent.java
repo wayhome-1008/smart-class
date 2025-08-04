@@ -35,6 +35,9 @@ public class SilenceCheckComponent extends NodeComponent {
 
         if (canExecute) {
             lastExecuteTime.put(scene.getId(), currentTime); // 更新最后执行时间
+        } else {
+            // 如果在静默期内，设置流程结束
+            this.setIsEnd(true);
         }
     }
 
