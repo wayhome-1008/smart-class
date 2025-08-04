@@ -1,17 +1,13 @@
 package com.youlai.boot.scene.liteFlow;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.yomahub.liteflow.annotation.LiteflowComponent;
 import com.yomahub.liteflow.core.NodeComponent;
 import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.scene.model.entity.Scene;
 import com.youlai.boot.scene.model.entity.Trigger;
 import com.youlai.boot.scene.model.form.ThresholdCondition;
-import com.youlai.boot.scene.service.TriggerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
 import java.util.List;
@@ -26,8 +22,6 @@ import java.util.List;
 public class DeviceTriggerComponent extends NodeComponent {
     @Autowired
     private DeviceService deviceService;
-    @Autowired
-    private TriggerService triggerService;
 
     @Override
     public boolean isAccess() {

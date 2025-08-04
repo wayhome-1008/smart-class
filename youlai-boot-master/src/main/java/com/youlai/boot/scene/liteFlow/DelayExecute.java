@@ -1,20 +1,15 @@
 package com.youlai.boot.scene.liteFlow;
 
 import com.alibaba.fastjson.JSON;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.yomahub.liteflow.annotation.LiteflowComponent;
 import com.yomahub.liteflow.core.NodeComponent;
 import com.youlai.boot.common.result.Result;
-import com.youlai.boot.config.mqtt.MqttProducer;
 import com.youlai.boot.device.Enum.CommunicationModeEnum;
-import com.youlai.boot.device.controller.DeviceOperateController;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.DeviceOperate;
 import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.scene.model.entity.Action;
 import com.youlai.boot.scene.model.entity.Scene;
-import com.youlai.boot.scene.service.ActionService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.eclipse.paho.client.mqttv3.MqttClient;
@@ -33,10 +28,8 @@ import java.util.List;
 @Slf4j
 public class DelayExecute extends NodeComponent {
     @Autowired
-    private ActionService actionService;
-    @Autowired
     private MqttClient mqttClient;
-    private static DeviceService deviceService = com.youlai.boot.common.util.SpringUtils.getBean(DeviceService.class);
+    private static final DeviceService deviceService = com.youlai.boot.common.util.SpringUtils.getBean(DeviceService.class);
 
     @Override
     public void process() throws Exception {

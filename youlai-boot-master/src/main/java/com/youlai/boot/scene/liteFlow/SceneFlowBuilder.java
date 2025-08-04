@@ -1,13 +1,9 @@
 package com.youlai.boot.scene.liteFlow;
 
-import com.yomahub.liteflow.builder.LiteFlowNodeBuilder;
 import com.yomahub.liteflow.builder.el.LiteFlowChainELBuilder;
-import com.yomahub.liteflow.core.FlowExecutor;
 import com.youlai.boot.scene.model.entity.Action;
 import com.youlai.boot.scene.model.entity.Scene;
 import com.youlai.boot.scene.model.entity.Trigger;
-import jakarta.annotation.Resource;
-import com.yomahub.liteflow.flow.FlowBus;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -19,10 +15,6 @@ import org.springframework.stereotype.Component;
 @Component
 @Slf4j
 public class SceneFlowBuilder {
-
-    @Resource
-    private FlowExecutor flowExecutor;
-
     /**
      * 为场景创建并注册流程
      */

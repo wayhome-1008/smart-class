@@ -10,7 +10,6 @@ import com.youlai.boot.device.model.form.DeviceOperate;
 import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.scene.model.entity.Action;
 import com.youlai.boot.scene.model.entity.Scene;
-import com.youlai.boot.scene.service.ActionService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.eclipse.paho.client.mqttv3.MqttClient;
@@ -30,9 +29,7 @@ import java.util.List;
 public class DeviceExecuteComponent extends NodeComponent {
     @Autowired
     private MqttClient mqttClient;
-    @Autowired
-    private ActionService actionService;
-    private static DeviceService deviceService = com.youlai.boot.common.util.SpringUtils.getBean(DeviceService.class);
+    private static final DeviceService deviceService = com.youlai.boot.common.util.SpringUtils.getBean(DeviceService.class);
 
     @Override
     public void process() throws Exception {

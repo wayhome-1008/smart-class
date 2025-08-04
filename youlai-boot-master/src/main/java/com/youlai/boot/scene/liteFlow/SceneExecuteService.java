@@ -4,8 +4,8 @@ import com.yomahub.liteflow.core.FlowExecutor;
 import com.yomahub.liteflow.flow.LiteflowResponse;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.scene.model.entity.Scene;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /**
@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 public class SceneExecuteService {
-    @Autowired
+    @Resource
     private FlowExecutor flowExecutor;
 
     /**

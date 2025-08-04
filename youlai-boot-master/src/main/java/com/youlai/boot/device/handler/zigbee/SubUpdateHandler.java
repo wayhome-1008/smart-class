@@ -251,11 +251,11 @@ public class SubUpdateHandler implements MsgHandler {
             device.setDeviceInfo(mergeJson);
             redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
             RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
-        }
-        //场景
-        List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceId(device.getId());
-        for (Scene scene : scenesByDeviceId) {
-            sceneExecuteService.executeScene(scene, device);
+            //场景
+            List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceId(device.getId());
+            for (Scene scene : scenesByDeviceId) {
+                sceneExecuteService.executeScene(scene, device);
+            }
         }
     }
 
