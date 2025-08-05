@@ -57,5 +57,5 @@ public interface SceneService extends IService<Scene> {
      */
     boolean deleteScenes(String ids);
 
-    List<Scene> getScenesByDeviceId(Long deviceId);
+    List<Scene> getScenesByDeviceCode(String deviceCode);
 }

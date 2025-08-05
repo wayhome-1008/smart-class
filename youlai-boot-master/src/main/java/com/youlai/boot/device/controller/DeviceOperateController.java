@@ -306,7 +306,7 @@ public class DeviceOperateController {
 
     }
 
-    private static void makeControlParams(List<Switch> switches, Control control) {
+    public static void makeControlParams(List<Switch> switches, Control control) {
         ControlParams controlParams = new ControlParams();
         controlParams.setSwitches(switches);
         control.setParams(controlParams);

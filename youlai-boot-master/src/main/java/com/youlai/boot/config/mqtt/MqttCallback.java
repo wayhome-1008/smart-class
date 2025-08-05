@@ -64,7 +64,6 @@ public class MqttCallback implements MqttCallbackExtended {
             mqttClient.messageArrivedComplete(message.getId(), message.getQos());
         }
     }
-
     // 标准化 topic 路径
     private String normalizeTopic(String topic) {
         if (topic.startsWith("/zbgw")) {
@@ -114,6 +113,11 @@ public class MqttCallback implements MqttCallbackExtended {
      **/
     @Override
     public void deliveryComplete(IMqttDeliveryToken iMqttDeliveryToken) {
+        try {
+            System.out.println("消息发送成功：" + iMqttDeliveryToken.getMessage());
+        } catch (MqttException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**

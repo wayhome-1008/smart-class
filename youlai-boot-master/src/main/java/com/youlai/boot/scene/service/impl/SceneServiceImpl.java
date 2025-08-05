@@ -161,12 +161,12 @@ public class SceneServiceImpl extends ServiceImpl<SceneMapper, Scene> implements
      */
     private void buildDeviceSceneIndexForScene(Scene scene) {
         // 提取场景中的所有设备ID
-        Set<String> deviceIds = extractDeviceIdsFromScene(scene);
+        Set<String> deviceCodes = extractDeviceIdsFromScene(scene);
 
         // 为每个设备建立索引
         String sceneIdStr = String.valueOf(scene.getId());
-        for (String deviceId : deviceIds) {
-            String key = "device:" + deviceId + ":scenes";
+        for (String deviceCode : deviceCodes) {
+            String key = "device:" + deviceCode + ":scenes";
             // 将场景ID添加到设备对应的场景集合中
             redisTemplate.opsForSet().add(key, sceneIdStr);
         }
@@ -175,21 +175,21 @@ public class SceneServiceImpl extends ServiceImpl<SceneMapper, Scene> implements
         String sceneKey = "scene:" + scene.getId();
         redisTemplate.opsForValue().set(sceneKey, scene);
 
-        log.debug("为场景 {}[ID:{}] 建立了 {} 个设备索引", scene.getSceneName(), scene.getId(), deviceIds.size());
+        log.debug("为场景 {}[ID:{}] 建立了 {} 个设备索引", scene.getSceneName(), scene.getId(), deviceCodes.size());
     }
 
     /**
      * 提取场景中所有设备ID的方法
      */
     private Set<String> extractDeviceIdsFromScene(Scene scene) {
-        Set<String> deviceIds = new HashSet<>();
+        Set<String> deviceCode = new HashSet<>();
 
         // 从触发器中提取设备ID
         if (scene.getTriggers() != null) {
             for (Trigger trigger : scene.getTriggers()) {
-                if (trigger.getDeviceIds() != null && !trigger.getDeviceIds().isEmpty()) {
-                    String[] ids = trigger.getDeviceIds().split(",");
-                    deviceIds.addAll(Arrays.asList(ids));
+                if (trigger.getDeviceCodes() != null && !trigger.getDeviceCodes().isEmpty()) {
+                    String[] codes = trigger.getDeviceCodes().split(",");
+                    deviceCode.addAll(Arrays.asList(codes));
                 }
             }
         }
@@ -197,14 +197,14 @@ public class SceneServiceImpl extends ServiceImpl<SceneMapper, Scene> implements
         // 从动作中提取设备ID
         if (scene.getActions() != null) {
             for (Action action : scene.getActions()) {
-                if (action.getDeviceIds() != null && !action.getDeviceIds().isEmpty()) {
-                    String[] ids = action.getDeviceIds().split(",");
-                    deviceIds.addAll(Arrays.asList(ids));
+                if (action.getDeviceCodes() != null && !action.getDeviceCodes().isEmpty()) {
+                    String[] ids = action.getDeviceCodes().split(",");
+                    deviceCode.addAll(Arrays.asList(ids));
                 }
             }
         }
 
-        return deviceIds;
+        return deviceCode;
     }
 
     /**
@@ -251,23 +251,23 @@ public class SceneServiceImpl extends ServiceImpl<SceneMapper, Scene> implements
 
     /**
      * 根据设备ID获取相关场景列表
-     * @param deviceId 设备ID
+     * @param deviceCode 设备Code
      * @return 场景列表
      */
     @Override
-    public List<Scene> getScenesByDeviceId(Long deviceId) {
-        return getScenesByDeviceId(deviceId, true);
+    public List<Scene> getScenesByDeviceCode(String deviceCode) {
+        return getScenesByDeviceCode(deviceCode, true);
     }
 
     /**
      * 根据设备ID获取相关场景列表
-     * @param deviceId 设备ID
+     * @param deviceCode 设备Code
      * @param onlyEnabled 是否只返回启用的场景
      * @return 场景列表
      */
-    public List<Scene> getScenesByDeviceId(Long deviceId, boolean onlyEnabled) {
+    public List<Scene> getScenesByDeviceCode(String deviceCode, boolean onlyEnabled) {
         // 从Redis中获取设备关联的场景ID列表
-        String key = "device:" + deviceId + ":scenes";
+        String key = "device:" + deviceCode + ":scenes";
         Set<Object> sceneIdsObj = redisTemplate.opsForSet().members(key);
 
         if (sceneIdsObj != null && !sceneIdsObj.isEmpty()) {

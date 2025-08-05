@@ -31,7 +31,7 @@ public class Trigger extends BaseEntity {
     /**
      * 设备ID列表
      */
-    private String deviceIds;
+    private String deviceCodes;
     /**
      * 分类id
      */
