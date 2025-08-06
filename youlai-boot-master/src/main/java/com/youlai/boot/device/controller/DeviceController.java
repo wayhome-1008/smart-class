@@ -278,6 +278,13 @@ public class DeviceController {
         return Result.success(list);
     }
 
+    @Operation(summary = "设备下拉列表返回code")
+    @GetMapping("/options/deviceCode")
+    public Result<List<Option<String>>> listDeviceCodeOptions() {
+        List<Option<String>> list = deviceService.listDeviceCodeOptions();
+        return Result.success(list);
+    }
+
     @Operation(summary = "根据设备id查询出该设备软属性")
     @GetMapping("/{id}/metric")
     public Result<List<String>> listMetric(
@@ -286,12 +293,12 @@ public class DeviceController {
         return Result.success(deviceService.listMetric(id));
     }
 
-    @Operation(summary = "根据设备ids查询出设备软属性")
+    @Operation(summary = "根据设备code查询出设备软属性")
     @GetMapping("/metric")
     public Result<List<Option<Long>>> listMetrics(
-            @Parameter(description = "设备ID")  @RequestParam String ids
+            @Parameter(description = "设备code")  @RequestParam String code
     ) {
-        return Result.success(deviceService.listMetricsOption(ids));
+        return Result.success(deviceService.listMetricsOption(code));
     }
 
     @Operation(summary = "新增设备管理")

@@ -17,8 +17,7 @@ public class ThresholdComparator {
 
         // 统一转为字符串比较
         String thresholdStr = thresholdValue.toString();
-
-        log.info("开始比较阈值 - 属性: {}, 实际值: {}, 操作符: {}, 阈值: {}",
+        log.info("比较阈值 - 场景需触发属性: {}, 设备传入属性实际值: {}, 操作符: {}, 阈值: {}",
                 property, actualStr, operator, thresholdStr);
 
         // 数值类型比较
@@ -49,8 +48,8 @@ public class ThresholdComparator {
             default -> throw new IllegalArgumentException("不支持的操作符: " + operator);
         };
 
-        log.info("执行数值比较 - 操作符: {}, 实际值: {}, 阈值: {}, 结果: {}",
-                operator, actual, threshold, result);
+//        log.info("执行数值比较 - 操作符: {}, 实际值: {}, 阈值: {}, 结果: {}",
+//                operator, actual, threshold, result);
 
         return result;
     }
@@ -65,9 +64,9 @@ public class ThresholdComparator {
             case "<=" -> actual.compareTo(threshold) <= 0;
             default -> throw new IllegalArgumentException("字符串不支持的操作符: " + operator);
         };
-
-        log.info("执行字符串比较 - 操作符: {}, 实际值: '{}', 阈值: '{}', 结果: {}",
-                operator, actual, threshold, result);
+//
+//        log.info("执行字符串比较 - 操作符: {}, 实际值: '{}', 阈值: '{}', 结果: {}",
+//                operator, actual, threshold, result);
 
         return result;
     }

@@ -33,7 +33,7 @@ import static com.youlai.boot.device.controller.DeviceOperateController.makeCont
  *@CreateTime: 2025-07-31  15:36
  *@Description: TODO
  */
-@LiteflowComponent(id = "delayExecute")
+@LiteflowComponent(id = "delayExecute", name = "延迟执行组件")
 @Slf4j
 public class DelayExecute extends NodeComponent {
     //    @Autowired
@@ -74,7 +74,7 @@ public class DelayExecute extends NodeComponent {
 
     private void executeDeviceOperations(List<Action> actions, MqttClient mqttClient) {
         try {
-            log.info("准备执行 {} 个动作", actions.size());
+//            log.info("准备执行 {} 个动作", actions.size());
 
             for (Action action : actions) {
                 List<String> deviceCodes = Arrays.stream(action.getDeviceCodes().split(","))
@@ -84,14 +84,14 @@ public class DelayExecute extends NodeComponent {
 
                 if (parameters != null && !parameters.isEmpty()) {
                     List<DeviceOperate> deviceOperates = JSON.parseArray(parameters, DeviceOperate.class);
-                    log.info("准备执行动作，涉及 {} 个设备", deviceCodes.size());
+//                    log.info("准备执行动作，涉及 {} 个设备", deviceCodes.size());
 
                     for (DeviceOperate deviceOperate : deviceOperates) {
                         for (String deviceCode : deviceCodes) {
                             try {
                                 log.info("执行设备操作 - DeviceId: {}, Operate: {}", deviceCode, deviceOperate.getOperate());
                                 operate(deviceOperate, deviceCode, mqttClient);
-                                log.info("设备 {} 执行操作成功", deviceCode);
+//                                log.info("设备 {} 执行操作成功", deviceCode);
                             } catch (Exception e) {
                                 log.error("设备 {} 执行操作失败: {}", deviceCode, e.getMessage(), e);
                             }
@@ -152,11 +152,11 @@ public class DelayExecute extends NodeComponent {
 
     private void wifiDevice(String deviceCode, String operate, String way, Integer lightCount, MqttClient mqttClient) {
         //目前能控制的就只有灯的开关
-        log.info("正在发送~~~~~~~~~~");
+        log.info("正在发送{}",operate);
         //判断几路
         if (lightCount == 1) {
             try {
-                mqttClient.publish("cmnd/" + deviceCode + "/POWER", JSON.toJSONString(operate).getBytes(), 1, false);
+                mqttClient.publish("cmnd/" + deviceCode + "/POWER", operate.getBytes(), 1, false);
             } catch (MqttException e) {
                 log.error("发送消息失败", e);
             }
@@ -164,14 +164,14 @@ public class DelayExecute extends NodeComponent {
         } else if (way.equals("-1")) {
             try {
                 for (int i = 1; i <= lightCount; i++) {
-                    mqttClient.publish("cmnd/" + deviceCode + "/POWER" + i, JSON.toJSONString(operate).getBytes(), 1, false);
+                    mqttClient.publish("cmnd/" + deviceCode + "/POWER" + i, operate.getBytes(), 1, false);
                 }
             } catch (MqttException e) {
                 log.error("发送消息失败", e);
             }
         } else {
             try {
-                mqttClient.publish("cmnd/" + deviceCode + "/POWER" + way, JSON.toJSONString(operate).getBytes(), 1, false);
+                mqttClient.publish("cmnd/" + deviceCode + "/POWER" + way, operate.getBytes(), 1, false);
                 String topic = "cmnd/" + deviceCode + "/POWER" + way;
                 String payload = JSON.toJSONString(operate);
                 log.info("发送MQTT消息 - 主题: {}, 内容: {}", topic, payload);

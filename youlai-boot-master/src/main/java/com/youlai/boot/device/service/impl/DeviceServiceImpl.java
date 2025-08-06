@@ -452,15 +452,13 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     }
 
     @Override
-    public List<Option<Long>> listMetricsOption(String ids) {
-        List<Device> devices = this.listByIds(Arrays.stream(ids.split(","))
-                .map(Long::parseLong)
-                .toList());
-        if (devices == null) {
+    public List<Option<Long>> listMetricsOption(String code) {
+        Device device = this.getByCode(code);
+        if (device == null) {
             return null;
         }
         List<Option<Long>> options = new ArrayList<>();
-        for (Device device : devices) {
+//        for (Device device : devices) {
             if (device.getDeviceInfo() != null) {
                 Option<Long> option = new Option<>();
                 option.setValue(device.getId());
@@ -475,9 +473,28 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
                 //将metricList所有字段名称以逗号分隔开拼成一个字符串
                 option.setLabel(String.join(",", metricList));
                 options.add(option);
+
             }
-        }
         return options;
+//        }
+
+    }
+
+    @Override
+    public List<Option<String>> listDeviceCodeOptions() {
+        List<Device> list = this.list(new LambdaQueryWrapper<Device>().eq(Device::getStatus, 1));
+        if (list == null) {
+            return null;
+        }
+
+        List<Option<String>> list1 = new ArrayList<Option<String>>(list.size());
+        for (Device device : list) {
+            Option<String> option = new Option<>();
+            option.setValue(device.getDeviceCode());
+            option.setLabel(device.getDeviceName());
+            list1.add(option);
+        }
+        return list1;
     }
 
     private List<Device> listByIdAndRoomId(List<Long> idList, Long roomId) {

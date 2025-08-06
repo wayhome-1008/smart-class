@@ -35,7 +35,7 @@ import static com.youlai.boot.device.controller.DeviceOperateController.makeCont
  *@CreateTime: 2025-07-31  12:10
  *@Description: TODO
  */
-@LiteflowComponent(id = "deviceExecute")
+@LiteflowComponent(id = "deviceExecute", name = "设备执行组件")
 @Slf4j
 @RequiredArgsConstructor
 public class DeviceExecuteComponent extends NodeComponent {
@@ -118,7 +118,7 @@ public class DeviceExecuteComponent extends NodeComponent {
     }
 
     private void zigBeeDevice(String deviceCode, Long deviceGatewayId, @Pattern(regexp = "ON|OFF", message = "错误操作") String operate, String way, Integer count, MqttClient mqttClient) throws MqttException {
-       log.info("zigBeeDevice直接出发");
+        log.info("zigBeeDevice直接出发");
         Control control = makeControl(deviceCode);
         Switch plug = makeSwitch(operate, Integer.parseInt(way) - 1);
         List<Switch> switches = new ArrayList<>();
@@ -148,27 +148,30 @@ public class DeviceExecuteComponent extends NodeComponent {
         log.info("正在发送~~~~~~~~~~");
         //判断几路
         if (lightCount == 1) {
-//            try {
-//                mqttClient.publish("cmnd/" + deviceCode + "/POWER", JSON.toJSONString(operate).getBytes(), 1, false);
-//            } catch (MqttException e) {
-//                log.error("发送消息失败", e);
-//            }
+            try {
+                mqttClient.publish("cmnd/" + deviceCode + "/POWER", operate.getBytes(), 1, false);
+            } catch (MqttException e) {
+                log.error("发送消息失败", e);
+            }
 
         } else if (way.equals("-1")) {
-//            try {
-//                for (int i = 1; i <= lightCount; i++) {
-//                    mqttClient.publish("cmnd/" + deviceCode + "/POWER" + i, JSON.toJSONString(operate).getBytes(), 1, false);
-//                }
-//            } catch (MqttException e) {
-//                log.error("发送消息失败", e);
-//            }
+            try {
+                for (int i = 1; i <= lightCount; i++) {
+                    mqttClient.publish("cmnd/" + deviceCode + "/POWER" + i, operate.getBytes(), 1, false);
+                }
+            } catch (MqttException e) {
+                log.error("发送消息失败", e);
+            }
         } else {
             try {
-                mqttClient.publish("cmnd/" + deviceCode + "/POWER" + way, JSON.toJSONString(operate).getBytes(), 2, false);
-//                mqttClient.publish("cmnd/" + deviceCode + "/POWER" + way, 0, false, operate);
+                mqttClient.publish("cmnd/" + deviceCode + "/POWER" + way, operate.getBytes(), 1, false);
+                String topic = "cmnd/" + deviceCode + "/POWER" + way;
+                String payload = JSON.toJSONString(operate);
+                log.info("发送MQTT消息 - 主题: {}, 内容: {}", topic, payload);
             } catch (MqttException e) {
                 log.error("发送消息失败", e);
             }
         }
+        this.setIsEnd(true);
     }
 }

@@ -3,7 +3,9 @@ package com.youlai.boot.room.model.entity;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import lombok.Getter;
 import lombok.Setter;
+
 import java.time.LocalDateTime;
+
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.youlai.boot.common.base.BaseEntity;
 
@@ -31,6 +33,10 @@ public class Room extends BaseEntity {
      */
     private Long buildingId;
     /**
+     * 所属部门
+     */
+    private Long departmentId;
+    /**
      * 房间号
      */
     private String classroomCode;
@@ -42,6 +48,7 @@ public class Room extends BaseEntity {
      * 创建人ID
      */
     private Long createBy;
+
     /**
      * 更新人ID
      */

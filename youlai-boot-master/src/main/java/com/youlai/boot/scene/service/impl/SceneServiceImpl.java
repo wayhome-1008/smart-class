@@ -217,7 +217,7 @@ public class SceneServiceImpl extends ServiceImpl<SceneMapper, Scene> implements
             LambdaQueryWrapper<Scene> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(Scene::getEnable, 1); // 假设1表示启用
             List<Scene> scenes = this.list(queryWrapper);
-            log.info("找到 {} 个启用的场景", scenes.size());
+//            log.info("找到 {} 个启用的场景", scenes.size());
             // 为每个场景注册流程
             for (Scene scene : scenes) {
                 try {
@@ -234,7 +234,7 @@ public class SceneServiceImpl extends ServiceImpl<SceneMapper, Scene> implements
                     scene.setActions(actions);
                     // 注册到LiteFlow
                     flowBuilder.registerFlow(scene);
-                    log.info("场景 {}[ID:{}] 已注册到LiteFlow", scene.getSceneName(), scene.getId());
+//                    log.info("场景 {}[ID:{}] 已注册到LiteFlow", scene.getSceneName(), scene.getId());
 
                 } catch (Exception e) {
                     log.error("注册场景 {}[ID:{}] 到LiteFlow失败: {}", scene.getSceneName(), scene.getId(), e.getMessage(), e);
@@ -418,7 +418,6 @@ public class SceneServiceImpl extends ServiceImpl<SceneMapper, Scene> implements
                     actionMapper.insert(action);
                 }
             }
-
             // 同步到Redis
             syncSceneToRedis(entity);
         }
@@ -442,7 +441,6 @@ public class SceneServiceImpl extends ServiceImpl<SceneMapper, Scene> implements
             if (scene != null) {
                 // 删除索引
                 removeDeviceSceneIndex(scene);
-
                 // 从Redis中删除场景缓存
                 String sceneKey = "scene:" + sceneId;
                 redisTemplate.delete(sceneKey);

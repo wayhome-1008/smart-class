@@ -270,6 +270,7 @@ wx:
 # LiteFlow配置
 liteflow:
   enable: true
+  print-execution-log: true
 #  scan:
 #    package: com.youlai.boot.scene.liteFlow
 #  rule-source-ext-data-map:

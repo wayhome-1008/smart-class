@@ -15,7 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *@Description: TODO
  */
 @Slf4j
-@LiteflowComponent(id = "silenceCheck")
+@LiteflowComponent(id = "silenceCheck", name = "静默检查组件")
 public class SilenceCheckComponent extends NodeComponent {
     // 存储场景最后执行时间（内存缓存）
     private static final ConcurrentHashMap<Long, Long> lastExecuteTime = new ConcurrentHashMap<>();
@@ -27,7 +27,7 @@ public class SilenceCheckComponent extends NodeComponent {
 
         // 如果无需静默，直接通过
         if (silenceTime == null || silenceTime <= 0) {
-            log.debug("场景无需静默，直接通过");
+            log.info("场景无需静默，直接通过");
             return;
         }
 
@@ -40,7 +40,7 @@ public class SilenceCheckComponent extends NodeComponent {
             lastExecuteTime.put(scene.getId(), currentTime); // 更新最后执行时间
         } else {
             // 如果在静默期内，设置流程结束
-            log.debug("场景在静默期内，无法执行");
+            log.info("场景在静默期内，无法执行");
             this.setIsEnd(true);
         }
     }

@@ -83,7 +83,7 @@ public class ResultHandler implements MsgHandler {
         //场景
         List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(device.getDeviceCode());
         for (Scene scene : scenesByDeviceId) {
-            sceneExecuteService.executeScene(scene, device, mqttClient);
+            sceneExecuteService.executeScene(scene, device, mqttClient,metrics);
         }
     }
 
@@ -136,7 +136,7 @@ public class ResultHandler implements MsgHandler {
             //场景
             List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(device.getDeviceCode());
             for (Scene scene : scenesByDeviceId) {
-                sceneExecuteService.executeScene(scene, device,mqttClient);
+                sceneExecuteService.executeScene(scene, device,mqttClient,metrics);
             }
         }
     }

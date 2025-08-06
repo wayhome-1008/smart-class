@@ -1,5 +1,6 @@
 package com.youlai.boot.scene.liteFlow;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.yomahub.liteflow.core.FlowExecutor;
 import com.yomahub.liteflow.flow.LiteflowResponse;
 import com.youlai.boot.device.model.entity.Device;
@@ -21,7 +22,7 @@ public class SceneExecuteService {
     /**
      * 执行单个场景的核心方法（内部封装）
      */
-    public boolean executeScene(Scene scene, Device device, MqttClient mqttClient) {
+    public boolean executeScene(Scene scene, Device device, MqttClient mqttClient, ObjectNode allSwitchStates) {
         String flowId = "scene_" + scene.getId();
         try {
             // 1. 准备上下文参数
@@ -30,11 +31,11 @@ public class SceneExecuteService {
                     flowId,  // 流程ID（与注册时一致）
                     null,    // 初始参数（无则传null）
                     scene,     // 上下文对象
-                    device, mqttClient
+                    device, mqttClient, allSwitchStates
             );
             // 3. 处理执行结果
             if (response.isSuccess()) {
-                log.info("场景[{}:{}]正常执行", scene.getId(), scene.getSceneName());
+//                log.info("场景[{}:{}]正常执行", scene.getId(), scene.getSceneName());
                 return true;
             } else {
                 log.error("场景[{}:{}]执行失败：{}",

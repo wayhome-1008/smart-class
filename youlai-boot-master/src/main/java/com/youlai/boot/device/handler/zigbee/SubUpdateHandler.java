@@ -117,7 +117,7 @@ public class SubUpdateHandler implements MsgHandler {
         //场景
         List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(device.getDeviceCode());
         for (Scene scene : scenesByDeviceId) {
-            sceneExecuteService.executeScene(scene, device, mqttClient);
+            sceneExecuteService.executeScene(scene, device, mqttClient, null);
         }
     }
 
@@ -163,7 +163,7 @@ public class SubUpdateHandler implements MsgHandler {
             //场景
             List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(device.getDeviceCode());
             for (Scene scene : scenesByDeviceId) {
-                sceneExecuteService.executeScene(scene, device, mqttClient);
+                sceneExecuteService.executeScene(scene, device, mqttClient, allSwitchStates);
             }
         }
 
@@ -198,6 +198,7 @@ public class SubUpdateHandler implements MsgHandler {
                     allSwitchStates.put("switch" + outletNum, switchState);
                 }
             }
+            //allSwitchStates:数据{"outlet1":1,"switch1":"ON"}
             if (device != null) {
                 JsonNode mergeJson = mergeJson(Optional.of(device).map(Device::getDeviceInfo).orElse(null), allSwitchStates);
                 device.setDeviceInfo(mergeJson);
@@ -219,7 +220,7 @@ public class SubUpdateHandler implements MsgHandler {
                 //场景
                 List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(device.getDeviceCode());
                 for (Scene scene : scenesByDeviceId) {
-                    sceneExecuteService.executeScene(scene, device, mqttClient);
+                    sceneExecuteService.executeScene(scene, device, mqttClient, allSwitchStates);
                 }
                 RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
             }
@@ -254,7 +255,7 @@ public class SubUpdateHandler implements MsgHandler {
             //场景
             List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(device.getDeviceCode());
             for (Scene scene : scenesByDeviceId) {
-                sceneExecuteService.executeScene(scene, device, mqttClient);
+                sceneExecuteService.executeScene(scene, device, mqttClient, allSwitchStates);
             }
         }
     }
@@ -366,7 +367,7 @@ public class SubUpdateHandler implements MsgHandler {
         //场景
         List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(deviceCache.getDeviceCode());
         for (Scene scene : scenesByDeviceId) {
-            sceneExecuteService.executeScene(scene, deviceCache, mqttClient);
+            sceneExecuteService.executeScene(scene, deviceCache, mqttClient, metrics);
         }
         RspMqtt(topic, mqttClient, deviceCache.getDeviceCode(), sequence);
     }
@@ -420,7 +421,7 @@ public class SubUpdateHandler implements MsgHandler {
         //场景
         List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(deviceCache.getDeviceCode());
         for (Scene scene : scenesByDeviceId) {
-            sceneExecuteService.executeScene(scene, deviceCache, mqttClient);
+            sceneExecuteService.executeScene(scene, deviceCache, mqttClient, metrics);
         }
     }
 
@@ -502,11 +503,10 @@ public class SubUpdateHandler implements MsgHandler {
                     deviceCache
             );
             RspMqtt(topic, mqttClient, deviceCache.getDeviceCode(), sequence);
-            log.info("传感器数据:{}", point);
             //场景
             List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(deviceCache.getDeviceCode());
             for (Scene scene : scenesByDeviceId) {
-                sceneExecuteService.executeScene(scene, deviceCache, mqttClient);
+                sceneExecuteService.executeScene(scene, deviceCache, mqttClient, metrics);
             }
         }
     }

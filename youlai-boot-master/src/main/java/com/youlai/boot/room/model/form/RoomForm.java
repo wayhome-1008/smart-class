@@ -38,6 +38,10 @@ public class RoomForm implements Serializable {
     @NotNull(message = "所属教学楼不能为空")
     private Long buildingId;
 
+    @Schema(description = "所属部门")
+    @NotNull(message = "所属部门不能为空")
+    private Long departmentId;
+
     @Schema(description = "房间号")
     @Size(max=255, message="房间号长度不能超过255个字符")
     private String classroomCode;
