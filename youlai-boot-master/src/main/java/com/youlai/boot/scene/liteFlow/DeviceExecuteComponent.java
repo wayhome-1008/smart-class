@@ -5,13 +5,11 @@ import com.yomahub.liteflow.annotation.LiteflowComponent;
 import com.yomahub.liteflow.core.NodeComponent;
 import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.common.result.Result;
-//import com.youlai.boot.config.mqtt.MqttProducer;
 import com.youlai.boot.device.Enum.CommunicationModeEnum;
 import com.youlai.boot.device.model.dto.Control;
 import com.youlai.boot.device.model.dto.Switch;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.DeviceOperate;
-import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.scene.model.entity.Action;
 import com.youlai.boot.scene.model.entity.Scene;
 import jakarta.validation.constraints.Pattern;
@@ -21,7 +19,6 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.jetbrains.annotations.NotNull;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 
 import java.util.ArrayList;
@@ -39,13 +36,7 @@ import static com.youlai.boot.device.controller.DeviceOperateController.makeCont
 @Slf4j
 @RequiredArgsConstructor
 public class DeviceExecuteComponent extends NodeComponent {
-    //    @Autowired
     private final RedisTemplate<String, Object> redisTemplate;
-
-    //    @Autowired
-//    private MqttClient mqttClient;
-//    private final MqttProducer  mqttProducer;
-    private static final DeviceService deviceService = com.youlai.boot.common.util.SpringUtils.getBean(DeviceService.class);
 
     @Override
     public void process() throws Exception {

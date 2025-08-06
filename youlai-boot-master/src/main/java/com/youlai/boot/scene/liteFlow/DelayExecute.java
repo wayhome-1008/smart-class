@@ -10,7 +10,6 @@ import com.youlai.boot.device.model.dto.Control;
 import com.youlai.boot.device.model.dto.Switch;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.DeviceOperate;
-import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.scene.model.entity.Action;
 import com.youlai.boot.scene.model.entity.Scene;
 import jakarta.validation.constraints.Pattern;
@@ -36,9 +35,6 @@ import static com.youlai.boot.device.controller.DeviceOperateController.makeCont
 @LiteflowComponent(id = "delayExecute", name = "延迟执行组件")
 @Slf4j
 public class DelayExecute extends NodeComponent {
-    //    @Autowired
-//    private MqttClient mqttClient;
-    private static final DeviceService deviceService = com.youlai.boot.common.util.SpringUtils.getBean(DeviceService.class);
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 
@@ -152,7 +148,7 @@ public class DelayExecute extends NodeComponent {
 
     private void wifiDevice(String deviceCode, String operate, String way, Integer lightCount, MqttClient mqttClient) {
         //目前能控制的就只有灯的开关
-        log.info("正在发送{}",operate);
+        log.info("正在发送{}", operate);
         //判断几路
         if (lightCount == 1) {
             try {

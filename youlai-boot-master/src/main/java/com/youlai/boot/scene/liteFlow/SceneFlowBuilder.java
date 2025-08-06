@@ -35,9 +35,8 @@ public class SceneFlowBuilder {
         // 构建动作执行表达式
         String actionExpr = buildActionExpr(scene);
 //        // 完整流程：触发条件 -> 静默检查 -> 延时执行 -> 动作执行
-        String elExpr = "THEN(" + triggerExpr + ", silenceCheck, delayExecute, " + actionExpr + ");";
-//        log.info("流程表达式: {}", elExpr);
-        return elExpr;
+        //        log.info("流程表达式: {}", elExpr);
+        return "THEN(" + triggerExpr + ", silenceCheck, delayExecute, " + actionExpr + ");";
     }
 
     /**

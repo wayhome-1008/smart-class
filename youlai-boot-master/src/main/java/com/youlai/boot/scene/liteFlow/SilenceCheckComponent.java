@@ -2,10 +2,8 @@ package com.youlai.boot.scene.liteFlow;
 
 import com.yomahub.liteflow.annotation.LiteflowComponent;
 import com.yomahub.liteflow.core.NodeComponent;
-import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.scene.model.entity.Scene;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 
 import java.util.concurrent.ConcurrentHashMap;
 

@@ -24,16 +24,14 @@ public class ThresholdComparator {
         try {
             double actualNum = Double.parseDouble(actualStr);
             double thresholdNum = Double.parseDouble(thresholdStr);
-            boolean result = compareNumber(operator, actualNum, thresholdNum);
-//            log.info("数值比较结果 - 实际值: {}, 阈值: {}, 操作符: {}, 结果: {}",
+            //            log.info("数值比较结果 - 实际值: {}, 阈值: {}, 操作符: {}, 结果: {}",
 //                    actualNum, thresholdNum, operator, result);
-            return result;
+            return compareNumber(operator, actualNum, thresholdNum);
         } catch (NumberFormatException e) {
             // 字符串类型比较
-            boolean result = compareString(operator, actualStr, thresholdStr);
-//            log.info("字符串比较结果 - 实际值: {}, 阈值: {}, 操作符: {}, 结果: {}",
+            //            log.info("字符串比较结果 - 实际值: {}, 阈值: {}, 操作符: {}, 结果: {}",
 //                    actualStr, thresholdStr, operator, result);
-            return result;
+            return compareString(operator, actualStr, thresholdStr);
         }
     }
 

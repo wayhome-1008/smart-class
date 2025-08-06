@@ -487,7 +487,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
             return null;
         }
 
-        List<Option<String>> list1 = new ArrayList<Option<String>>(list.size());
+        List<Option<String>> list1 = new ArrayList<>(list.size());
         for (Device device : list) {
             Option<String> option = new Option<>();
             option.setValue(device.getDeviceCode());

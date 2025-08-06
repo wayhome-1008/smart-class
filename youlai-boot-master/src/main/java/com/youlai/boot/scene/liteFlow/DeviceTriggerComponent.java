@@ -6,7 +6,6 @@ import com.yomahub.liteflow.annotation.LiteflowComponent;
 import com.yomahub.liteflow.core.NodeComponent;
 import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.device.model.entity.Device;
-import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.scene.model.entity.Scene;
 import com.youlai.boot.scene.model.entity.Trigger;
 import com.youlai.boot.scene.model.form.ThresholdCondition;
@@ -27,8 +26,6 @@ import java.util.List;
 @LiteflowComponent(id = "deviceTrigger", name = "设备触发器组件")
 @Slf4j
 public class DeviceTriggerComponent extends NodeComponent {
-    @Autowired
-    private DeviceService deviceService;
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
 

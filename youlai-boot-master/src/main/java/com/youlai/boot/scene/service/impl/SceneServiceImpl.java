@@ -59,10 +59,7 @@ public class SceneServiceImpl extends ServiceImpl<SceneMapper, Scene> implements
         };
     }
 
-    /**
-     * 应用上下文刷新完成后初始化场景
-     */
-//    @EventListener
+    //    @EventListener
 //    public void handleContextRefresh(ContextRefreshedEvent event) {
 //        // 确保是根应用上下文
 //        if (event.getApplicationContext().getParent() == null) {

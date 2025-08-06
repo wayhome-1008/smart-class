@@ -48,11 +48,11 @@ public class SceneExecuteService {
         }
     }
 
-    /**
-     * 判断场景是否包含定时触发器
-     */
-    private boolean hasTimerTrigger(Scene scene) {
-        return scene.getTriggers().stream()
-                .anyMatch(trigger -> "TIMER_TRIGGER".equals(trigger.getType()));
-    }
+//    /**
+//     * 判断场景是否包含定时触发器
+//     */
+//    private boolean hasTimerTrigger(Scene scene) {
+//        return scene.getTriggers().stream()
+//                .anyMatch(trigger -> "TIMER_TRIGGER".equals(trigger.getType()));
+//    }
 }

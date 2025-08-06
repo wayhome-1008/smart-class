@@ -1,13 +1,10 @@
 package com.youlai.boot.room.model.entity;
 
 import com.baomidou.mybatisplus.annotation.TableLogic;
-import lombok.Getter;
-import lombok.Setter;
-
-import java.time.LocalDateTime;
-
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.youlai.boot.common.base.BaseEntity;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * 房间管理实体对象
