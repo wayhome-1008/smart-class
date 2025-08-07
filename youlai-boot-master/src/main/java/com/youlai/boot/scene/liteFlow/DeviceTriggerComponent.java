@@ -90,7 +90,7 @@ public class DeviceTriggerComponent extends NodeComponent {
     /**
      * 检查是否有任意触发器满足条件 (ANY逻辑)
      */
-    private boolean checkAnyTrigger(List<Trigger> triggers, Device triggerDevice, Scene scene, ObjectNode metrics) throws Exception {
+    private boolean checkAnyTrigger(List<Trigger> triggers, Device triggerDevice, Scene scene, ObjectNode metrics) {
         for (Trigger trigger : triggers) {
             if (isTriggerSatisfied(trigger, triggerDevice, metrics)) {
                 log.info("场景 {} 被设备 {} 触发 (ANY条件满足)", scene.getId(), triggerDevice.getDeviceCode());
@@ -104,7 +104,7 @@ public class DeviceTriggerComponent extends NodeComponent {
      * 判断单个触发器是否满足条件
      * 修改为AND逻辑：触发器内所有条件都必须满足
      */
-    private boolean isTriggerSatisfied(Trigger trigger, Device triggerDevice, ObjectNode metrics) throws Exception {
+    private boolean isTriggerSatisfied(Trigger trigger, Device triggerDevice, ObjectNode metrics) {
         List<String> deviceCodes = Arrays.stream(trigger.getDeviceCodes().split(","))
                 .filter(id -> !id.trim().isEmpty())
                 .toList();
