@@ -21,7 +21,7 @@ public class SceneFlowBuilder {
     public void registerFlow(Scene scene) {
         String flowId = "scene_" + scene.getId();
         String elExpr = buildElExpression(scene);
-        log.info("注册流程: {}", flowId);
+        log.info("EL表达式: {}", elExpr);
         LiteFlowChainELBuilder.createChain().setChainId(flowId).setEL(
                 elExpr).build();
     }
@@ -35,7 +35,6 @@ public class SceneFlowBuilder {
         // 构建动作执行表达式
         String actionExpr = buildActionExpr(scene);
 //        // 完整流程：触发条件 -> 静默检查 -> 延时执行 -> 动作执行
-        //        log.info("流程表达式: {}", elExpr);
         return "THEN(" + triggerExpr + ", silenceCheck, delayExecute, " + actionExpr + ");";
     }
 

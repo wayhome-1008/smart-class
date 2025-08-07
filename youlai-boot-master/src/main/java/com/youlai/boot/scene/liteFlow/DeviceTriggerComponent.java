@@ -6,10 +6,13 @@ import com.yomahub.liteflow.annotation.LiteflowComponent;
 import com.yomahub.liteflow.core.NodeComponent;
 import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.device.model.entity.Device;
+import com.youlai.boot.deviceJob.model.entity.DeviceJob;
+import com.youlai.boot.deviceJob.util.ScheduleUtils;
 import com.youlai.boot.scene.model.entity.Scene;
 import com.youlai.boot.scene.model.entity.Trigger;
 import com.youlai.boot.scene.model.form.ThresholdCondition;
 import lombok.extern.slf4j.Slf4j;
+import org.quartz.Scheduler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 
@@ -28,6 +31,8 @@ import java.util.List;
 public class DeviceTriggerComponent extends NodeComponent {
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
+    @Autowired
+    private Scheduler scheduler;
 
     @Override
     public boolean isAccess() {
@@ -77,7 +82,7 @@ public class DeviceTriggerComponent extends NodeComponent {
     /**
      * 检查是否所有触发器都满足条件 (ALL逻辑)
      */
-    private boolean checkAllTriggers(List<Trigger> triggers, Device triggerDevice, Scene scene, ObjectNode metrics){
+    private boolean checkAllTriggers(List<Trigger> triggers, Device triggerDevice, Scene scene, ObjectNode metrics) {
         for (Trigger trigger : triggers) {
             if (!isTriggerSatisfied(trigger, triggerDevice, metrics)) {
                 return false; // 任何一个触发器不满足就返回false
@@ -258,21 +263,21 @@ public class DeviceTriggerComponent extends NodeComponent {
                 //校验当前属性值和上次这个属性值是否相同
                 String fieldName = fieldNames.next();
                 //当前设备属性和触发的属性相同
-                    if (fieldName.equals(condition.getProperty())) {
-                        //设备属性值
-                        String nowMetric = metrics.get(fieldName).asText();
-                        //上次设备属性值
-                        String propertyValue = deviceInfo.get(condition.getProperty()).asText();
-                       if (nowMetric.equals(propertyValue)){
-                           //说明这次的属性值和上次的属性值相同 不进行后续
-                           this.setIsEnd(true);
-                       }
-                        boolean result = ThresholdComparator.compare(condition, nowMetric);
-                        log.info("设备 {} 属性 {} 值为 {}，条件 {} {}，结果: {}",
-                                device.getDeviceName(), condition.getProperty(), propertyValue,
-                                condition.getOperator(), condition.getValue(), result);
-                        return result;
+                if (fieldName.equals(condition.getProperty())) {
+                    //设备属性值
+                    String nowMetric = metrics.get(fieldName).asText();
+                    //上次设备属性值
+                    String propertyValue = deviceInfo.get(condition.getProperty()).asText();
+                    if (nowMetric.equals(propertyValue)) {
+                        //说明这次的属性值和上次的属性值相同 不进行后续
+                        this.setIsEnd(true);
                     }
+                    boolean result = ThresholdComparator.compare(condition, nowMetric);
+                    log.info("设备 {} 属性 {} 值为 {}，条件 {} {}，结果: {}",
+                            device.getDeviceName(), condition.getProperty(), propertyValue,
+                            condition.getOperator(), condition.getValue(), result);
+                    return result;
+                }
 
             }
 

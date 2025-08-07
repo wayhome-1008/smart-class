@@ -355,7 +355,7 @@ public class SceneServiceImpl extends ServiceImpl<SceneMapper, Scene> implements
     @Override
     public boolean saveScene(SceneForm formData) {
         if (formData.getTriggers().isEmpty() || formData.getActions().isEmpty()) {
-            log.error("场景中至少包含一个触发器或者执行动作，否则规则启动报错！");
+            log.error("场景中至少包含一个触发器或者执行动作");
             return false;
         }
         Scene scene = sceneConverter.toEntity(formData);

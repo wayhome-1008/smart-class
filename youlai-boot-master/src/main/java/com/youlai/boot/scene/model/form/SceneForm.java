@@ -22,6 +22,8 @@ import jakarta.validation.constraints.*;
 @Setter
 @Schema(description = "场景交互表单对象")
 public class SceneForm implements Serializable {
+    @Schema(description = "场景ID")
+    private Long id;
     @Schema(description = "场景名称")
     @Size(max = 255, message = "场景名称长度不能超过255个字符")
     private String sceneName;
@@ -30,7 +32,7 @@ public class SceneForm implements Serializable {
     private String conditionType;
 
     @Schema(description = "静默周期(分钟)")
-    private Integer silentTime;
+    private Integer silenceTime;
 
     @Schema(description = "执行方式 SERIAL:串行 PARALLEL：并行")
     private String executeMode;
