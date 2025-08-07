@@ -295,10 +295,10 @@ public class DeviceController {
 
     @Operation(summary = "根据设备code查询出设备软属性")
     @GetMapping("/metric")
-    public Result<List<Option<Long>>> listMetrics(
-            @Parameter(description = "设备code")  @RequestParam String code
+    public Result<List<String>> listMetricByCode(
+            @Parameter(description = "设备code") @RequestParam String code
     ) {
-        return Result.success(deviceService.listMetricsOption(code));
+        return Result.success(deviceService.listMetricByCode(code));
     }
 
     @Operation(summary = "新增设备管理")

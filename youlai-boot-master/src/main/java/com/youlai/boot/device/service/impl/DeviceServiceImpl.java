@@ -442,42 +442,32 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
             metricList.add(fieldNames.next());
         }
         return metricList;
+    }
 
+    @Override
+    public List<String> listMetricByCode(String code) {
+        Device device = this.getByCode(code);
+        if (device == null) {
+            return null;
+        }
+        if (device.getDeviceInfo() == null) {
+            return null;
+        }
+        JsonNode deviceInfo = device.getDeviceInfo();
+        //把软属性key列成列表
+        List<String> metricList = new ArrayList<>();
+        // 遍历设备信息中的所有字段名
+        Iterator<String> fieldNames = deviceInfo.fieldNames();
+        while (fieldNames.hasNext()) {
+            metricList.add(fieldNames.next());
+        }
+        return metricList;
     }
 
     @Override
     public List<Option<Long>> listDeviceOptions() {
         List<Device> list = this.list(new LambdaQueryWrapper<Device>().eq(Device::getStatus, 1));
         return deviceConverter.toOptions(list);
-    }
-
-    @Override
-    public List<Option<Long>> listMetricsOption(String code) {
-        Device device = this.getByCode(code);
-        if (device == null) {
-            return null;
-        }
-        List<Option<Long>> options = new ArrayList<>();
-//        for (Device device : devices) {
-            if (device.getDeviceInfo() != null) {
-                Option<Long> option = new Option<>();
-                option.setValue(device.getId());
-                JsonNode deviceInfo = device.getDeviceInfo();
-                //把软属性key列成列表
-                List<String> metricList = new ArrayList<>();
-                // 遍历设备信息中的所有字段名
-                Iterator<String> fieldNames = deviceInfo.fieldNames();
-                while (fieldNames.hasNext()) {
-                    metricList.add(fieldNames.next());
-                }
-                //将metricList所有字段名称以逗号分隔开拼成一个字符串
-                option.setLabel(String.join(",", metricList));
-                options.add(option);
-
-            }
-        return options;
-//        }
-
     }
 
     @Override
