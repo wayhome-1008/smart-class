@@ -337,7 +337,13 @@ public class SceneServiceImpl extends ServiceImpl<SceneMapper, Scene> implements
     @Override
     public SceneForm getSceneFormData(Long id) {
         Scene entity = this.getById(id);
-        return sceneConverter.toForm(entity);
+        SceneForm form = sceneConverter.toForm(entity);
+        //查询trigger+action
+        List<Trigger> triggers = triggerMapper.selectList(new LambdaQueryWrapper<Trigger>().eq(Trigger::getSceneId, id));
+        form.setTriggers(triggers);
+        List<Action> actions = actionMapper.selectList(new LambdaQueryWrapper<Action>().eq(Action::getSceneId, id));
+        form.setActions(actions);
+        return form;
     }
 
     /**
