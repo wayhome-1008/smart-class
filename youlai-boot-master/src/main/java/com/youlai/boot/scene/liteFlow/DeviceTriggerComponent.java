@@ -77,7 +77,7 @@ public class DeviceTriggerComponent extends NodeComponent {
     /**
      * 检查是否所有触发器都满足条件 (ALL逻辑)
      */
-    private boolean checkAllTriggers(List<Trigger> triggers, Device triggerDevice, Scene scene, ObjectNode metrics) throws Exception {
+    private boolean checkAllTriggers(List<Trigger> triggers, Device triggerDevice, Scene scene, ObjectNode metrics){
         for (Trigger trigger : triggers) {
             if (!isTriggerSatisfied(trigger, triggerDevice, metrics)) {
                 return false; // 任何一个触发器不满足就返回false
