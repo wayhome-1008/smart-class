@@ -200,10 +200,16 @@ public class SubUpdateHandler implements MsgHandler {
             }
             //allSwitchStates:数据{"outlet1":1,"switch1":"ON"}
             if (device != null) {
+                //场景
+                List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(device.getDeviceCode());
+                for (Scene scene : scenesByDeviceId) {
+                    sceneExecuteService.executeScene(scene, device, mqttClient, allSwitchStates);
+                }
                 JsonNode mergeJson = mergeJson(Optional.of(device).map(Device::getDeviceInfo).orElse(null), allSwitchStates);
                 device.setDeviceInfo(mergeJson);
                 device.setStatus(1);
                 //todo 将开关状态存influxdb
+                RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
                 InfluxSwitch influxSwitch = new InfluxSwitch();
                 influxSwitch.setDeviceCode(device.getDeviceCode());
                 influxSwitch.setRoomId(String.valueOf(device.getDeviceRoom()));
@@ -216,13 +222,6 @@ public class SubUpdateHandler implements MsgHandler {
                 );
                 log.info("开关状态{}", influxSwitch);
                 redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
-
-                //场景
-                List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(device.getDeviceCode());
-                for (Scene scene : scenesByDeviceId) {
-                    sceneExecuteService.executeScene(scene, device, mqttClient, allSwitchStates);
-                }
-                RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
             }
         }
     }
@@ -289,6 +288,11 @@ public class SubUpdateHandler implements MsgHandler {
         if (params.has("electricalEnergy")) {
             metrics.put("total", params.get("electricalEnergy").asDouble());
         }
+        //场景
+        List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(deviceCache.getDeviceCode());
+        for (Scene scene : scenesByDeviceId) {
+            sceneExecuteService.executeScene(scene, deviceCache, mqttClient, metrics);
+        }
         //接受得数据与旧数据合并
         JsonNode mergeJson = mergeJson(Optional.of(deviceCache).map(Device::getDeviceInfo).orElse(null), metrics);
         deviceCache.setDeviceInfo(mergeJson);
@@ -354,6 +358,7 @@ public class SubUpdateHandler implements MsgHandler {
 //                influxPlug.setRMS_CurrentC(mergeParams.get("RMS_CurrentC").asInt());
 //            }
             log.info("插座数据:{}", influxPlug);
+            RspMqtt(topic, mqttClient, deviceCache.getDeviceCode(), sequence);
             if (deviceCache.getIsMaster() == 1) {
                 influxDBClient.getWriteApiBlocking().writeMeasurement(
                         influxProperties.getBucket(),
@@ -364,12 +369,6 @@ public class SubUpdateHandler implements MsgHandler {
             }
         }
         redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCache.getDeviceCode(), deviceCache);
-        //场景
-        List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(deviceCache.getDeviceCode());
-        for (Scene scene : scenesByDeviceId) {
-            sceneExecuteService.executeScene(scene, deviceCache, mqttClient, metrics);
-        }
-        RspMqtt(topic, mqttClient, deviceCache.getDeviceCode(), sequence);
     }
 
     private void processHumanRadarSensor(String topic, MqttClient mqttClient, Device deviceCache, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
@@ -490,6 +489,12 @@ public class SubUpdateHandler implements MsgHandler {
             if (mergeJson.has("motion")) {
                 point.setMotion(mergeJson.get("motion").asInt());
             }
+            RspMqtt(topic, mqttClient, deviceCache.getDeviceCode(), sequence);
+            //场景
+            List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(deviceCache.getDeviceCode());
+            for (Scene scene : scenesByDeviceId) {
+                sceneExecuteService.executeScene(scene, deviceCache, mqttClient, metrics);
+            }
             point.setRoomId(deviceCache.getDeviceRoom().toString());
             influxDBClient.getWriteApiBlocking().writeMeasurement(
                     influxProperties.getBucket(),
@@ -502,12 +507,6 @@ public class SubUpdateHandler implements MsgHandler {
                     deviceCache.getDeviceCode(),
                     deviceCache
             );
-            RspMqtt(topic, mqttClient, deviceCache.getDeviceCode(), sequence);
-            //场景
-            List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(deviceCache.getDeviceCode());
-            for (Scene scene : scenesByDeviceId) {
-                sceneExecuteService.executeScene(scene, deviceCache, mqttClient, metrics);
-            }
         }
     }
 

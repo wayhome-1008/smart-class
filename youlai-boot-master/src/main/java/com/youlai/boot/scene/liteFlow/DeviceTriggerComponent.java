@@ -255,15 +255,25 @@ public class DeviceTriggerComponent extends NodeComponent {
             //校验metrics是否和condition的条件相同 才进行下边逻辑
             Iterator<String> fieldNames = metrics.fieldNames();
             while (fieldNames.hasNext()) {
+                //校验当前属性值和上次这个属性值是否相同
                 String fieldName = fieldNames.next();
-                if (fieldName.equals(condition.getProperty())) {
-                    String propertyValue = deviceInfo.get(condition.getProperty()).asText();
-                    boolean result = ThresholdComparator.compare(condition, propertyValue);
-                    log.info("设备 {} 属性 {} 值为 {}，条件 {} {}，结果: {}",
-                            device.getDeviceName(), condition.getProperty(), propertyValue,
-                            condition.getOperator(), condition.getValue(), result);
-                    return result;
-                }
+                //当前设备属性和触发的属性相同
+                    if (fieldName.equals(condition.getProperty())) {
+                        //设备属性值
+                        String nowMetric = metrics.get(fieldName).asText();
+                        //上次设备属性值
+                        String propertyValue = deviceInfo.get(condition.getProperty()).asText();
+                       if (nowMetric.equals(propertyValue)){
+                           //说明这次的属性值和上次的属性值相同 不进行后续
+                           this.setIsEnd(true);
+                       }
+                        boolean result = ThresholdComparator.compare(condition, nowMetric);
+                        log.info("设备 {} 属性 {} 值为 {}，条件 {} {}，结果: {}",
+                                device.getDeviceName(), condition.getProperty(), propertyValue,
+                                condition.getOperator(), condition.getValue(), result);
+                        return result;
+                    }
+
             }
 
 

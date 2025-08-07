@@ -436,6 +436,8 @@ public class SceneServiceImpl extends ServiceImpl<SceneMapper, Scene> implements
         for (Long sceneId : idList) {
             Scene scene = this.getById(sceneId);
             if (scene != null) {
+                triggerMapper.delete(new LambdaQueryWrapper<Trigger>().eq(Trigger::getSceneId, sceneId));
+                actionMapper.delete(new LambdaQueryWrapper<Action>().eq(Action::getSceneId, sceneId));
                 // 删除索引
                 removeDeviceSceneIndex(scene);
                 // 从Redis中删除场景缓存
