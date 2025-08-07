@@ -1,20 +1,15 @@
 package com.youlai.boot.scene.model.form;
 
-import java.io.Serial;
 import java.io.Serializable;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.youlai.boot.scene.model.entity.Action;
-import com.youlai.boot.scene.model.entity.SceneScript;
 import com.youlai.boot.scene.model.entity.Trigger;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.*;
 
 /**
