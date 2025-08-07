@@ -1,11 +1,8 @@
 package com.youlai.boot.scene.converter;
 
-import org.mapstruct.Mapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.youlai.boot.scene.model.entity.Scene;
 import com.youlai.boot.scene.model.form.SceneForm;
-import org.mapstruct.Mapping;
-import org.mapstruct.Mappings;
+import org.mapstruct.Mapper;
 
 /**
  * 场景交互对象转换器
