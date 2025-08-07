@@ -145,6 +145,11 @@ public class SubUpdateHandler implements MsgHandler {
             }
         }
         if (device != null) {
+            //场景
+            List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(device.getDeviceCode());
+            for (Scene scene : scenesByDeviceId) {
+                sceneExecuteService.executeScene(scene, device, mqttClient, allSwitchStates);
+            }
             JsonNode mergeJson = mergeJson(Optional.of(device).map(Device::getDeviceInfo).orElse(null), allSwitchStates);
             device.setDeviceInfo(mergeJson);
             device.setStatus(1);
@@ -160,11 +165,6 @@ public class SubUpdateHandler implements MsgHandler {
                     influxSwitch
             );
             RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
-            //场景
-            List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(device.getDeviceCode());
-            for (Scene scene : scenesByDeviceId) {
-                sceneExecuteService.executeScene(scene, device, mqttClient, allSwitchStates);
-            }
         }
 
     }
@@ -246,17 +246,15 @@ public class SubUpdateHandler implements MsgHandler {
         if (params.has("battery")) {
             allSwitchStates.put("battery", params.get("battery").asText());
         }
-        mergeJson = mergeJson(Optional.ofNullable(device).map(Device::getDeviceInfo).orElse(null), allSwitchStates);
-        if (device != null) {
-            device.setDeviceInfo(mergeJson);
-            redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
-            RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
-            //场景
-            List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(device.getDeviceCode());
-            for (Scene scene : scenesByDeviceId) {
-                sceneExecuteService.executeScene(scene, device, mqttClient, allSwitchStates);
-            }
+        //场景
+        List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(device.getDeviceCode());
+        for (Scene scene : scenesByDeviceId) {
+            sceneExecuteService.executeScene(scene, device, mqttClient, allSwitchStates);
         }
+        mergeJson = mergeJson(Optional.of(device).map(Device::getDeviceInfo).orElse(null), allSwitchStates);
+        device.setDeviceInfo(mergeJson);
+        redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
+        RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
     }
 
     private void processPlug(String topic, MqttClient mqttClient, Device deviceCache, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
@@ -383,6 +381,11 @@ public class SubUpdateHandler implements MsgHandler {
         if (params.has("Occupancy")) {
             metrics.put("motion", params.get("Occupancy").asInt());
         }
+        //场景
+        List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(deviceCache.getDeviceCode());
+        for (Scene scene : scenesByDeviceId) {
+            sceneExecuteService.executeScene(scene, deviceCache, mqttClient, metrics);
+        }
         //接收的数据与旧数据合并
         JsonNode mergeJson = mergeJson(Optional.of(deviceCache).map(Device::getDeviceInfo).orElse(null), metrics);
         deviceCache.setDeviceInfo(mergeJson);
@@ -417,11 +420,6 @@ public class SubUpdateHandler implements MsgHandler {
         log.info("人体传感器数据:{}", point);
         redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCache.getDeviceCode(), deviceCache);
         RspMqtt(topic, mqttClient, deviceCache.getDeviceCode(), sequence);
-        //场景
-        List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(deviceCache.getDeviceCode());
-        for (Scene scene : scenesByDeviceId) {
-            sceneExecuteService.executeScene(scene, deviceCache, mqttClient, metrics);
-        }
     }
 
     /**
@@ -452,6 +450,11 @@ public class SubUpdateHandler implements MsgHandler {
         }
         if (params.has("motion")) {
             metrics.put("motion", params.get("motion").asInt());
+        }
+        //场景
+        List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(deviceCache.getDeviceCode());
+        for (Scene scene : scenesByDeviceId) {
+            sceneExecuteService.executeScene(scene, deviceCache, mqttClient, metrics);
         }
         //接收得数据于旧数据合并
         JsonNode mergeJson = mergeJson(Optional.of(deviceCache).map(Device::getDeviceInfo).orElse(null), metrics);
@@ -490,11 +493,6 @@ public class SubUpdateHandler implements MsgHandler {
                 point.setMotion(mergeJson.get("motion").asInt());
             }
             RspMqtt(topic, mqttClient, deviceCache.getDeviceCode(), sequence);
-            //场景
-            List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(deviceCache.getDeviceCode());
-            for (Scene scene : scenesByDeviceId) {
-                sceneExecuteService.executeScene(scene, deviceCache, mqttClient, metrics);
-            }
             point.setRoomId(deviceCache.getDeviceRoom().toString());
             influxDBClient.getWriteApiBlocking().writeMeasurement(
                     influxProperties.getBucket(),

@@ -58,11 +58,11 @@ public class ResultHandler implements MsgHandler {
             }
             //计量插座
             if (device.getDeviceTypeId() == 4) {
-                plug(jsonNode, device, deviceCode,mqttClient);
+                plug(jsonNode, device, deviceCode, mqttClient);
             }
             //灯
             if (device.getDeviceTypeId() == 8) {
-                light(jsonNode, device, deviceCode,mqttClient);
+                light(jsonNode, device, deviceCode, mqttClient);
             }
 
         } catch (Exception e) {
@@ -76,15 +76,15 @@ public class ResultHandler implements MsgHandler {
         String power = jsonNode.get("POWER").asText();
         metrics.put("switch1", power);
         metrics.put("count", 1);
+        //场景
+        List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(device.getDeviceCode());
+        for (Scene scene : scenesByDeviceId) {
+            sceneExecuteService.executeScene(scene, device, mqttClient, metrics);
+        }
         JsonNode mergedInfo = mergeJson(device.getDeviceInfo(), metrics);
         device.setDeviceInfo(mergedInfo);
         device.setStatus(1);
         redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
-        //场景
-        List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(device.getDeviceCode());
-        for (Scene scene : scenesByDeviceId) {
-            sceneExecuteService.executeScene(scene, device, mqttClient,metrics);
-        }
     }
 
     private void light(JsonNode jsonNode, Device device, String deviceCode, MqttClient mqttClient) {
@@ -121,23 +121,23 @@ public class ResultHandler implements MsgHandler {
                             WritePrecision.MS,
                             influxSwitch
                     );
-                    log.debug("灯光路数 {} 状态: {}", fieldName, status);
+                    log.info("灯光路数 {} 状态: {}", fieldName, status);
                 }
             }
         }
         // 4. 更新设备信息
         if (ObjectUtils.isNotEmpty(device)) {
+            //场景
+            List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(device.getDeviceCode());
+            for (Scene scene : scenesByDeviceId) {
+                sceneExecuteService.executeScene(scene, device, mqttClient, metrics);
+            }
             JsonNode mergedInfo = mergeJson(device.getDeviceInfo(), metrics);
             device.setDeviceInfo(mergedInfo);
             // 双写：Redis缓存 + 数据库
             device.setStatus(1);
             redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
             log.info("设备 {} 灯光状态更新完成", deviceCode);
-            //场景
-            List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(device.getDeviceCode());
-            for (Scene scene : scenesByDeviceId) {
-                sceneExecuteService.executeScene(scene, device,mqttClient,metrics);
-            }
         }
     }
 
