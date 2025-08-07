@@ -42,6 +42,7 @@ public class TriggerForm implements Serializable {
     @Size(max=255, message="Cron表达式长度不能超过255个字符")
     private String cron;
 
+    private Integer isAdvance;
 
     private String threshold;
 

@@ -40,6 +40,8 @@ public class Trigger extends BaseEntity {
      * Cron表达式
      */
     private String cron;
+
+    private Integer isAdvance;
     /**
      * 触发阈值条件（JSON数组，格式：[{"property":"温度","operator":">","value":30},...]）
      */
