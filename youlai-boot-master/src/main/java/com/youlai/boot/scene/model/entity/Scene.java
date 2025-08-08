@@ -25,6 +25,11 @@ public class Scene extends BaseEntity {
      * 场景名称
      */
     private String sceneName;
+
+    /**
+     * 任务id
+     */
+    private Long jobId;
     /**
      * 规则名称
      */

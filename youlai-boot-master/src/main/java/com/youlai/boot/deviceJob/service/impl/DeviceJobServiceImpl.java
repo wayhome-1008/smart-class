@@ -14,6 +14,7 @@ import com.youlai.boot.deviceJob.model.query.DeviceJobQuery;
 import com.youlai.boot.deviceJob.model.vo.DeviceJobVO;
 import com.youlai.boot.deviceJob.service.DeviceJobService;
 import com.youlai.boot.deviceJob.util.ScheduleUtils;
+import com.youlai.boot.scene.model.entity.Scene;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.quartz.JobDataMap;
@@ -25,6 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
 import java.util.List;
+
+import static com.youlai.boot.deviceJob.util.ScheduleUtils.createScheduleJob;
 
 /**
  * 任务管理服务实现类
@@ -44,7 +47,7 @@ public class DeviceJobServiceImpl extends ServiceImpl<DeviceJobMapper, DeviceJob
         // 设备定时任务
         List<DeviceJob> jobList = this.list();
         for (DeviceJob deviceJob : jobList) {
-            ScheduleUtils.createScheduleJob(scheduler, deviceJob);
+            createScheduleJob(scheduler, deviceJob);
         }
     }
 
@@ -85,7 +88,7 @@ public class DeviceJobServiceImpl extends ServiceImpl<DeviceJobMapper, DeviceJob
         DeviceJob deviceJob = deviceJobConverter.toEntity(formData);
         boolean save = this.save(deviceJob);
         if (save) {
-            ScheduleUtils.createScheduleJob(scheduler, deviceJob);
+            createScheduleJob(scheduler, deviceJob);
         }
         return save;
     }
@@ -155,6 +158,12 @@ public class DeviceJobServiceImpl extends ServiceImpl<DeviceJobMapper, DeviceJob
         scheduler.triggerJob(ScheduleUtils.getJobKey(jobId, jobGroup), dataMap);
     }
 
+    @Override
+    public void createScheduleJobForScene(Scene scene) throws SchedulerException {
+        DeviceJob job = this.getById(scene.getJobId());
+        createScheduleJob(scheduler, job);
+    }
+
     public boolean pauseJob(DeviceJob job) throws SchedulerException {
         Long jobId = job.getId();
         String jobGroup = job.getJobGroup();
@@ -206,7 +215,7 @@ public class DeviceJobServiceImpl extends ServiceImpl<DeviceJobMapper, DeviceJob
             // 防止创建时存在数据问题 先移除，然后在执行创建操作
             scheduler.deleteJob(jobKey);
         }
-        ScheduleUtils.createScheduleJob(scheduler, deviceJob);
+        createScheduleJob(scheduler, deviceJob);
     }
 
 }

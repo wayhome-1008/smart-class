@@ -1,11 +1,12 @@
 package com.youlai.boot.deviceJob.service;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.service.IService;
 import com.youlai.boot.deviceJob.model.entity.DeviceJob;
 import com.youlai.boot.deviceJob.model.form.DeviceJobForm;
 import com.youlai.boot.deviceJob.model.query.DeviceJobQuery;
 import com.youlai.boot.deviceJob.model.vo.DeviceJobVO;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.service.IService;
+import com.youlai.boot.scene.model.entity.Scene;
 import org.quartz.SchedulerException;
 
 /**
@@ -54,7 +55,9 @@ public interface DeviceJobService extends IService<DeviceJob> {
      */
     void deleteDeviceJobs(String ids) throws SchedulerException;
 
-    boolean changeStatus( DeviceJob newJob) throws SchedulerException;
+    boolean changeStatus(DeviceJob newJob) throws SchedulerException;
 
     void run(DeviceJobForm formData) throws SchedulerException;
+
+    void createScheduleJobForScene(Scene scene) throws SchedulerException;
 }

@@ -6,13 +6,12 @@ import com.yomahub.liteflow.annotation.LiteflowComponent;
 import com.yomahub.liteflow.core.NodeComponent;
 import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.device.model.entity.Device;
-import com.youlai.boot.deviceJob.model.entity.DeviceJob;
-import com.youlai.boot.deviceJob.util.ScheduleUtils;
+import com.youlai.boot.deviceJob.service.DeviceJobService;
 import com.youlai.boot.scene.model.entity.Scene;
 import com.youlai.boot.scene.model.entity.Trigger;
 import com.youlai.boot.scene.model.form.ThresholdCondition;
 import lombok.extern.slf4j.Slf4j;
-import org.quartz.Scheduler;
+import org.quartz.SchedulerException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 
@@ -32,7 +31,7 @@ public class DeviceTriggerComponent extends NodeComponent {
     @Autowired
     private RedisTemplate<String, Object> redisTemplate;
     @Autowired
-    private Scheduler scheduler;
+    private DeviceJobService deviceJobService;
 
     @Override
     public boolean isAccess() {
@@ -95,8 +94,13 @@ public class DeviceTriggerComponent extends NodeComponent {
     /**
      * 检查是否有任意触发器满足条件 (ANY逻辑)
      */
-    private boolean checkAnyTrigger(List<Trigger> triggers, Device triggerDevice, Scene scene, ObjectNode metrics) {
+    private boolean checkAnyTrigger(List<Trigger> triggers, Device triggerDevice, Scene scene, ObjectNode metrics) throws SchedulerException {
         for (Trigger trigger : triggers) {
+            if (trigger.getType().equals("TIMER_TRIGGER")) {
+                //如果有定时触发 那么这里新增 因为新增有重复会删除旧的 所以无所谓
+                // 1.创建任务
+                deviceJobService.createScheduleJobForScene(scene);
+            }
             if (isTriggerSatisfied(trigger, triggerDevice, metrics)) {
                 log.info("场景 {} 被设备 {} 触发 (ANY条件满足)", scene.getId(), triggerDevice.getDeviceCode());
                 return true; // 任一触发器满足就返回true
