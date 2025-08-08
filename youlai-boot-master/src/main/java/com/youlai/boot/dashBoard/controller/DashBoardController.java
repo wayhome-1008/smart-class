@@ -307,7 +307,7 @@ public class DashBoardController {
                 result.setCurrent(latestData.getCurrent());
                 return Result.success(result);
             }
-            return Result.failed("未找到用电数据");
+            return Result.success();
         } catch (InfluxException e) {
             log.error("查询用电数据失败: {}", e.getMessage());
             return Result.failed("查询用电数据失败");
@@ -718,7 +718,7 @@ public class DashBoardController {
 
                 // 添加房间ID过滤和聚合
                 builder.tag("roomId", String.valueOf(room.getId()))
-                        ;  // 使用专门的sum方法
+                ;  // 使用专门的sum方法
 
                 String fluxQuery = builder.build();
                 log.info("InfluxDB查询语句: {}", fluxQuery);
