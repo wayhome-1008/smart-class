@@ -4,11 +4,8 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.youlai.boot.common.base.BaseEntity;
-import com.youlai.boot.common.model.Option;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.util.List;
 
 /**
  * 执行器实体对象
