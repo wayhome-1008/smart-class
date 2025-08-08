@@ -1,14 +1,12 @@
 package com.youlai.boot.scene.model.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.youlai.boot.common.base.BaseEntity;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
 import java.util.List;
-
-import com.baomidou.mybatisplus.annotation.TableName;
-import com.youlai.boot.common.base.BaseEntity;
 
 /**
  * 场景交互实体对象
@@ -31,10 +29,6 @@ public class Scene extends BaseEntity {
      */
     private Long jobId;
     /**
-     * 规则名称
-     */
-//    private String chainName;
-    /**
      * 触发条件类型（ALL/ANY/NOT）
      */
     private String conditionType;
@@ -45,7 +39,7 @@ public class Scene extends BaseEntity {
     /**
      * 执行方式（SERIAL/PARALLEL）
      */
-    private String  executeMode;
+    private String executeMode;
     /**
      * 延时执行(秒钟)
      */

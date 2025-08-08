@@ -1,12 +1,8 @@
 package com.youlai.boot.deviceJob.util;
 
 import com.youlai.boot.common.constant.ScheduleConstants;
-import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.deviceJob.model.entity.DeviceJob;
-import com.youlai.boot.deviceJob.service.DeviceJobService;
-import com.youlai.boot.scene.model.entity.Scene;
 import org.quartz.*;
-import org.springframework.stereotype.Component;
 
 /**
  * 定时任务工具类
@@ -14,10 +10,7 @@ import org.springframework.stereotype.Component;
  * @author ruoyi
  *
  */
-//@Component
 public class ScheduleUtils {
-//    private static DeviceJobService deviceJobService = com.youlai.boot.common.util.SpringUtils.getBean(DeviceJobService.class);
-
     /**
      * 得到quartz任务类
      *
