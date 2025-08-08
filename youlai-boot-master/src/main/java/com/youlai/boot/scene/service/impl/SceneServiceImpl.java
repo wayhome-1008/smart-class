@@ -6,6 +6,10 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.youlai.boot.common.constant.RedisConstants;
+import com.youlai.boot.common.model.Option;
+import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.scene.converter.SceneConverter;
 import com.youlai.boot.scene.liteFlow.SceneFlowBuilder;
 import com.youlai.boot.scene.mapper.ActionMapper;
@@ -340,11 +344,47 @@ public class SceneServiceImpl extends ServiceImpl<SceneMapper, Scene> implements
         SceneForm form = sceneConverter.toForm(entity);
         //查询trigger+action
         List<Trigger> triggers = triggerMapper.selectList(new LambdaQueryWrapper<Trigger>().eq(Trigger::getSceneId, id));
+        List<Option<String>> options = new ArrayList<>();
+        //为每个trigger+action加上该设备的软属性
+        for (Trigger trigger : triggers) {
+            List<String> codes = Arrays.stream(trigger.getDeviceCodes().split(",")).toList();
+            for (String code : codes) {
+                options.addAll(getDeviceOptions(code)); // 修改这里，添加所有选项
+            }
+            trigger.setDeviceOptions(options);
+        }
         form.setTriggers(triggers);
         List<Action> actions = actionMapper.selectList(new LambdaQueryWrapper<Action>().eq(Action::getSceneId, id));
         form.setActions(actions);
         return form;
     }
+
+    List<Option<String>> getDeviceOptions(String deviceCode) {
+        List<Option<String>> options = new ArrayList<>();
+        try {
+            Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
+            if (device == null || device.getDeviceInfo() == null) {
+                return options;
+            }
+
+            JsonNode deviceInfo = device.getDeviceInfo();
+            Iterator<String> fieldNames = deviceInfo.fieldNames();
+
+            // 获取所有字段名并转换为选项
+            while (fieldNames.hasNext()) {
+                String fieldName = fieldNames.next();
+                Option<String> option = new Option<>();
+                option.setValue(fieldName);
+                option.setLabel(fieldName); // 可根据实际需求设置更友好的标签
+                options.add(option);
+            }
+        } catch (Exception e) {
+            log.warn("获取设备{}的选项信息失败: {}", deviceCode, e.getMessage());
+        }
+
+        return options;
+    }
+
 
     /**
      * 新增场景交互

@@ -1,16 +1,14 @@
 package com.youlai.boot.scene.model.form;
 
-import java.io.Serializable;
-
 import com.youlai.boot.scene.model.entity.Action;
 import com.youlai.boot.scene.model.entity.Trigger;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.io.Serializable;
 import java.util.List;
-
-import jakarta.validation.constraints.*;
 
 /**
  * 场景交互表单对象
@@ -52,5 +50,6 @@ public class SceneForm implements Serializable {
 
     /** 接收的执行动作列表 */
     private List<Action> actions;
+
 
 }

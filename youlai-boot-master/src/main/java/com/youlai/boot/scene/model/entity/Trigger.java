@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.youlai.boot.common.model.Option;
 import com.youlai.boot.scene.model.form.ThresholdCondition;
 import lombok.Getter;
 import lombok.Setter;
@@ -54,6 +55,9 @@ public class Trigger extends BaseEntity {
     @TableField(exist = false)
     @JsonIgnore
     private Scene scene;
+
+    @TableField(exist = false)
+    List<Option<String>> deviceOptions;
 
     // 解析threshold为ThresholdCondition列表
     @JsonIgnore
