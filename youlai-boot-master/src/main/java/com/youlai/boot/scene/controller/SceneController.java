@@ -2,6 +2,7 @@ package com.youlai.boot.scene.controller;
 
 import com.youlai.boot.scene.service.SceneService;
 import lombok.RequiredArgsConstructor;
+import org.quartz.SchedulerException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -45,7 +46,7 @@ public class SceneController  {
     @Operation(summary = "新增场景交互")
     @PostMapping
     @PreAuthorize("@ss.hasPerm('scene:scene:add')")
-    public Result<Void> saveScene(@RequestBody @Valid SceneForm formData ) {
+    public Result<Void> saveScene(@RequestBody @Valid SceneForm formData ) throws SchedulerException {
         boolean result = sceneService.saveScene(formData);
         return Result.judge(result);
     }

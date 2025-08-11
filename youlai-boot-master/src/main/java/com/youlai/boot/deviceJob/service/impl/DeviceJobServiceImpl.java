@@ -93,6 +93,12 @@ public class DeviceJobServiceImpl extends ServiceImpl<DeviceJobMapper, DeviceJob
         return save;
     }
 
+    @Override
+    public void saveDeviceJobForScene(DeviceJob job) throws SchedulerException {
+        this.save(job);
+        createScheduleJob(scheduler, job);
+    }
+
     /**
      * 更新任务管理
      *

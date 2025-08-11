@@ -24,6 +24,7 @@ public class InfluxSwitch {
     private String switchState;
 
 
+
     @Column(timestamp = true)
     private Instant time;
 }

@@ -9,7 +9,11 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.common.model.Option;
+import com.youlai.boot.common.util.BeanUtils;
 import com.youlai.boot.device.model.entity.Device;
+import com.youlai.boot.deviceJob.mapper.DeviceJobMapper;
+import com.youlai.boot.deviceJob.model.entity.DeviceJob;
+import com.youlai.boot.deviceJob.service.DeviceJobService;
 import com.youlai.boot.scene.converter.SceneConverter;
 import com.youlai.boot.scene.liteFlow.SceneFlowBuilder;
 import com.youlai.boot.scene.mapper.ActionMapper;
@@ -24,6 +28,8 @@ import com.youlai.boot.scene.model.vo.SceneVO;
 import com.youlai.boot.scene.service.SceneService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
+import org.quartz.SchedulerException;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.annotation.Order;
@@ -48,6 +54,7 @@ public class SceneServiceImpl extends ServiceImpl<SceneMapper, Scene> implements
     private final ActionMapper actionMapper;
     private final SceneFlowBuilder flowBuilder;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final DeviceJobService deviceJobService;
 
     /**
      * 创建 ApplicationRunner Bean 来初始化场景
@@ -393,18 +400,39 @@ public class SceneServiceImpl extends ServiceImpl<SceneMapper, Scene> implements
      * @return 是否新增成功
      */
     @Override
-    public boolean saveScene(SceneForm formData) {
+    public boolean saveScene(SceneForm formData) throws SchedulerException {
         if (formData.getTriggers().isEmpty() || formData.getActions().isEmpty()) {
             log.error("场景中至少包含一个触发器或者执行动作");
             return false;
         }
         Scene scene = sceneConverter.toEntity(formData);
         boolean result = this.save(scene);
+        List<DeviceJob> jobs = new ArrayList<>();
+        DeviceJob job = new DeviceJob();
         // 保存关联的触发器
         if (scene.getTriggers() != null) {
             for (Trigger trigger : scene.getTriggers()) {
                 trigger.setSceneId(scene.getId());
                 triggerMapper.insert(trigger);
+                //放心这里定时触发只有一个
+                if (trigger.getType().equals("TIMER_TRIGGER")) {
+
+                    Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, trigger.getDeviceCodes());
+                    if (device != null) {
+                        job.setDeviceId(device.getId());
+                        job.setSceneId(scene.getId());
+                        job.setDeviceName(device.getDeviceName());
+//                        job.setActions();
+                        job.setConcurrent(0);
+                        job.setJobName(scene.getSceneName() + "定时执行");
+                        job.setJobType(1L);
+                        job.setCron(trigger.getCron());
+                        job.setStatus(1);
+                        job.setJobGroup("DEFAULT");
+                        job.setIsAdvance(trigger.getIsAdvance());
+                        jobs.add(job);
+                    }
+                }
             }
         }
 
@@ -413,6 +441,17 @@ public class SceneServiceImpl extends ServiceImpl<SceneMapper, Scene> implements
             for (Action action : scene.getActions()) {
                 action.setSceneId(scene.getId());
                 actionMapper.insert(action);
+                if (ObjectUtils.isNotEmpty(job)) {
+                    DeviceJob addJob = new DeviceJob();
+                    BeanUtils.copyProperties(job, addJob);
+                    addJob.setActions(action.getParameters());
+                    jobs.add(addJob);
+                }
+            }
+        }
+        if (ObjectUtils.isNotEmpty(jobs)) {
+            for (DeviceJob deviceJob : jobs) {
+                deviceJobService.saveDeviceJobForScene(deviceJob);
             }
         }
         // 注册流程

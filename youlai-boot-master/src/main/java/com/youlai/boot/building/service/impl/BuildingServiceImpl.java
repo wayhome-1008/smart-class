@@ -15,13 +15,16 @@ import com.youlai.boot.building.model.vo.BuildingVO;
 import com.youlai.boot.building.service.BuildingService;
 import com.youlai.boot.common.model.Option;
 import com.youlai.boot.core.security.util.SecurityUtils;
+import com.youlai.boot.floor.model.entity.Floor;
 import com.youlai.boot.floor.service.FloorService;
+import com.youlai.boot.room.model.entity.Room;
 import com.youlai.boot.room.service.RoomService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 教学楼管理服务实现类
@@ -115,4 +118,50 @@ public class BuildingServiceImpl extends ServiceImpl<BuildingMapper, Building> i
         return buildingConverter.toOptions(list);
     }
 
+    @Override
+    public List<Option<Long>> buildingStructureOptions() {
+        // 1. 查询所有楼宇
+        List<Building> buildings = baseMapper.selectList(null);
+
+        // 2. 转换为Option列表并添加楼层子节点
+        return buildings.stream().map(building -> {
+            // 2.1 查询当前楼宇的所有楼层
+            List<Floor> floors = floorService.list(
+                    new LambdaQueryWrapper<Floor>()
+                            .eq(Floor::getBuildingId, building.getId())
+            );
+
+            // 2.2 转换楼层为Option并添加房间子节点
+            List<Option<Long>> floorOptions = floors.stream().map(floor -> {
+                // 查询当前楼层的所有房间
+                List<Room> classrooms = roomService.list(
+                        new LambdaQueryWrapper<Room>()
+                                .eq(Room::getFloorId, floor.getId())
+                                .eq(Room::getBuildingId, building.getId())
+                );
+
+                // 转换房间为Option
+                List<Option<Long>> classroomOptions = classrooms.stream()
+                        .map(classroom -> new Option<>(
+                                classroom.getId(),
+                                classroom.getClassroomCode()
+                        ))
+                        .collect(Collectors.toList());
+
+                // 创建楼层Option，包含房间子节点
+                return new Option<>(
+                        floor.getId(),
+                        building.getBuildingName() + "-" + floor.getFloorNumber() + "层",
+                        classroomOptions
+                );
+            }).collect(Collectors.toList());
+
+            // 创建楼宇Option，包含楼层子节点
+            return new Option<>(
+                    building.getId(),
+                    building.getBuildingName(),
+                    floorOptions
+            );
+        }).collect(Collectors.toList());
+    }
 }

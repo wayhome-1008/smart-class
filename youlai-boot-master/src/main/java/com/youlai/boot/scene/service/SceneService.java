@@ -6,6 +6,7 @@ import com.youlai.boot.scene.model.query.SceneQuery;
 import com.youlai.boot.scene.model.vo.SceneVO;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
+import org.quartz.SchedulerException;
 
 import java.util.List;
 
@@ -38,7 +39,7 @@ public interface SceneService extends IService<Scene> {
      * @param formData 场景交互表单对象
      * @return 是否新增成功
      */
-    boolean saveScene(SceneForm formData);
+    boolean saveScene(SceneForm formData) throws SchedulerException;
 
     /**
      * 修改场景交互

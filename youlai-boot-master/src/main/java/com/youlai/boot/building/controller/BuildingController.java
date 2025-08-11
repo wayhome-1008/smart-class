@@ -47,6 +47,15 @@ public class BuildingController {
         return PageResult.success(result);
     }
 
+    /**
+     * 获取楼宇结构选项列表
+     */
+    @GetMapping("/struct")
+    public Result<List<Option<Long>>> buildingStructureOptions() {
+        List<Option<Long>> options = buildingService.buildingStructureOptions();
+        return Result.success(options);
+    }
+
     @Operation(summary = "教学楼下拉列表")
     @GetMapping("/options")
     public Result<List<Option<Long>>> listBuildingOptions() {

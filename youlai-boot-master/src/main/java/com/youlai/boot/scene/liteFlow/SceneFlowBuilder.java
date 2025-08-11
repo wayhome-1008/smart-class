@@ -35,7 +35,8 @@ public class SceneFlowBuilder {
         // 构建动作执行表达式
         String actionExpr = buildActionExpr(scene);
 //        // 完整流程：触发条件 -> 静默检查 -> 延时执行 -> 动作执行
-        return "THEN(" + triggerExpr + ", silenceCheck, delayExecute, " + actionExpr + ");";
+//        return "THEN(" + triggerExpr + ", silenceCheck, delayExecute, " + actionExpr + ");";
+        return "THEN(THEN(deviceTrigger), silenceCheck, delayExecute, deviceExecute)";
     }
 
     /**
@@ -82,9 +83,8 @@ public class SceneFlowBuilder {
      */
     private String getTriggerCompId(Trigger trigger) {
         return switch (trigger.getType()) {
-            case "DEVICE_TRIGGER" -> "deviceTrigger";
+            case "DEVICE_TRIGGER", "TIMER_TRIGGER" -> "deviceTrigger";
             case "PRODUCT_TRIGGER" -> "productTrigger";
-//            case "TIMER_TRIGGER" -> "timerTrigger";
             default -> throw new IllegalArgumentException("未知触发类型: " + trigger.getType());
         };
     }

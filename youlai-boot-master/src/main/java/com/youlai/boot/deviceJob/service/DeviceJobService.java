@@ -40,6 +40,8 @@ public interface DeviceJobService extends IService<DeviceJob> {
      */
     boolean saveDeviceJob(DeviceJobForm formData) throws SchedulerException;
 
+    void saveDeviceJobForScene(DeviceJob job) throws SchedulerException;
+
     /**
      * 修改任务管理
      *

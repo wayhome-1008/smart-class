@@ -106,15 +106,20 @@ public class DashBoardController {
                 }
             }
         }
-//        // 3. 获取时间基准（从任意一个分类查询获取即可）
-//        List<String> timeTemplate = getTimeTemplate();
-//        result.setTimes(timeTemplate);
         // 3. 获取时间模板（从第一个分类的第一个设备获取）
         if (!categoriesAll.isEmpty()) {
             List<CategoryDeviceRelationship> relationships =
                     categoryDeviceRelationshipService.listByCategoryId(categoriesAll.get(0).getId());
             if (!relationships.isEmpty()) {
                 Device device = deviceService.getById(relationships.get(0).getDeviceId());
+                log.info("查询语句1{}", InfluxQueryBuilder.newBuilder()
+                        .bucket(influxDBProperties.getBucket())
+                        .range(7, "d")
+                        .measurement("device")
+                        .fields("Total")
+                        .tag("deviceCode", device.getDeviceCode())
+                        .window("1d", "last")
+                        .build());
                 List<InfluxMqttPlug> sampleTables = influxDBClient.getQueryApi()
                         .query(InfluxQueryBuilder.newBuilder()
                                         .bucket(influxDBProperties.getBucket())
@@ -175,6 +180,18 @@ public class DashBoardController {
 
     // 查询设备一周数据
     private List<Double> queryDeviceWeeklyData(String deviceCode) {
+        log.info("查询语句2{}", InfluxQueryBuilder.newBuilder()
+                .bucket(influxDBProperties.getBucket())
+                .range(7, "d")
+                .measurement("device")
+                .fields("Total")
+                .tag("deviceCode", deviceCode)
+                .pivot()
+                .fill()
+                .sort("_time", InfluxQueryBuilder.SORT_ASC)
+                .timeShift("8h")
+                .window("1d", "last").build()
+        );
         InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
                 .bucket(influxDBProperties.getBucket())
                 .range(7, "d")
