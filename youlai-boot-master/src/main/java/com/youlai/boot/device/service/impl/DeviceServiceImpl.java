@@ -39,6 +39,7 @@ import com.youlai.boot.system.model.entity.DictItem;
 import com.youlai.boot.system.service.DictItemService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
@@ -59,6 +60,7 @@ import static com.youlai.boot.dashBoard.controller.DashBoardController.basicProp
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> implements DeviceService {
     private final DeviceMapper deviceMapper;
     private final DeviceConverter deviceConverter;
@@ -425,43 +427,14 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     }
 
     @Override
-    public List<String> listMetric(Long deviceId) {
+    public List<Option<String>> listMetric(Long deviceId) {
         Device device = this.getById(deviceId);
-        if (device == null) {
-            return null;
-        }
-        if (device.getDeviceInfo() == null) {
-            return null;
-        }
-        JsonNode deviceInfo = device.getDeviceInfo();
-        //把软属性key列成列表
-        List<String> metricList = new ArrayList<>();
-        // 遍历设备信息中的所有字段名
-        Iterator<String> fieldNames = deviceInfo.fieldNames();
-        while (fieldNames.hasNext()) {
-            metricList.add(fieldNames.next());
-        }
-        return metricList;
+        return getDeviceOptions(device.getDeviceCode());
     }
 
     @Override
-    public List<String> listMetricByCode(String code) {
-        Device device = this.getByCode(code);
-        if (device == null) {
-            return null;
-        }
-        if (device.getDeviceInfo() == null) {
-            return null;
-        }
-        JsonNode deviceInfo = device.getDeviceInfo();
-        //把软属性key列成列表
-        List<String> metricList = new ArrayList<>();
-        // 遍历设备信息中的所有字段名
-        Iterator<String> fieldNames = deviceInfo.fieldNames();
-        while (fieldNames.hasNext()) {
-            metricList.add(fieldNames.next());
-        }
-        return metricList;
+    public List<Option<String>> listMetricByCode(String code) {
+        return getDeviceOptions(code);
     }
 
     @Override
@@ -498,5 +471,31 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
                 .eq(Device::getDeviceRoom, roomId).in(Device::getId, idList)
                 .in(Device::getId, idList)
         );
+    }
+
+    List<Option<String>> getDeviceOptions(String deviceCode) {
+        List<Option<String>> options = new ArrayList<>();
+        try {
+            Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
+            if (device == null || device.getDeviceInfo() == null) {
+                return options;
+            }
+
+            JsonNode deviceInfo = device.getDeviceInfo();
+            Iterator<String> fieldNames = deviceInfo.fieldNames();
+
+            // 获取所有字段名并转换为选项
+            while (fieldNames.hasNext()) {
+                String fieldName = fieldNames.next();
+                Option<String> option = new Option<>();
+                option.setValue(fieldName);
+                option.setLabel(fieldName); // 可根据实际需求设置更友好的标签
+                options.add(option);
+            }
+        } catch (Exception e) {
+            log.warn("获取设备{}的选项信息失败: {}", deviceCode, e.getMessage());
+        }
+
+        return options;
     }
 }

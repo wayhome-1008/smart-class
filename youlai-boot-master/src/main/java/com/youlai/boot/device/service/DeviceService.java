@@ -98,11 +98,11 @@ public interface DeviceService extends IService<Device> {
 
     void masterSlaveDel(String ids);
 
-    List<String> listMetric(Long id);
+    List<Option<String>> listMetric(Long id);
 
     List<Option<Long>> listDeviceOptions();
 
     List<Option<String>> listDeviceCodeOptions();
 
-    List<String> listMetricByCode(String code);
+    List<Option<String>> listMetricByCode(String code);
 }

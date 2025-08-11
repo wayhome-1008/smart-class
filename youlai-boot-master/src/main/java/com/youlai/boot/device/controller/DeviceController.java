@@ -287,7 +287,7 @@ public class DeviceController {
 
     @Operation(summary = "根据设备id查询出该设备软属性")
     @GetMapping("/{id}/metric")
-    public Result<List<String>> listMetric(
+    public Result<List<Option<String>>> listMetric(
             @Parameter(description = "设备ID") @PathVariable Long id
     ) {
         return Result.success(deviceService.listMetric(id));
@@ -295,7 +295,7 @@ public class DeviceController {
 
     @Operation(summary = "根据设备code查询出设备软属性")
     @GetMapping("/metric")
-    public Result<List<String>> listMetricByCode(
+    public Result<List<Option<String>>> listMetricByCode(
             @Parameter(description = "设备code") @RequestParam String code
     ) {
         return Result.success(deviceService.listMetricByCode(code));
