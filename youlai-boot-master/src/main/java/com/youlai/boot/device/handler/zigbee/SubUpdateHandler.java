@@ -194,7 +194,7 @@ public class SubUpdateHandler implements MsgHandler {
                         switchState = "OFF";
                     }
                     // 3. 存储每个开关状态
-                    allSwitchStates.put("outlet" + outletNum, outletNum);
+//                    allSwitchStates.put("outlet" + outletNum, outletNum);
                     allSwitchStates.put("switch" + outletNum, switchState);
                 }
             }

@@ -269,9 +269,21 @@ public class DeviceTriggerComponent extends NodeComponent {
                 //当前设备属性和触发的属性相同
                 if (fieldName.equals(condition.getProperty())) {
                     //设备属性值
-                    String nowMetric = metrics.get(fieldName).asText();
+                    JsonNode nowMetricNode = metrics.get(fieldName);
                     //上次设备属性值
-                    String propertyValue = deviceInfo.get(condition.getProperty()).asText();
+                    JsonNode propertyValueNode = deviceInfo.get(condition.getProperty());
+
+                    // 添加空值检查
+                    if (nowMetricNode == null || propertyValueNode == null) {
+                        // 根据业务需求处理空值情况，例如跳过或记录日志
+                        log.warn("设备属性值为空，设备: {}, 属性: {}", device.getDeviceName(), condition.getProperty());
+                        this.setIsEnd(true);
+                        return false; // 或根据业务需求返回合适的值
+                    }
+
+                    String nowMetric = nowMetricNode.asText();
+                    String propertyValue = propertyValueNode.asText();
+
                     if (nowMetric.equals(propertyValue)) {
                         //说明这次的属性值和上次的属性值相同 不进行后续
                         this.setIsEnd(true);
