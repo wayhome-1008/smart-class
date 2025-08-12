@@ -49,6 +49,7 @@ public class JobInvokeUtil {
     }
 
     public static void operate(DeviceOperate deviceOperate, Long deviceId) {
+        log.info("执行任务的操作{}", deviceOperate);
         Device device = deviceService.getById(deviceId);
         if (ObjectUtils.isEmpty(device)) return;
         if (device.getDeviceTypeId() != 4 && device.getDeviceTypeId() != 7 && device.getDeviceTypeId() != 10 && device.getDeviceTypeId() != 8)
@@ -107,7 +108,7 @@ public class JobInvokeUtil {
 
     private static void wifiDevice(String deviceCode, String operate, String way, Integer lightCount) {
         //目前能控制的就只有灯的开关
-        log.info("正在发送~~~~~~~~~~");
+        log.info("正在发送{}", operate);
         //判断几路
         if (lightCount == 1) {
             try {
@@ -126,7 +127,7 @@ public class JobInvokeUtil {
             }
         } else {
             try {
-                messagePublish.publish("cmnd/" + deviceCode + "/POWER" + way, JSON.toJSONString(operate).getBytes(), 1, false);
+                messagePublish.publish("cmnd/" + deviceCode + "/POWER" + way,operate.getBytes(), 1, false);
             } catch (MqttException e) {
                 log.error("发送消息失败", e);
             }

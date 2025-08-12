@@ -2,6 +2,7 @@ package com.youlai.boot.device.model.form;
 
 import jakarta.validation.constraints.Pattern;
 import lombok.Data;
+import lombok.ToString;
 
 /**
  *@Author: way
@@ -9,6 +10,7 @@ import lombok.Data;
  *@Description: TODO
  */
 @Data
+@ToString
 public class DeviceOperate {
     @Pattern(regexp = "ON|OFF", message = "错误操作")
     private String operate;
