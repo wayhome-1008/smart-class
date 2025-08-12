@@ -2,7 +2,6 @@ package com.youlai.boot.scene.service.impl;
 
 import cn.hutool.core.lang.Assert;
 import cn.hutool.core.util.StrUtil;
-import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -12,8 +11,6 @@ import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.common.model.Option;
 import com.youlai.boot.common.util.BeanUtils;
 import com.youlai.boot.device.model.entity.Device;
-import com.youlai.boot.device.model.form.DeviceOperate;
-import com.youlai.boot.deviceJob.mapper.DeviceJobMapper;
 import com.youlai.boot.deviceJob.model.entity.DeviceJob;
 import com.youlai.boot.deviceJob.service.DeviceJobService;
 import com.youlai.boot.scene.converter.SceneConverter;

@@ -29,8 +29,8 @@ import java.util.List;
 public class JobInvokeUtil {
 
     /**获取消息推送接口*/
-    private static MqttClient messagePublish = com.youlai.boot.common.util.SpringUtils.getBean(MqttClient.class);
-    private static DeviceService deviceService = com.youlai.boot.common.util.SpringUtils.getBean(DeviceService.class);
+    private static final MqttClient messagePublish = com.youlai.boot.common.util.SpringUtils.getBean(MqttClient.class);
+    private static final DeviceService deviceService = com.youlai.boot.common.util.SpringUtils.getBean(DeviceService.class);
 
     /**
      * 执行方法
