@@ -2,6 +2,7 @@ package com.youlai.boot.scene.service.impl;
 
 import cn.hutool.core.lang.Assert;
 import cn.hutool.core.util.StrUtil;
+import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -11,6 +12,7 @@ import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.common.model.Option;
 import com.youlai.boot.common.util.BeanUtils;
 import com.youlai.boot.device.model.entity.Device;
+import com.youlai.boot.device.model.form.DeviceOperate;
 import com.youlai.boot.deviceJob.mapper.DeviceJobMapper;
 import com.youlai.boot.deviceJob.model.entity.DeviceJob;
 import com.youlai.boot.deviceJob.service.DeviceJobService;
@@ -37,6 +39,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * 场景交互服务实现类
@@ -168,6 +171,8 @@ public class SceneServiceImpl extends ServiceImpl<SceneMapper, Scene> implements
      * 为单个场景构建设备场景索引
      */
     private void buildDeviceSceneIndexForScene(Scene scene) {
+        //构建前 清空
+        redisTemplate.delete("device:" + "*" + ":scenes");
         // 提取场景中的所有设备ID
         Set<String> deviceCodes = extractDeviceIdsFromScene(scene);
 
@@ -407,6 +412,17 @@ public class SceneServiceImpl extends ServiceImpl<SceneMapper, Scene> implements
         }
         Scene scene = sceneConverter.toEntity(formData);
         boolean result = this.save(scene);
+        saveOrUpdate(formData, scene);
+        //场景回显任务id
+        // 注册流程
+        flowBuilder.registerFlow(scene);
+        // 同步到Redis
+        syncSceneToRedis(scene);
+        return result;
+
+    }
+
+    private void saveOrUpdate(SceneForm formData, Scene scene) throws SchedulerException {
         List<DeviceJob> jobs = new ArrayList<>();
         DeviceJob job = new DeviceJob();
         // 保存关联的触发器
@@ -416,50 +432,52 @@ public class SceneServiceImpl extends ServiceImpl<SceneMapper, Scene> implements
                 triggerMapper.insert(trigger);
                 //放心这里定时触发只有一个
                 if (trigger.getType().equals("TIMER_TRIGGER")) {
-
-                    Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, trigger.getDeviceCodes());
-                    if (device != null) {
-                        job.setDeviceId(device.getId());
-                        job.setSceneId(scene.getId());
-                        job.setDeviceName(device.getDeviceName());
-//                        job.setActions();
-                        job.setConcurrent(0);
-                        job.setJobName(scene.getSceneName() + "定时执行");
-                        job.setJobType(1L);
-                        job.setCron(trigger.getCron());
-                        job.setStatus(1);
-                        job.setJobGroup("DEFAULT");
-                        job.setIsAdvance(trigger.getIsAdvance());
-                        jobs.add(job);
+                    List<String> deviceCodes = Arrays.stream(trigger.getDeviceCodes().split(",")).toList();
+                    List<Device> devices = new ArrayList<>();
+                    for (String deviceCode : deviceCodes) {
+                        Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
+                        if (device != null) {
+                            devices.add(device);
+                        }
+                    }
+                    if (ObjectUtils.isNotEmpty(devices)) {
+                        for (Device device : devices) {
+                            job.setDeviceId(device.getId());
+                            job.setSceneId(scene.getId());
+                            job.setDeviceName(device.getDeviceName());
+                            job.setConcurrent(formData.getExecuteMode().equals("SERIAL") ? 0 : 1);
+                            job.setConcurrent(0);
+                            job.setJobName(scene.getSceneName() + "定时执行");
+                            job.setJobType(1L);
+                            job.setCron(trigger.getCron());
+                            job.setStatus(1);
+                            job.setJobGroup("DEFAULT");
+                            job.setIsAdvance(trigger.getIsAdvance());
+                            jobs.add(job);
+                        }
                     }
                 }
             }
         }
-
+        List<DeviceJob> needSaveJobs = new ArrayList<>();
         // 保存关联的动作
         if (scene.getActions() != null) {
             for (Action action : scene.getActions()) {
                 action.setSceneId(scene.getId());
                 actionMapper.insert(action);
-                if (ObjectUtils.isNotEmpty(job)) {
+                if (ObjectUtils.isNotEmpty(jobs)) {
                     DeviceJob addJob = new DeviceJob();
                     BeanUtils.copyProperties(job, addJob);
                     addJob.setActions(action.getParameters());
-                    jobs.add(addJob);
+                    needSaveJobs.add(addJob);
                 }
             }
         }
-        if (ObjectUtils.isNotEmpty(jobs)) {
-            for (DeviceJob deviceJob : jobs) {
+        if (ObjectUtils.isNotEmpty(needSaveJobs)) {
+            for (DeviceJob deviceJob : needSaveJobs) {
                 deviceJobService.saveDeviceJobForScene(deviceJob);
             }
         }
-        // 注册流程
-        flowBuilder.registerFlow(scene);
-        // 同步到Redis
-        syncSceneToRedis(scene);
-        return result;
-
     }
 
     /**
@@ -470,7 +488,7 @@ public class SceneServiceImpl extends ServiceImpl<SceneMapper, Scene> implements
      * @return 是否修改成功
      */
     @Override
-    public boolean updateScene(Long id, SceneForm formData) {
+    public boolean updateScene(Long id, SceneForm formData) throws SchedulerException {
         Scene oldScene = this.getById(id);
         Scene entity = sceneConverter.toEntity(formData);
         boolean result = this.updateById(entity);
@@ -485,21 +503,13 @@ public class SceneServiceImpl extends ServiceImpl<SceneMapper, Scene> implements
             // 先删除旧的
             triggerMapper.delete(new LambdaQueryWrapper<Trigger>().eq(Trigger::getSceneId, id));
             actionMapper.delete(new LambdaQueryWrapper<Action>().eq(Action::getSceneId, id));
-
+            List<DeviceJob> list = deviceJobService.list(new LambdaQueryWrapper<DeviceJob>().eq(DeviceJob::getSceneId, entity.getId()));
+            if (ObjectUtils.isNotEmpty(list)) {
+                //获取id用,拼接
+                deviceJobService.deleteDeviceJobs(list.stream().map(DeviceJob::getId).map(String::valueOf).collect(Collectors.joining(",")));
+            }
             // 再插入新的
-            if (entity.getTriggers() != null) {
-                for (Trigger trigger : entity.getTriggers()) {
-                    trigger.setSceneId(entity.getId());
-                    triggerMapper.insert(trigger);
-                }
-            }
-
-            if (entity.getActions() != null) {
-                for (Action action : entity.getActions()) {
-                    action.setSceneId(entity.getId());
-                    actionMapper.insert(action);
-                }
-            }
+            saveOrUpdate(formData, entity);
             // 同步到Redis
             syncSceneToRedis(entity);
         }
@@ -514,7 +524,7 @@ public class SceneServiceImpl extends ServiceImpl<SceneMapper, Scene> implements
      * @return 是否删除成功
      */
     @Override
-    public boolean deleteScenes(String ids) {
+    public boolean deleteScenes(String ids) throws SchedulerException {
         Assert.isTrue(StrUtil.isNotBlank(ids), "删除的场景交互数据为空");
         // 逻辑删除
         List<Long> idList = Arrays.stream(ids.split(",")).map(Long::parseLong).toList();
@@ -525,9 +535,14 @@ public class SceneServiceImpl extends ServiceImpl<SceneMapper, Scene> implements
                 actionMapper.delete(new LambdaQueryWrapper<Action>().eq(Action::getSceneId, sceneId));
                 // 删除索引
                 removeDeviceSceneIndex(scene);
-                // 从Redis中删除场景缓存
-                String sceneKey = "scene:" + sceneId;
+                String sceneKey = "scene:" + scene.getId();
                 redisTemplate.delete(sceneKey);
+            }
+            //查看场景有无定时任务
+            List<DeviceJob> list = deviceJobService.list(new LambdaQueryWrapper<DeviceJob>().eq(DeviceJob::getSceneId, sceneId));
+            if (ObjectUtils.isNotEmpty(list)) {
+                //获取id用,拼接
+                deviceJobService.deleteDeviceJobs(list.stream().map(DeviceJob::getId).map(String::valueOf).collect(Collectors.joining(",")));
             }
         }
 

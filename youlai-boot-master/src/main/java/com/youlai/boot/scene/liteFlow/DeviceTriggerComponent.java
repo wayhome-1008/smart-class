@@ -100,6 +100,7 @@ public class DeviceTriggerComponent extends NodeComponent {
                 //如果有定时触发 那么这里新增 因为新增有重复会删除旧的 所以无所谓
                 // 1.创建任务
                 deviceJobService.createScheduleJobForScene(scene);
+                break;
             }
             if (isTriggerSatisfied(trigger, triggerDevice, metrics)) {
                 log.info("场景 {} 被设备 {} 触发 (ANY条件满足)", scene.getId(), triggerDevice.getDeviceCode());

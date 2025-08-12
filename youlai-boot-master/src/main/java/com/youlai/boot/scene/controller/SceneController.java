@@ -67,7 +67,7 @@ public class SceneController  {
     public Result<Void> updateScene(
             @Parameter(description = "场景交互ID") @PathVariable Long id,
             @RequestBody @Validated SceneForm formData
-    ) {
+    ) throws SchedulerException {
         boolean result = sceneService.updateScene(id, formData);
         return Result.judge(result);
     }
@@ -77,7 +77,7 @@ public class SceneController  {
     @PreAuthorize("@ss.hasPerm('scene:scene:delete')")
     public Result<Void> deleteScenes(
         @Parameter(description = "场景交互ID，多个以英文逗号(,)分割") @PathVariable String ids
-    ) {
+    ) throws SchedulerException {
         boolean result = sceneService.deleteScenes(ids);
         return Result.judge(result);
     }

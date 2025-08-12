@@ -2,6 +2,8 @@ package com.youlai.boot.deviceJob.service.impl;
 
 import cn.hutool.core.lang.Assert;
 import cn.hutool.core.util.StrUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -166,8 +168,12 @@ public class DeviceJobServiceImpl extends ServiceImpl<DeviceJobMapper, DeviceJob
 
     @Override
     public void createScheduleJobForScene(Scene scene) throws SchedulerException {
-        DeviceJob job = this.getById(scene.getJobId());
-        createScheduleJob(scheduler, job);
+        LambdaQueryWrapper<DeviceJob> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(DeviceJob::getSceneId, scene.getId());
+        List<DeviceJob> jobs = this.list(queryWrapper);
+        for (DeviceJob job : jobs) {
+            createScheduleJob(scheduler, job);
+        }
     }
 
     public boolean pauseJob(DeviceJob job) throws SchedulerException {

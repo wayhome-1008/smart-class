@@ -48,7 +48,7 @@ public interface SceneService extends IService<Scene> {
      * @param formData 场景交互表单对象
      * @return 是否修改成功
      */
-    boolean updateScene(Long id, SceneForm formData);
+    boolean updateScene(Long id, SceneForm formData) throws SchedulerException;
 
     /**
      * 删除场景交互
@@ -56,7 +56,7 @@ public interface SceneService extends IService<Scene> {
      * @param ids 场景交互ID，多个以英文逗号(,)分割
      * @return 是否删除成功
      */
-    boolean deleteScenes(String ids);
+    boolean deleteScenes(String ids) throws SchedulerException;
 
     List<Scene> getScenesByDeviceCode(String deviceCode);
 }
