@@ -9,8 +9,8 @@ import com.youlai.boot.common.result.PageResult;
 import com.youlai.boot.common.util.InfluxQueryBuilder;
 import com.youlai.boot.common.util.MathUtils;
 import com.youlai.boot.config.property.InfluxDBProperties;
-import com.youlai.boot.dashBoard.model.vo.CategoryElectricityInfoVO;
 import com.youlai.boot.dashBoard.model.vo.DepartmentCategoryElectricityInfoVO;
+import com.youlai.boot.dashBoard.model.vo.DeviceElectricityDataVO;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.influx.InfluxMqttPlug;
 import com.youlai.boot.device.service.DeviceService;
@@ -33,10 +33,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static com.youlai.boot.common.util.DateUtils.formatTime;
 
 /**
  *@Author: way
@@ -136,14 +139,14 @@ public class DeviceDataController {
                             .toList();
 
                     for (Device masterDevice : masterDevices) {
-                        Double deviceElectricity = getDeviceElectricityByRange(masterDevice.getDeviceCode(), range, startTime, endTime, roomIds);
-                        if (deviceElectricity != null) {
+                        DeviceElectricityDataVO deviceData = getDeviceElectricityByRange(masterDevice.getDeviceCode(), range, startTime, endTime, roomIds);
+                        if (deviceData != null && deviceData.getTotalElectricity() != null) {
                             // 获取设备所在房间
                             Room room = roomMap.get(masterDevice.getDeviceRoom());
                             if (room != null) {
                                 Long departmentId = room.getDepartmentId();
                                 Dept department = deptService.getById(departmentId);
-                                String departmentName = department.getName(); // 假设Room实体中有departmentName字段
+                                String departmentName = department.getName();
 
                                 // 构造分组键：部门ID_分类ID
                                 String groupKey = departmentId + "_" + category.getId();
@@ -157,14 +160,15 @@ public class DeviceDataController {
                                     vo.setCategoryName(category.getCategoryName());
                                     vo.setTotalElectricity(0.0);
                                     vo.setDeviceCount(0);
+                                    vo.setLatestCreateTime(formatTime(deviceData.getTime(), "yyyy-MM-dd HH:mm:ss"));
+                                    vo.setRoomName(room.getClassroomCode() != null ? room.getClassroomCode() : "未知房间");
                                     departmentCategoryMap.put(groupKey, vo);
                                 }
                                 // 累加用电量和设备数量
-                                vo.setTotalElectricity(MathUtils.formatDouble(vo.getTotalElectricity() + deviceElectricity));
+                                vo.setTotalElectricity(MathUtils.formatDouble(vo.getTotalElectricity() + deviceData.getTotalElectricity()));
                                 vo.setDeviceCount(vo.getDeviceCount() + 1);
                             }
                         }
-
                     }
                 }
             }
@@ -228,136 +232,10 @@ public class DeviceDataController {
         return PageResult.success(null);
     }
 
-
-    @Operation(summary = "分页查询各分类用电量")
-    @GetMapping("/category/electricity/page")
-    public PageResult<CategoryElectricityInfoVO> getCategoryElectricityPage(
-            @Parameter(description = "页码，默认为1")
-            @RequestParam(defaultValue = "1") Integer pageNum,
-
-            @Parameter(description = "每页数量，默认为10")
-            @RequestParam(defaultValue = "10") Integer pageSize,
-
-            @Parameter(description = "时间范围: today-今天/yesterday-昨天/week-本周/lastWeek-上周/month-本月/lastMonth-上月/custom-自定义")
-            @RequestParam(defaultValue = "today") String range,
-
-            @Parameter(description = "自定义开始时间(yyyy-MM-dd格式)")
-            @RequestParam(required = false) String startTime,
-
-            @Parameter(description = "自定义结束时间(yyyy-MM-dd格式)")
-            @RequestParam(required = false) String endTime) {
-
-        try {
-            // 1. 获取所有分类
-            List<Category> categories = categoryService.list();
-            if (ObjectUtils.isEmpty(categories)) {
-                Page<CategoryElectricityInfoVO> page = new Page<>(pageNum, pageSize);
-                page.setTotal(0);
-                page.setRecords(new ArrayList<>());
-                return PageResult.success(page);
-            }
-
-            // 2. 筛选出有效的分类（在配置中存在的分类）
-            List<String> categoryNames = categories.stream()
-                    .map(Category::getCategoryName)
-                    .collect(Collectors.toList());
-
-            List<Config> configList = configService.listByKeys(categoryNames);
-            List<Category> validCategories = new ArrayList<>();
-
-            for (Config config : configList) {
-                categories.stream()
-                        .filter(category -> category.getCategoryName().equals(config.getConfigKey()))
-                        .findFirst()
-                        .ifPresent(validCategories::add);
-            }
-
-            // 3. 分页处理
-            int total = validCategories.size();
-            int fromIndex = (pageNum - 1) * pageSize;
-            int toIndex = Math.min(fromIndex + pageSize, total);
-
-            List<Category> pagedCategories = new ArrayList<>();
-            if (fromIndex < total) {
-                pagedCategories = validCategories.subList(fromIndex, toIndex);
-            }
-
-            // 4. 查询各分类的用电量
-            List<CategoryElectricityInfoVO> categoryElectricityList = new ArrayList<>();
-            for (Category category : pagedCategories) {
-                CategoryElectricityInfoVO vo = getCategoryElectricityInfo(category, range, startTime, endTime);
-                if (vo != null) {
-                    categoryElectricityList.add(vo);
-                }
-            }
-
-            // 5. 构造分页结果
-            Page<CategoryElectricityInfoVO> page = new Page<>(pageNum, pageSize);
-            page.setTotal(total);
-            page.setRecords(categoryElectricityList);
-
-            return PageResult.success(page);
-
-        } catch (Exception e) {
-            log.error("分页查询各分类用电量失败: ", e);
-        }
-        return PageResult.success(null);
-    }
-
-    /**
-     * 获取单个分类的用电量信息
-     */
-    private CategoryElectricityInfoVO getCategoryElectricityInfo(Category category, String range, String startTime, String endTime) {
-        try {
-            CategoryElectricityInfoVO vo = new CategoryElectricityInfoVO();
-            vo.setCategoryId(category.getId());
-            vo.setCategoryName(category.getCategoryName());
-
-            // 获取分类下的设备关系
-            List<CategoryDeviceRelationship> relationships =
-                    categoryDeviceRelationshipService.listByCategoryId(category.getId());
-
-            if (ObjectUtils.isEmpty(relationships)) {
-                vo.setTotalElectricity(0.0);
-                vo.setDeviceCount(0);
-                return vo;
-            }
-
-            // 获取设备ID列表
-            List<Long> deviceIds = relationships.stream()
-                    .map(CategoryDeviceRelationship::getDeviceId)
-                    .collect(Collectors.toList());
-
-            // 获取主设备列表
-            List<Device> masterDevices = deviceService.listByIds(deviceIds).stream()
-                    .filter(device -> device.getIsMaster() == 1)
-                    .collect(Collectors.toList());
-
-            vo.setDeviceCount(masterDevices.size());
-
-            // 计算总用电量
-            double totalElectricity = 0.0;
-            for (Device masterDevice : masterDevices) {
-                Double deviceElectricity = getDeviceElectricityByRange(masterDevice.getDeviceCode(), range, startTime, endTime, null);
-                if (deviceElectricity != null) {
-                    totalElectricity += deviceElectricity;
-                }
-            }
-
-            vo.setTotalElectricity(MathUtils.formatDouble(totalElectricity));
-            return vo;
-
-        } catch (Exception e) {
-            log.error("获取分类 {} 用电量信息失败: ", category.getCategoryName(), e);
-            return null;
-        }
-    }
-
-
     /**
      * 根据时间范围获取设备用电量
      */
-    private Double getDeviceElectricityByRange(String deviceCode, String range, String startTime, String endTime, String roomIds) {
+    private DeviceElectricityDataVO getDeviceElectricityByRange(String deviceCode, String range, String startTime, String endTime, String roomIds) {
         try {
             // 根据时间范围构建查询
             InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
@@ -384,149 +262,83 @@ public class DeviceDataController {
                     builder.filter("(" + roomFilter + ")");
                 }
             }
-            // 根据不同时间范围设置查询参数
-            switch (range) {
-                case "today":
-                    builder.today();
-                    break;
-                case "yesterday":
-                    // 昨天需要特殊处理
-                    builder.range(1, "d");
-                    // 可以添加额外的过滤条件来精确匹配昨天的数据
-                    break;
-                case "week":
-                    builder.currentWeek();
-                    break;
-                case "lastWeek":
-                    builder.range(1, "w");
-                    break;
-                case "month":
-                    builder.currentMonth();
-                    break;
-                case "lastMonth":
-                    builder.range(1, "mo");
-                    break;
-                case "custom":
-                    // 自定义时间范围使用默认的1天范围，通过更精确的过滤来处理
-                    if (StringUtils.isNotBlank(startTime) || StringUtils.isNotBlank(endTime)) {
-                        log.warn("当前InfluxQueryBuilder不支持自定义起止时间，使用默认1天范围");
-                    }
-                    builder.range(1, "d");
-                    break;
-                default:
-                    builder.today();
-                    break;
+            // 使用自定义时间范围
+            if (StringUtils.isNotBlank(startTime) && StringUtils.isNotBlank(endTime)) {
+                // 解析日期字符串并转换为Instant
+                Instant startInstant = parseDateToInstant(startTime, true);  // true表示开始时间(00:00:00)
+                Instant endInstant = parseDateToInstant(endTime, false);     // false表示结束时间(23:59:59)
+                builder.range(startInstant, endInstant);
+            } else if (StringUtils.isNotBlank(startTime)) {
+                // 只有开始时间
+                Instant startInstant = parseDateToInstant(startTime, true);
+                // 结束时间默认为今天
+                Instant endInstant = LocalDate.now().atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant();
+                builder.range(startInstant, endInstant);
+            } else if (StringUtils.isNotBlank(endTime)) {
+                // 只有结束时间
+                // 开始时间默认为7天前
+                Instant startInstant = LocalDate.now().minusDays(7).atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+                Instant endInstant = parseDateToInstant(endTime, false);
+                builder.range(startInstant, endInstant);
+            } else {
+                // 默认使用今天的时间范围
+                Instant startInstant = LocalDate.now().atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+                Instant endInstant = LocalDate.now().atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant();
+                builder.range(startInstant, endInstant);
             }
 
-            log.info("设备 {} 时间范围 {} 用电InfluxDB查询语句: {}", deviceCode, range, builder.build());
+            // 构建并打印查询语句
+            String fluxQuery = builder.build();
+            log.info("InfluxDB查询 - 设备编码: {}, 时间范围: {} 至 {}, 房间IDs: {}, 查询语句: {}",
+                    deviceCode, startTime, endTime, roomIds, fluxQuery);
+
             List<InfluxMqttPlug> tables = influxDBClient.getQueryApi()
-                    .query(builder.build(), influxDBProperties.getOrg(), InfluxMqttPlug.class);
+                    .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
 
             if (!tables.isEmpty()) {
-                return tables.get(0).getTotal();
+                InfluxMqttPlug result = tables.get(0);
+                Double total = result.getTotal();
+                Instant createTime = result.getTime(); // 获取数据的创建时间
+
+                log.info("InfluxDB查询成功 - 设备编码: {}, 时间范围: {} 至 {}, 查询结果: {}, 创建时间: {}",
+                        deviceCode, startTime, endTime, total, createTime);
+
+                return new DeviceElectricityDataVO(total, createTime);
+            } else {
+                log.info("InfluxDB查询无数据 - 设备编码: {}, 时间范围: {} 至 {}",
+                        deviceCode, startTime, endTime);
+                return null;
             }
-            return null;
         } catch (Exception e) {
-            log.error("查询设备 {} 时间范围 {} 用电量失败: ", deviceCode, range, e);
+            log.error("InfluxDB查询失败 - 设备编码: {}, 时间范围: {} 至 {}, 异常信息: ",
+                    deviceCode, startTime, endTime, e);
             return null;
         }
     }
 
-    /**
-     * 根据时间范围计算查询参数
-     */
-    private TimeRange calculateTimeRange(String range, String startTime, String endTime) {
-        TimeRange timeRange = new TimeRange();
-        ZoneId zoneId = ZoneId.of("Asia/Shanghai");
-        Instant now = Instant.now();
-
-        switch (range) {
-            case "today":
-                // 今天
-                timeRange.setStartTime(now.atZone(zoneId).toLocalDate().atStartOfDay(zoneId).toInstant());
-                timeRange.setEndTime(now.atZone(zoneId).toLocalDate().plusDays(1).atStartOfDay(zoneId).toInstant());
-                break;
-
-            case "yesterday":
-                // 昨天
-                timeRange.setStartTime(now.atZone(zoneId).toLocalDate().minusDays(1).atStartOfDay(zoneId).toInstant());
-                timeRange.setEndTime(now.atZone(zoneId).toLocalDate().atStartOfDay(zoneId).toInstant());
-                break;
-
-            case "week":
-                // 本周
-                timeRange.setStartTime(now.atZone(zoneId).with(java.time.DayOfWeek.MONDAY).toLocalDate().atStartOfDay(zoneId).toInstant());
-                timeRange.setEndTime(now.atZone(zoneId).toLocalDate().plusDays(1).atStartOfDay(zoneId).toInstant());
-                break;
-
-            case "lastWeek":
-                // 上周
-                timeRange.setStartTime(now.atZone(zoneId).with(java.time.DayOfWeek.MONDAY).toLocalDate().minusWeeks(1).atStartOfDay(zoneId).toInstant());
-                timeRange.setEndTime(now.atZone(zoneId).with(java.time.DayOfWeek.MONDAY).toLocalDate().atStartOfDay(zoneId).toInstant());
-                break;
-
-            case "month":
-                // 本月
-                timeRange.setStartTime(now.atZone(zoneId).toLocalDate().withDayOfMonth(1).atStartOfDay(zoneId).toInstant());
-                timeRange.setEndTime(now.atZone(zoneId).toLocalDate().plusDays(1).atStartOfDay(zoneId).toInstant());
-                break;
-
-            case "lastMonth":
-                // 上月
-                timeRange.setStartTime(now.atZone(zoneId).toLocalDate().minusMonths(1).withDayOfMonth(1).atStartOfDay(zoneId).toInstant());
-                timeRange.setEndTime(now.atZone(zoneId).toLocalDate().withDayOfMonth(1).atStartOfDay(zoneId).toInstant());
-                break;
-
-            case "custom":
-                // 自定义时间范围
-                if (StringUtils.isNotBlank(startTime) && StringUtils.isNotBlank(endTime)) {
-                    try {
-                        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-                        timeRange.setStartTime(java.time.LocalDate.parse(startTime, formatter).atStartOfDay(zoneId).toInstant());
-                        timeRange.setEndTime(java.time.LocalDate.parse(endTime, formatter).plusDays(1).atStartOfDay(zoneId).toInstant());
-                    } catch (Exception e) {
-                        // 参数解析失败，使用默认今天
-                        timeRange.setStartTime(now.atZone(zoneId).toLocalDate().atStartOfDay(zoneId).toInstant());
-                        timeRange.setEndTime(now.atZone(zoneId).toLocalDate().plusDays(1).atStartOfDay(zoneId).toInstant());
-                    }
-                } else {
-                    // 参数不完整，使用默认今天
-                    timeRange.setStartTime(now.atZone(zoneId).toLocalDate().atStartOfDay(zoneId).toInstant());
-                    timeRange.setEndTime(now.atZone(zoneId).toLocalDate().plusDays(1).atStartOfDay(zoneId).toInstant());
-                }
-                break;
-
-            default:
-                // 默认使用今天
-                timeRange.setStartTime(now.atZone(zoneId).toLocalDate().atStartOfDay(zoneId).toInstant());
-                timeRange.setEndTime(now.atZone(zoneId).toLocalDate().plusDays(1).atStartOfDay(zoneId).toInstant());
-                break;
-        }
-
-        return timeRange;
-    }
 
     /**
-     * 时间范围参数类
+     * 将日期字符串解析为Instant对象
+     * @param dateStr 日期字符串，格式为 yyyy-MM-dd
+     * @param isStart 是否为开始时间（true: 00:00:00, false: 23:59:59）
+     * @return Instant对象
      */
-    private static class TimeRange {
-        private Instant startTime;
-        private Instant endTime;
-
-        public Instant getStartTime() {
-            return startTime;
-        }
-
-        public void setStartTime(Instant startTime) {
-            this.startTime = startTime;
-        }
-
-        public Instant getEndTime() {
-            return endTime;
-        }
-
-        public void setEndTime(Instant endTime) {
-            this.endTime = endTime;
+    private Instant parseDateToInstant(String dateStr, boolean isStart) {
+        try {
+            LocalDate date = LocalDate.parse(dateStr, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+            if (isStart) {
+                return date.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+            } else {
+                return date.atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant();
+            }
+        } catch (Exception e) {
+            log.error("日期解析失败: {}", dateStr, e);
+            // 返回默认值
+            if (isStart) {
+                return LocalDate.now().atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+            } else {
+                return LocalDate.now().atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant();
+            }
         }
     }
 }

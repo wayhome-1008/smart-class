@@ -1,5 +1,6 @@
 package com.youlai.boot.dashBoard.model.vo;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -32,4 +33,11 @@ public class DepartmentCategoryElectricityInfoVO {
 
     @Schema(description = "设备数量")
     private Integer deviceCount;
+
+    @Schema(description = "最新数据创建时间")
+    private String latestCreateTime;
+
+    @Schema(description ="房间名称")
+    private String roomName;
+
 }

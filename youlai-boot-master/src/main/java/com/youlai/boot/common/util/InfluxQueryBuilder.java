@@ -276,6 +276,8 @@ package com.youlai.boot.common.util;
 
 import org.springframework.lang.NonNull;
 
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -296,6 +298,8 @@ public class InfluxQueryBuilder {
     private String bucket;
     private Long timeAmount;
     private String timeUnit;
+    private Instant startTime;  // 新增：自定义开始时间
+    private Instant endTime;    // 新增：自定义结束时间
     private String measurement;
     private final List<String> filters = new ArrayList<>();
     private final Map<String, String> tagFilters = new HashMap<>();
@@ -313,6 +317,7 @@ public class InfluxQueryBuilder {
     private boolean yield = true;
     private boolean keepEmpty = false;
     private boolean useTodayRange = false;
+    private boolean useCustomRange = false; // 新增：标识是否使用自定义时间范围
 
     private InfluxQueryBuilder() {
     }
@@ -334,6 +339,32 @@ public class InfluxQueryBuilder {
     public InfluxQueryBuilder range(long amount, @NonNull String unit) {
         this.timeAmount = amount;
         this.timeUnit = unit;
+        return this;
+    }
+
+    /**
+     * 设置自定义时间范围查询
+     * @param start 开始时间
+     * @param stop 结束时间
+     * @return InfluxQueryBuilder 实例
+     */
+    public InfluxQueryBuilder range(@NonNull Instant start, @NonNull Instant stop) {
+        this.startTime = start;
+        this.endTime = stop;
+        this.useCustomRange = true; // 标识使用自定义时间范围
+        return this;
+    }
+
+    /**
+     * 设置自定义时间范围查询（字符串格式）
+     * @param start 开始时间字符串 (ISO格式，如 "2023-10-01T00:00:00Z")
+     * @param stop 结束时间字符串 (ISO格式，如 "2023-10-06T00:00:00Z")
+     * @return InfluxQueryBuilder 实例
+     */
+    public InfluxQueryBuilder range(@NonNull String start, @NonNull String stop) {
+        this.startTime = Instant.parse(start);
+        this.endTime = Instant.parse(stop);
+        this.useCustomRange = true; // 标识使用自定义时间范围
         return this;
     }
 
@@ -399,7 +430,6 @@ public class InfluxQueryBuilder {
     }
 
 
-
     public InfluxQueryBuilder fields(@NonNull String... fields) {
         for (String field : fields) {
             this.fieldFilters.put(field, null);
@@ -429,10 +459,12 @@ public class InfluxQueryBuilder {
         this.pivot = true;
         return this;
     }
+
     public InfluxQueryBuilder sum() {
         this.functions.add("sum()");
         return this;
     }
+
     /**
      * 启用使用上一个值填充
      */
@@ -495,6 +527,11 @@ public class InfluxQueryBuilder {
         flux.append(String.format("from(bucket: \"%s\")\n", bucket));
         if (useTodayRange) {
             flux.append("  |> range(start: today())\n");
+        } else if (useCustomRange) {
+            // 使用自定义时间范围
+            DateTimeFormatter formatter = DateTimeFormatter.ISO_INSTANT;
+            flux.append(String.format("  |> range(start: %s, stop: %s)\n",
+                    startTime.toString(), endTime.toString()));
         } else {
             flux.append(String.format("  |> range(start: -%d%s)\n", timeAmount, timeUnit));
         }
@@ -549,6 +586,7 @@ public class InfluxQueryBuilder {
 
         return flux.toString().trim();
     }
+
     /**
      * 专用于构建计数查询的快捷方法
      * @return 仅包含count结果的Flux查询语句
@@ -610,17 +648,26 @@ public class InfluxQueryBuilder {
 
     private void validateParams() {
         Objects.requireNonNull(bucket, "bucket不能为空");
-        if (!useTodayRange) {
+
+        // 如果不是使用today范围且不是使用自定义范围，则需要timeAmount和timeUnit
+        if (!useTodayRange && !useCustomRange) {
             Objects.requireNonNull(timeAmount, "timeAmount不能为空");
             Objects.requireNonNull(timeUnit, "timeUnit不能为空");
         }
+
+        // 如果使用自定义范围，需要确保开始和结束时间都不为空
+        if (useCustomRange) {
+            Objects.requireNonNull(startTime, "startTime不能为空");
+            Objects.requireNonNull(endTime, "endTime不能为空");
+        }
+
         Objects.requireNonNull(measurement, "measurement不能为空");
-        if (!useTodayRange) {
+
+        if (!useTodayRange && !useCustomRange) {
             if (timeAmount <= 0) {
                 throw new IllegalArgumentException("timeAmount必须大于0");
             }
         }
-
     }
 }
 

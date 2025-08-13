@@ -51,12 +51,10 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.youlai.boot.common.util.DateUtils.formatTime;
 import static com.youlai.boot.common.util.JsonUtils.stringToJsonNode;
 import static com.youlai.boot.common.util.MathUtils.formatDouble;
 
@@ -838,57 +836,6 @@ public class DashBoardController {
         vo.setValue(values);
         result.add(vo);
         return result;
-    }
-
-    private String formatTime(Instant time, String timeUnit) {
-        ZoneId utcZone = ZoneId.of("UTC");
-        return switch (timeUnit) {
-            //显示月份
-            case "y" -> time.atZone(utcZone).getYear() + "/" +
-                    String.format("%02d", time.atZone(utcZone).getMonthValue());
-            //显示日期
-            case "mo" -> String.format("%02d", time.atZone(utcZone).getMonthValue()) + "/" +
-                    String.format("%02d", time.atZone(utcZone).getDayOfMonth());
-            case "w" -> { // 显示中文星期，区分本周和上周
-                // 获取当前周一的日期
-                Instant now = Instant.now();
-                Instant currentMonday = now.atZone(utcZone)
-                        .with(java.time.DayOfWeek.MONDAY)
-                        .toLocalDate()
-                        .atStartOfDay(utcZone)
-                        .toInstant();
-
-                // 判断记录时间是本周还是上周
-                String prefix = time.isBefore(currentMonday) ? "上" : "";
-
-                int dayOfWeek = time.atZone(utcZone).getDayOfWeek().getValue();
-                yield switch (dayOfWeek) {
-                    case 1 -> prefix + "周一";
-                    case 2 -> prefix + "周二";
-                    case 3 -> prefix + "周三";
-                    case 4 -> prefix + "周四";
-                    case 5 -> prefix + "周五";
-                    case 6 -> prefix + "周六";
-                    case 7 -> prefix + "周日";
-                    default -> String.valueOf(dayOfWeek);
-                };
-            }
-            case "d" -> String.format("%02d", time.atZone(utcZone).getHour()) + ":00";
-            case "h" -> String.format("%02d:%02d", time.atZone(utcZone).getHour(), time.atZone(utcZone).getMinute());
-            case "HH:mm:ss" -> String.format("%02d:%02d:%02d",
-                    time.atZone(utcZone).getHour(),
-                    time.atZone(utcZone).getMinute(),
-                    time.atZone(utcZone).getSecond());
-            //显示年月日时分秒
-            case "yyyy-MM-dd HH:mm:ss" -> String.format("%04d-%02d-%02d %02d:%02d:%02d",
-                    time.atZone(utcZone).getYear(),
-                    time.atZone(utcZone).getMonthValue(),
-                    time.atZone(utcZone).getDayOfMonth(),
-                    time.atZone(utcZone).getHour(),
-                    time.atZone(utcZone).getMinute(),
-                    time.atZone(utcZone).getSecond());
-            default -> time.atZone(utcZone).format(DateTimeFormatter.ISO_LOCAL_TIME);
-        };
     }
 
     @SuppressWarnings("Duplicates")
