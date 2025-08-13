@@ -27,6 +27,9 @@ public class DepartmentCategoryElectricityInfoVO {
     @Schema(description = "总用电量")
     private Double totalElectricity;
 
+    @Schema(description = "该分类总用电量（所有部门中该分类的用电量总和）")
+    private Double categoryTotalElectricity;
+
     @Schema(description = "设备数量")
     private Integer deviceCount;
 }

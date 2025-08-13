@@ -398,6 +398,8 @@ public class InfluxQueryBuilder {
         return this;
     }
 
+
+
     public InfluxQueryBuilder fields(@NonNull String... fields) {
         for (String field : fields) {
             this.fieldFilters.put(field, null);

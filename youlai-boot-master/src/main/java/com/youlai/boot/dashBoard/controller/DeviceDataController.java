@@ -75,7 +75,13 @@ public class DeviceDataController {
             @RequestParam(required = false) String startTime,
 
             @Parameter(description = "自定义结束时间(yyyy-MM-dd格式)")
-            @RequestParam(required = false) String endTime) {
+            @RequestParam(required = false) String endTime,
+
+            @Parameter(description = "部门IDs，多个用逗号分隔")
+            @RequestParam(required = false) String deptIds,
+
+            @Parameter(description = "房间IDs，多个用逗号分隔")
+            @RequestParam(required = false) String roomIds) {
 
         try {
             // 1. 获取所有分类
@@ -102,11 +108,11 @@ public class DeviceDataController {
                         .ifPresent(validCategories::add);
             }
 
-            // 3. 获取所有房间信息，用于部门映射
-            List<com.youlai.boot.room.model.entity.Room> allRooms = roomService.list();
+            // 3. 获取所有房间的信息，用于部门映射
+            List<Room> allRooms = roomService.list();
             Map<Long, Room> roomMap = allRooms.stream()
                     .collect(Collectors.toMap(
-                            com.youlai.boot.room.model.entity.Room::getId,
+                            Room::getId,
                             room -> room
                     ));
 
@@ -127,13 +133,13 @@ public class DeviceDataController {
 
                     List<Device> masterDevices = deviceService.listByIds(deviceIds).stream()
                             .filter(device -> device.getIsMaster() == 1)
-                            .collect(Collectors.toList());
+                            .toList();
 
                     for (Device masterDevice : masterDevices) {
-                        Double deviceElectricity = getDeviceElectricityByRange(masterDevice.getDeviceCode(), range, startTime, endTime);
+                        Double deviceElectricity = getDeviceElectricityByRange(masterDevice.getDeviceCode(), range, startTime, endTime, roomIds);
                         if (deviceElectricity != null) {
                             // 获取设备所在房间
-                            com.youlai.boot.room.model.entity.Room room = roomMap.get(masterDevice.getDeviceRoom());
+                            Room room = roomMap.get(masterDevice.getDeviceRoom());
                             if (room != null) {
                                 Long departmentId = room.getDepartmentId();
                                 Dept department = deptService.getById(departmentId);
@@ -153,18 +159,47 @@ public class DeviceDataController {
                                     vo.setDeviceCount(0);
                                     departmentCategoryMap.put(groupKey, vo);
                                 }
-
                                 // 累加用电量和设备数量
                                 vo.setTotalElectricity(MathUtils.formatDouble(vo.getTotalElectricity() + deviceElectricity));
                                 vo.setDeviceCount(vo.getDeviceCount() + 1);
                             }
                         }
+
                     }
                 }
             }
 
             departmentCategoryElectricityList.addAll(departmentCategoryMap.values());
 
+            // 添加部门筛选逻辑
+            if (StringUtils.isNotBlank(deptIds)) {
+                List<Long> deptIdList = Arrays.stream(deptIds.split(","))
+                        .map(String::trim)
+                        .filter(StringUtils::isNotBlank)
+                        .map(Long::parseLong)
+                        .toList();
+
+                departmentCategoryElectricityList = departmentCategoryElectricityList.stream()
+                        .filter(item -> deptIdList.contains(item.getDepartmentId()))
+                        .collect(Collectors.toList());
+            }
+            // 计算每个分类的总用电量和占比
+// 按分类ID分组，计算每个分类的总用电量
+            Map<Long, Double> categoryTotalElectricityMap = departmentCategoryElectricityList.stream()
+                    .collect(Collectors.groupingBy(
+                            DepartmentCategoryElectricityInfoVO::getCategoryId,
+                            Collectors.summingDouble(DepartmentCategoryElectricityInfoVO::getTotalElectricity)
+                    ));
+
+// 为每个记录设置分类总用电量和占比
+            for (DepartmentCategoryElectricityInfoVO item : departmentCategoryElectricityList) {
+                Double categoryTotal = categoryTotalElectricityMap.get(item.getCategoryId());
+                if (categoryTotal != null && categoryTotal > 0) {
+                    item.setCategoryTotalElectricity(categoryTotal);
+                } else {
+                    item.setCategoryTotalElectricity(0.0);
+                }
+            }
             // 5. 分页处理
             int total = departmentCategoryElectricityList.size();
             int fromIndex = (pageNum - 1) * pageSize;
@@ -303,7 +338,7 @@ public class DeviceDataController {
             // 计算总用电量
             double totalElectricity = 0.0;
             for (Device masterDevice : masterDevices) {
-                Double deviceElectricity = getDeviceElectricityByRange(masterDevice.getDeviceCode(), range, startTime, endTime);
+                Double deviceElectricity = getDeviceElectricityByRange(masterDevice.getDeviceCode(), range, startTime, endTime, null);
                 if (deviceElectricity != null) {
                     totalElectricity += deviceElectricity;
                 }
@@ -322,7 +357,7 @@ public class DeviceDataController {
     /**
      * 根据时间范围获取设备用电量
      */
-    private Double getDeviceElectricityByRange(String deviceCode, String range, String startTime, String endTime) {
+    private Double getDeviceElectricityByRange(String deviceCode, String range, String startTime, String endTime, String roomIds) {
         try {
             // 根据时间范围构建查询
             InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
@@ -334,7 +369,21 @@ public class DeviceDataController {
                     .pivot()
                     .sort("_time", InfluxQueryBuilder.SORT_DESC)
                     .timeShift("8h");
+            // 处理多roomId查询
+            if (StringUtils.isNotBlank(roomIds)) {
+                List<String> roomIdList = Arrays.stream(roomIds.split(","))
+                        .map(String::trim)
+                        .filter(StringUtils::isNotBlank)
+                        .toList();
 
+                if (!roomIdList.isEmpty()) {
+                    // 构造 or 条件: r.roomId == "123" or r.roomId == "456" or r.roomId == "789"
+                    String roomFilter = roomIdList.stream()
+                            .map(id -> String.format("r.roomId == \"%s\"", id))
+                            .collect(Collectors.joining(" or "));
+                    builder.filter("(" + roomFilter + ")");
+                }
+            }
             // 根据不同时间范围设置查询参数
             switch (range) {
                 case "today":
@@ -376,10 +425,10 @@ public class DeviceDataController {
             if (!tables.isEmpty()) {
                 return tables.get(0).getTotal();
             }
-            return 0.0;
+            return null;
         } catch (Exception e) {
             log.error("查询设备 {} 时间范围 {} 用电量失败: ", deviceCode, range, e);
-            return 0.0;
+            return null;
         }
     }
 
