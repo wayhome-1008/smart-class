@@ -11,11 +11,13 @@
         r.classroom_code,
         r.remark,
         b.building_name AS buildingName,
-        f.floor_number AS floorName
+        f.floor_number AS floorName,
+        d.name AS departmentName
         FROM
         room r
         LEFT JOIN building b ON r.building_id = b.id AND b.is_deleted = 0
         LEFT JOIN floor f ON r.floor_id = f.id AND f.is_deleted = 0
+        LEFT JOIN sys_dept d ON r.department_id = d.id
         <where>
             AND r.is_deleted = 0
             <!-- 楼宇ID条件 -->

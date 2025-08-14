@@ -69,6 +69,11 @@ public class RoomServiceImpl extends ServiceImpl<RoomMapper, Room> implements Ro
     @Override
     public boolean saveRoom(RoomForm formData) {
         Room entity = roomConverter.toEntity(formData);
+        //如果有部门需校验是否该部门已被使用
+        if (entity.getDepartmentId() != null) {
+            long count = this.count(new LambdaQueryWrapper<Room>().eq(Room::getDepartmentId, entity.getDepartmentId()));
+            Assert.isTrue(count == 0, "部门已使用");
+        }
         entity.setCreateBy(SecurityUtils.getUserId());
         return this.save(entity);
     }
@@ -83,6 +88,19 @@ public class RoomServiceImpl extends ServiceImpl<RoomMapper, Room> implements Ro
     @Override
     public boolean updateRoom(Long id, RoomForm formData) {
         Room entity = roomConverter.toEntity(formData);
+        // 如果部门ID不为空且发生了变化，才需要校验
+        if (entity.getDepartmentId() != null) {
+            // 获取当前房间的原始信息
+            Room oldRoom = this.getById(id);
+            // 只有当部门ID真正改变时才进行校验
+            if (oldRoom != null && !entity.getDepartmentId().equals(oldRoom.getDepartmentId())) {
+                // 校验新部门是否已被其他房间使用（排除当前房间）
+                long count = this.count(new LambdaQueryWrapper<Room>()
+                        .eq(Room::getDepartmentId, entity.getDepartmentId())
+                        .ne(Room::getId, id));
+                Assert.isTrue(count == 0, "部门已使用");
+            }
+        }
         entity.setUpdateBy(SecurityUtils.getUserId());
         return this.updateById(entity);
     }

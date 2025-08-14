@@ -160,8 +160,8 @@ public class DeviceDataController {
                                     vo.setCategoryName(category.getCategoryName());
                                     vo.setTotalElectricity(0.0);
                                     vo.setDeviceCount(0);
-                                    vo.setLatestCreateTime(formatTime(deviceData.getTime(), "yyyy-MM-dd HH:mm:ss"));
                                     vo.setRoomName(room.getClassroomCode() != null ? room.getClassroomCode() : "未知房间");
+                                    vo.setRoomId(room.getId());
                                     departmentCategoryMap.put(groupKey, vo);
                                 }
                                 // 累加用电量和设备数量

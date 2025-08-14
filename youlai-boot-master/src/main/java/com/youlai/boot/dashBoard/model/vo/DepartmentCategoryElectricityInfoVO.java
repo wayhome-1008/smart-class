@@ -33,10 +33,10 @@ public class DepartmentCategoryElectricityInfoVO {
     @Schema(description = "设备数量")
     private Integer deviceCount;
 
-    @Schema(description = "最新数据创建时间")
-    private String latestCreateTime;
-
     @Schema(description ="房间名称")
     private String roomName;
+
+    @Schema(description = "房间ID")
+    private Long roomId;
 
 }
