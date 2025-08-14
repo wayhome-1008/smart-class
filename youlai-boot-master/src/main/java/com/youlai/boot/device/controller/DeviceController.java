@@ -472,13 +472,12 @@ public class DeviceController {
                 default:
                     break;
             }
-        }
-
-        if (result) {
-            //删除的同时清缓存
-            redisTemplate.opsForHash().delete(RedisConstants.Device.DEVICE, idList);
-            //删除关系表
-            categoryDeviceRelationshipService.remove(new LambdaQueryWrapper<CategoryDeviceRelationship>().eq(CategoryDeviceRelationship::getDeviceId, idList));
+            if (result) {
+                //删除的同时清缓存
+                redisTemplate.opsForHash().delete(RedisConstants.Device.DEVICE, device.getDeviceCode());
+                //删除关系表
+                categoryDeviceRelationshipService.remove(new LambdaQueryWrapper<CategoryDeviceRelationship>().eq(CategoryDeviceRelationship::getDeviceId, device.getId()));
+            }
         }
         return Result.judge(result);
     }
