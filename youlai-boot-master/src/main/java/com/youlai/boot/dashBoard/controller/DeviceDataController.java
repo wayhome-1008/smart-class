@@ -1,5 +1,6 @@
 package com.youlai.boot.dashBoard.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.youlai.boot.building.model.entity.Building;
@@ -85,7 +86,7 @@ public class DeviceDataController {
             @RequestParam(required = false) String endTime) {
 
         try {
-            // 获取房间信息
+            // 获取房间的信息
             Room room = roomService.getById(roomId);
             if (room == null) {
                 return Result.success(null);
@@ -505,25 +506,59 @@ public class DeviceDataController {
         }
     }
 
-    @Operation(summary = "查询各房间总用电量")
+    @Operation(summary = "分页查询各房间总用电量")
     @GetMapping("/room/electricity")
-    public Result<List<RoomsElectricityVO>> getRoomElectricity(
+    public PageResult<RoomsElectricityVO> getRoomElectricityPage(
+            @Parameter(description = "页码，默认为1")
+            @RequestParam(defaultValue = "1") Integer pageNum,
+
+            @Parameter(description = "每页数量，默认为10")
+            @RequestParam(defaultValue = "10") Integer pageSize,
+
             @Parameter(description = "房间ID")
-            @RequestParam String roomIds,
+            @RequestParam(required = false) String roomIds,
 
             @Parameter(description = "自定义开始时间(yyyy-MM-dd格式)")
             @RequestParam(required = false) String startTime,
 
             @Parameter(description = "自定义结束时间(yyyy-MM-dd格式)")
             @RequestParam(required = false) String endTime) {
-        // 2. 构建结果列表
-        List<RoomElectricityRankingVO> rankingList = new ArrayList<>();
-        List<Long> roomIdList = Arrays.stream(roomIds.split(","))
-                .map(Long::parseLong)
-                .toList();
-        List<RoomsElectricityVO> roomsElectricityList = getRoomsElectricity(startTime, endTime, roomIds);
-        return Result.success(roomsElectricityList);
+
+        try {
+            if (StringUtils.isEmpty(roomIds)) {
+                List<Room> roomList = roomService.list(new LambdaQueryWrapper<Room>().eq(Room::getIsDeleted, 0));
+                if (ObjectUtils.isEmpty(roomList)) {
+                    return PageResult.success(new Page<>());
+                }
+                roomIds = roomList.stream().map(Room::getId).map(String::valueOf).collect(Collectors.joining(","));
+            }
+            List<RoomsElectricityVO> roomsElectricityList = getRoomsElectricity(startTime, endTime, roomIds);
+
+            // 按用电量降序排列
+            roomsElectricityList.sort((a, b) -> Double.compare(b.getTotalElectricity(), a.getTotalElectricity()));
+
+            // 分页处理
+            int total = roomsElectricityList.size();
+            int fromIndex = (pageNum - 1) * pageSize;
+            int toIndex = Math.min(fromIndex + pageSize, total);
+
+            List<RoomsElectricityVO> pagedResult = new ArrayList<>();
+            if (fromIndex < total) {
+                pagedResult = roomsElectricityList.subList(fromIndex, toIndex);
+            }
+
+            // 构造分页结果
+            Page<RoomsElectricityVO> page = new Page<>(pageNum, pageSize);
+            page.setTotal(total);
+            page.setRecords(pagedResult);
+
+            return PageResult.success(page);
+        } catch (Exception e) {
+            log.error("分页查询房间用电量失败 - roomIds: {}", roomIds, e);
+            return PageResult.success(null);
+        }
     }
+
 
     /**
      * 根据时间范围获取设备用电量
@@ -608,31 +643,49 @@ public class DeviceDataController {
         return resultList;
     }
 
-    @Operation(summary = "查询各部门总用电量")
+    @Operation(summary = "分页查询各部门总用电量")
     @GetMapping("/department/electricity")
-    public Result<List<DepartmentElectricityVO>> getDepartmentElectricity(
+    public PageResult<DepartmentElectricityVO> getDepartmentElectricityPage(
+            @Parameter(description = "页码，默认为1")
+            @RequestParam(defaultValue = "1") Integer pageNum,
+
+            @Parameter(description = "每页数量，默认为10")
+            @RequestParam(defaultValue = "10") Integer pageSize,
+
             @Parameter(description = "部门IDs，多个用逗号分隔")
-            @RequestParam String deptIds,
+            @RequestParam(required = false) String deptIds,
 
             @Parameter(description = "自定义开始时间(yyyy-MM-dd格式)")
             @RequestParam(required = false) String startTime,
 
             @Parameter(description = "自定义结束时间(yyyy-MM-dd格式)")
             @RequestParam(required = false) String endTime) {
-
+        List<Long> deptIdList;
         try {
+            if (StringUtils.isBlank(deptIds)) {
+                List<Dept> list = deptService.list();
+                if (list.isEmpty()) {
+                    Page<DepartmentElectricityVO> page = new Page<>(pageNum, pageSize);
+                    page.setTotal(0);
+                    page.setRecords(new ArrayList<>());
+                    return PageResult.success(page);
+                }
+                deptIds = list.stream().map(Dept::getId).map(String::valueOf).collect(Collectors.joining(","));
+            }
             // 解析部门ID列表
-            List<Long> deptIdList = Arrays.stream(deptIds.split(","))
+            deptIdList = Arrays.stream(deptIds.split(","))
                     .map(String::trim)
                     .filter(StringUtils::isNotBlank)
                     .map(Long::parseLong)
                     .toList();
-
             // 根据部门ID查询房间列表
             List<Room> allRooms = roomService.list(new QueryWrapper<Room>().in("department_id", deptIdList));
 
             if (allRooms.isEmpty()) {
-                return Result.success(new ArrayList<>());
+                Page<DepartmentElectricityVO> page = new Page<>(pageNum, pageSize);
+                page.setTotal(0);
+                page.setRecords(new ArrayList<>());
+                return PageResult.success(page);
             }
 
             // 按部门ID分组房间
@@ -689,12 +742,28 @@ public class DeviceDataController {
             // 按用电量降序排列
             result.sort((a, b) -> Double.compare(b.getTotalElectricity(), a.getTotalElectricity()));
 
-            return Result.success(result);
+            // 分页处理
+            int total = result.size();
+            int fromIndex = (pageNum - 1) * pageSize;
+            int toIndex = Math.min(fromIndex + pageSize, total);
+
+            List<DepartmentElectricityVO> pagedResult = new ArrayList<>();
+            if (fromIndex < total) {
+                pagedResult = result.subList(fromIndex, toIndex);
+            }
+
+            // 构造分页结果
+            Page<DepartmentElectricityVO> page = new Page<>(pageNum, pageSize);
+            page.setTotal(total);
+            page.setRecords(pagedResult);
+
+            return PageResult.success(page);
 
         } catch (Exception e) {
-            log.error("查询各部门用电量失败 - deptIds: {}", deptIds, e);
-            return Result.failed("查询各部门用电量失败");
+            log.error("分页查询各部门用电量失败 - deptIds: {}", deptIds, e);
+            return PageResult.success(null);
         }
     }
+
 
 }
