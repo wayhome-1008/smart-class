@@ -22,6 +22,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.Iterator;
+import java.util.Optional;
 
 import static com.youlai.boot.common.util.JsonUtils.mergeJson;
 import static com.youlai.boot.common.util.JsonUtils.stringToJsonNode;
@@ -54,6 +55,10 @@ public class StateHandler implements MsgHandler {
         if (device.getDeviceTypeId() == 2) {
             handlerSensor(topic, jsonMsg);
         }
+        //计量插座
+        if (device.getDeviceTypeId() == 4) {
+            handlerPlug(topic, jsonMsg);
+        }
         //灯光
         if (device.getDeviceTypeId() == 8) {
             handlerLight(topic, jsonMsg);
@@ -61,6 +66,28 @@ public class StateHandler implements MsgHandler {
         //三合一传感器
         if (device.getDeviceTypeId() == 9) {
             handlerSensor3On1(topic, jsonMsg);
+        }
+    }
+
+    private void handlerPlug(String topic, String jsonMsg) {
+        try {
+            JsonNode jsonNode = stringToJsonNode(jsonMsg);
+            String deviceCode = getCodeByTopic(topic);
+            Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
+            if (ObjectUtils.isNotEmpty(device)) {
+                String power = jsonNode.get("POWER").asText();
+                ObjectNode metrics = JsonNodeFactory.instance.objectNode();
+                //接受得数据与旧数据合并)
+                metrics.put("count", 1);
+                metrics.put("switch1", power);
+                JsonNode mergeJson = mergeJson(Optional.of(device).map(Device::getDeviceInfo).orElse(null), metrics);
+                device.setDeviceInfo(mergeJson);
+                device.setStatus(1);
+                redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
+            }
+        } catch (Exception e) {
+            log.error("设备 {} 处理失败: {}", topic, e.getMessage(), e);
+            throw new RuntimeException("插座状态处理异常", e);
         }
     }
 

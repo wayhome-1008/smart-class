@@ -80,7 +80,7 @@ public class SensorHandler implements MsgHandler {
              */
         //只获取需要的数据merge
         ObjectNode metrics = JsonNodeFactory.instance.objectNode();
-        //接受得数据与旧数据合并
+        //接受得数据与旧数据合并)
         metrics.put("power", jsonNode.get("ENERGY").get("Power").asInt());
         metrics.put("voltage", jsonNode.get("ENERGY").get("Voltage").asDouble());
         metrics.put("current", jsonNode.get("ENERGY").get("Current").asDouble());

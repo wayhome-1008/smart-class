@@ -4,14 +4,12 @@ import lombok.Data;
 
 /**
  *@Author: way
- *@CreateTime: 2025-07-10  10:32
+ *@CreateTime: 2025-08-15  11:11
  *@Description: TODO
  */
 @Data
-public class RoomElectricityRankingVO {
-    private Integer rank;
+public class RoomsElectricityVO {
     private Long roomId;
-    private String roomCode;
     private String roomName;
     private Double totalElectricity;
 }
