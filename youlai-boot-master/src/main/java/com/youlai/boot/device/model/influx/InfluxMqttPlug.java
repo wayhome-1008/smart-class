@@ -96,4 +96,7 @@ public class InfluxMqttPlug {
     private Instant time;
 
     private Double kilowattHour;
+
+    @Column(name = "switch")
+    private String switchState;
 }

@@ -28,6 +28,7 @@ import com.youlai.boot.system.model.entity.AlertRule;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -262,12 +263,14 @@ public class SubUpdateHandler implements MsgHandler {
         //获取params
         JsonNode params = jsonNode.get("params");
         ObjectNode metrics = JsonNodeFactory.instance.objectNode();
+        String switchState = "";
         //开关状态
         if (params.has("switches")) {
             JsonNode switchesArray = params.get("switches");
             for (JsonNode switchNode : switchesArray) {
                 metrics.put("count", 1);
-                metrics.put("switch1", Objects.equals(switchNode.get("switch").asText(), "on") ? "ON" : "OFF");
+                switchState = Objects.equals(switchNode.get("switch").asText(), "on") ? "ON" : "OFF";
+                metrics.put("switch1", switchState);
             }
         }
         //电压
@@ -334,6 +337,10 @@ public class SubUpdateHandler implements MsgHandler {
             //总用电量
             if (mergeParams.has("total")) {
                 influxPlug.setTotal(mergeParams.get("total").asDouble());
+            }
+            //开关
+            if (StringUtils.isNotEmpty(switchState)) {
+                influxPlug.setSwitchState(switchState);
             }
 //            if (mergeParams.has("activePowerB") && mergeParams.get("activePowerB").isInt()) {
 //                influxPlug.setActivePowerB(mergeParams.get("activePowerB").asInt());

@@ -1,5 +1,6 @@
 package com.youlai.boot.dashBoard.controller;
 
+import cn.idev.excel.EasyExcel;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -28,16 +29,21 @@ import com.youlai.boot.system.service.DeptService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -224,7 +230,6 @@ public class DeviceDataController {
 
         return result;
     }
-
 
     @Operation(summary = "分页查询各部门各分类用电量")
     @GetMapping("/department/category/electricity/page")
@@ -524,6 +529,11 @@ public class DeviceDataController {
             @Parameter(description = "自定义结束时间(yyyy-MM-dd格式)")
             @RequestParam(required = false) String endTime) {
 
+        return getRoomsElectricityVOPageResult(pageNum, pageSize, roomIds, startTime, endTime);
+    }
+
+    @NotNull
+    private PageResult<RoomsElectricityVO> getRoomsElectricityVOPageResult(Integer pageNum, Integer pageSize, String roomIds, String startTime, String endTime) {
         try {
             if (StringUtils.isEmpty(roomIds)) {
                 List<Room> roomList = roomService.list(new LambdaQueryWrapper<Room>().eq(Room::getIsDeleted, 0));
@@ -559,6 +569,24 @@ public class DeviceDataController {
         }
     }
 
+    @Operation(summary = "导出各房间总用电量")
+    @GetMapping("/export/room/electricity")
+    public void exportRoomElectricity(@Parameter(description = "房间ID")
+                                      @RequestParam(required = false) String roomIds,
+
+                                      @Parameter(description = "自定义开始时间(yyyy-MM-dd格式)")
+                                      @RequestParam(required = false) String startTime,
+
+                                      @Parameter(description = "自定义结束时间(yyyy-MM-dd格式)")
+                                      @RequestParam(required = false) String endTime, HttpServletResponse response) throws IOException {
+        String fileName = "房间总用电量.xlsx";
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename=" + URLEncoder.encode(fileName, StandardCharsets.UTF_8));
+        PageResult<RoomsElectricityVO> roomsElectricityVOPageResult = getRoomsElectricityVOPageResult(1, 999999, roomIds, startTime, endTime);
+        List<RoomsElectricityVO> list = roomsElectricityVOPageResult.getData().getList();
+        EasyExcel.write(response.getOutputStream(), RoomsElectricityVO.class).sheet("房间总用电量")
+                .doWrite(list);
+    }
 
     /**
      * 根据时间范围获取设备用电量
@@ -660,6 +688,30 @@ public class DeviceDataController {
 
             @Parameter(description = "自定义结束时间(yyyy-MM-dd格式)")
             @RequestParam(required = false) String endTime) {
+        return getDepartmentElectricityVOPageResult(pageNum, pageSize, deptIds, startTime, endTime);
+    }
+
+    @Operation(summary = "导出各部门总用电量")
+    @GetMapping("/export/department/electricity")
+    public void exportDepartmentElectricity(@Parameter(description = "部门IDs，多个用逗号分隔")
+                                            @RequestParam(required = false) String deptIds,
+
+                                            @Parameter(description = "自定义开始时间(yyyy-MM-dd格式)")
+                                            @RequestParam(required = false) String startTime,
+
+                                            @Parameter(description = "自定义结束时间(yyyy-MM-dd格式)")
+                                            @RequestParam(required = false) String endTime, HttpServletResponse response) throws IOException {
+        String fileName = "部门总用电量.xlsx";
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename=" + URLEncoder.encode(fileName, StandardCharsets.UTF_8));
+        PageResult<DepartmentElectricityVO> departmentElectricityVOPageResult = getDepartmentElectricityVOPageResult(1, 999999, deptIds, startTime, endTime);
+        List<DepartmentElectricityVO> list = departmentElectricityVOPageResult.getData().getList();
+        EasyExcel.write(response.getOutputStream(), DepartmentElectricityVO.class).sheet("部门总用电量")
+                .doWrite(list);
+    }
+
+    @NotNull
+    private PageResult<DepartmentElectricityVO> getDepartmentElectricityVOPageResult(Integer pageNum, Integer pageSize, String deptIds, String startTime, String endTime) {
         List<Long> deptIdList;
         try {
             if (StringUtils.isBlank(deptIds)) {
