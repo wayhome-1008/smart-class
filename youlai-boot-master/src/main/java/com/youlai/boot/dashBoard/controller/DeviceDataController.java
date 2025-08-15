@@ -2,9 +2,6 @@ package com.youlai.boot.dashBoard.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.influxdb.exceptions.InfluxException;
-import com.influxdb.query.FluxRecord;
-import com.influxdb.query.FluxTable;
 import com.youlai.boot.building.model.entity.Building;
 import com.youlai.boot.building.service.BuildingService;
 import com.youlai.boot.category.model.entity.Category;
