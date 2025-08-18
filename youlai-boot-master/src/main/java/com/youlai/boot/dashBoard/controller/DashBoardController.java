@@ -297,10 +297,10 @@ public class DashBoardController {
             @Parameter(description = "房间id")
             @RequestParam Long roomId) {
         try {
-            // 使用新的InfluxQueryBuilder构建查询
-            InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
+            // 查询当天最早的数据点
+            InfluxQueryBuilder earliestBuilder = InfluxQueryBuilder.newBuilder()
                     .bucket(influxDBProperties.getBucket())
-                    .range(1, "d")
+                    .today()
                     .measurement("device")
                     .fields("Total", "Voltage", "Current")
                     .pivot()
@@ -308,14 +308,53 @@ public class DashBoardController {
                     .sort("_time", InfluxQueryBuilder.SORT_ASC)
                     .limit(1)
                     .timeShift("8h");
-            builder.tag("roomId", String.valueOf(roomId));
-            String fluxQuery = builder.build();
-            log.info("房间当天用电InfluxDB查询语句: {}", fluxQuery);
+            earliestBuilder.tag("roomId", String.valueOf(roomId));
 
-            List<InfluxMqttPlug> tables = influxDBClient.getQueryApi()
-                    .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);         //根据influxdb传来的数据把度数算上
-            if (!tables.isEmpty()) {
-                InfluxMqttPlug latestData = tables.get(0);
+            // 查询当天最晚的数据点
+            InfluxQueryBuilder latestBuilder = InfluxQueryBuilder.newBuilder()
+                    .bucket(influxDBProperties.getBucket())
+                    .today()
+                    .measurement("device")
+                    .fields("Total", "Voltage", "Current")
+                    .pivot()
+                    .fill()
+                    .sort("_time", InfluxQueryBuilder.SORT_DESC)
+                    .limit(1)
+                    .timeShift("8h");
+            latestBuilder.tag("roomId", String.valueOf(roomId));
+
+            String earliestFluxQuery = earliestBuilder.build();
+            String latestFluxQuery = latestBuilder.build();
+
+            log.info("房间当天用电最早数据InfluxDB查询语句: {}", earliestFluxQuery);
+            log.info("房间当天用电最晚数据InfluxDB查询语句: {}", latestFluxQuery);
+
+            List<InfluxMqttPlug> earliestTables = influxDBClient.getQueryApi()
+                    .query(earliestFluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
+
+            List<InfluxMqttPlug> latestTables = influxDBClient.getQueryApi()
+                    .query(latestFluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
+
+            if (!earliestTables.isEmpty() && !latestTables.isEmpty()) {
+                InfluxMqttPlug earliestData = earliestTables.get(0);
+                InfluxMqttPlug latestData = latestTables.get(0);
+
+                RoomElectricity result = new RoomElectricity();
+
+                // 计算当天用电量（最晚值 - 最早值）
+                if (earliestData.getTotal() != null && latestData.getTotal() != null) {
+                    double todayConsumption = latestData.getTotal() - earliestData.getTotal();
+                    result.setTotal(Math.max(0, formatDouble(todayConsumption))); // 确保不为负数
+                }
+
+                // 使用最晚时间点的电压和电流数据
+                result.setVoltage(latestData.getVoltage());
+                result.setCurrent(latestData.getCurrent());
+
+                return Result.success(result);
+            } else if (!latestTables.isEmpty()) {
+                // 如果只有最晚数据，返回该数据（向后兼容）
+                InfluxMqttPlug latestData = latestTables.get(0);
                 RoomElectricity result = new RoomElectricity();
                 result.setTotal(formatDouble(latestData.getTotal()));
                 result.setVoltage(latestData.getVoltage());
