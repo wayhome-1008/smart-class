@@ -318,6 +318,9 @@ public class InfluxQueryBuilder {
     private boolean keepEmpty = false;
     private boolean useTodayRange = false;
     private boolean useCustomRange = false; // 新增：标识是否使用自定义时间范围
+    private final Map<String, List<String>> fieldAggregates = new HashMap<>(); // 字段名 -> 聚合函数列表
+    private String range; //自定义的时间范围
+    private boolean useOneRange = false;
 
     private InfluxQueryBuilder() {
     }
@@ -329,6 +332,27 @@ public class InfluxQueryBuilder {
         return new InfluxQueryBuilder();
     }
 
+    /**
+     * 添加字段级聚合函数
+     * @param field 字段名
+     * @param aggregateFunction 聚合函数（如 "first()", "last()", "mean()" 等）
+     * @return InfluxQueryBuilder 实例
+     */
+    public InfluxQueryBuilder addAggregate(String field, String aggregateFunction) {
+        this.fieldAggregates.computeIfAbsent(field, k -> new ArrayList<>()).add(aggregateFunction);
+        return this;
+    }
+
+    /**
+     * 设置字段窗口聚合
+     * @param windowSize 窗口大小（如 "1h", "1d" 等）
+     * @return InfluxQueryBuilder 实例
+     */
+    public InfluxQueryBuilder fieldWindow(String windowSize) {
+        // 这里我们使用 windowEvery 来存储字段窗口大小
+        this.windowEvery = windowSize;
+        return this;
+    }
     // ========== 基础参数设置 ==========
 
     public InfluxQueryBuilder bucket(@NonNull String bucket) {
@@ -339,6 +363,12 @@ public class InfluxQueryBuilder {
     public InfluxQueryBuilder range(long amount, @NonNull String unit) {
         this.timeAmount = amount;
         this.timeUnit = unit;
+        return this;
+    }
+
+    public InfluxQueryBuilder range(String range, @NonNull Boolean useOneRange) {
+        this.range = range;
+        this.useOneRange = useOneRange;
         return this;
     }
 
@@ -532,24 +562,44 @@ public class InfluxQueryBuilder {
             DateTimeFormatter formatter = DateTimeFormatter.ISO_INSTANT;
             flux.append(String.format("  |> range(start: %s, stop: %s)\n",
                     startTime.toString(), endTime.toString()));
+        } else if (useOneRange) {
+            flux.append(String.format("  |> range(start: -%s)\n", range));
         } else {
             flux.append(String.format("  |> range(start: -%d%s)\n", timeAmount, timeUnit));
         }
 
         // 构建过滤条件
         buildFilters(flux);
+        if (!fieldAggregates.isEmpty() && windowEvery != null) {
+            // 使用 pivot 将数据转换为宽表格式
+            if (!pivot) {
+                flux.append("  |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n");
+            }
 
-        // 窗口聚合
-        if (windowEvery != null) {
-            flux.append(String.format("  |> aggregateWindow(every: %s, fn: %s)\n",
-                    windowEvery, windowFunction));
+            // 应用窗口聚合
+            for (Map.Entry<String, List<String>> entry : fieldAggregates.entrySet()) {
+                String field = entry.getKey();
+                List<String> aggregates = entry.getValue();
 
-            // 在窗口聚合后添加fill
-            if (useFillPrevious) {
-                flux.append("  |> fill(usePrevious: true)\n");
+                for (String aggregate : aggregates) {
+                    // 移除函数括号以获取函数名
+                    String functionName = aggregate.replace("()", "");
+                    flux.append(String.format("  |> aggregateWindow(every: %s, fn: %s, column: \"%s\")\n",
+                            windowEvery, functionName, field));
+                }
+            }
+        } else {
+            // 窗口聚合
+            if (windowEvery != null) {
+                flux.append(String.format("  |> aggregateWindow(every: %s, fn: %s)\n",
+                        windowEvery, windowFunction));
+
+                // 在窗口聚合后添加fill
+                if (useFillPrevious) {
+                    flux.append("  |> fill(usePrevious: true)\n");
+                }
             }
         }
-
         // 其他聚合函数
         functions.forEach(fn -> flux.append(String.format("  |> %s\n", fn)));
 
@@ -650,7 +700,7 @@ public class InfluxQueryBuilder {
         Objects.requireNonNull(bucket, "bucket不能为空");
 
         // 如果不是使用today范围且不是使用自定义范围，则需要timeAmount和timeUnit
-        if (!useTodayRange && !useCustomRange) {
+        if (!useTodayRange && !useCustomRange&&!useOneRange) {
             Objects.requireNonNull(timeAmount, "timeAmount不能为空");
             Objects.requireNonNull(timeUnit, "timeUnit不能为空");
         }
@@ -663,7 +713,7 @@ public class InfluxQueryBuilder {
 
         Objects.requireNonNull(measurement, "measurement不能为空");
 
-        if (!useTodayRange && !useCustomRange) {
+        if (!useTodayRange && !useCustomRange&&!useOneRange) {
             if (timeAmount <= 0) {
                 throw new IllegalArgumentException("timeAmount必须大于0");
             }
