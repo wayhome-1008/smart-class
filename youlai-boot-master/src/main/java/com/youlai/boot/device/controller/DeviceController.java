@@ -235,6 +235,7 @@ public class DeviceController {
             DeviceMasterVO vo = new DeviceMasterVO();
             vo.setDeviceName(masterDevice.getDeviceName());
             vo.setDeviceId(masterDevice.getId());
+            vo.setDeviceCode(masterDevice.getDeviceCode());
             // 设置房间内信息
             if (masterDevice.getDeviceRoom() != null) {
                 Room room = roomMap.get(masterDevice.getDeviceRoom());

@@ -14,4 +14,5 @@ public class DeviceMasterVO {
     private String deviceName;
     private String roomName;
     private Long deviceId;
+    private String deviceCode;
 }
