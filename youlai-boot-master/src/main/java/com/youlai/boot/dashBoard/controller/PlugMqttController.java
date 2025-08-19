@@ -7,7 +7,6 @@ import com.youlai.boot.common.result.Result;
 import com.youlai.boot.common.util.InfluxQueryBuilder;
 import com.youlai.boot.common.util.MathUtils;
 import com.youlai.boot.config.property.InfluxDBProperties;
-import com.youlai.boot.dashBoard.model.vo.InfluxMqttPlugStats;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.influx.InfluxMqttPlug;
 import com.youlai.boot.device.model.vo.InfluxMqttPlugVO;
@@ -28,7 +27,6 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  *@Author: way
