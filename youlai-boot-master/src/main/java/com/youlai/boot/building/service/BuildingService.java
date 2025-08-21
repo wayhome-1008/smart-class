@@ -61,7 +61,6 @@ public interface BuildingService extends IService<Building> {
     /**
      * 角色下拉列表
      *
-     * @return
      */
     List<Option<Long>> listBuildingOptions();
 
