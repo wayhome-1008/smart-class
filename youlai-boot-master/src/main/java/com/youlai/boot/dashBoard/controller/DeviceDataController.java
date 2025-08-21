@@ -402,20 +402,83 @@ public class DeviceDataController {
     }
 
     /**
-     * 根据时间范围获取设备用电量
+     * 根据时间范围获取设备用电量（修改版）
      */
     private DeviceElectricityDataVO getDeviceElectricityByRange(String deviceCode, String range, String startTime, String endTime, String roomIds) {
         try {
-            // 根据时间范围构建查询
+            // 获取起始时间点的电表读数
+            Double startTotal = getDeviceElectricityAtTime(deviceCode, startTime, roomIds, true);
+
+            // 获取结束时间点的电表读数
+            Double endTotal = getDeviceElectricityAtTime(deviceCode, endTime, roomIds, false);
+
+            // 计算用电量差值
+            Double totalElectricity = null;
+            if (startTotal != null && endTotal != null) {
+                totalElectricity = Math.max(0, endTotal - startTotal); // 确保不为负数
+            } else if (startTotal == null && endTotal != null) {
+                totalElectricity = endTotal; // 如果没有起始值，直接使用结束值
+            } else if (startTotal != null && endTotal == null) {
+                totalElectricity = startTotal; // 如果没有结束值，直接使用起始值
+            }
+
+            log.info("设备用电量计算 - 设备编码: {}, 起始电量: {}, 结束电量: {}, 差值: {}",
+                    deviceCode, startTotal, endTotal, totalElectricity);
+
+            return new DeviceElectricityDataVO(totalElectricity, Instant.now());
+        } catch (Exception e) {
+            log.error("计算设备用电量失败 - 设备编码: {}, 异常信息: ", deviceCode, e);
+            return null;
+        }
+    }
+
+    /**
+     * 获取指定时间点的设备电表读数
+     * @param deviceCode 设备编码
+     * @param dateTime 时间字符串
+     * @param roomIds 房间ID列表
+     * @param isStart 是否为起始时间
+     * @return 电表读数
+     */
+    private Double getDeviceElectricityAtTime(String deviceCode, String dateTime, String roomIds, boolean isStart) {
+        try {
+            if (StringUtils.isBlank(dateTime)) {
+                // 如果时间为空，使用默认值
+                Instant timeInstant = isStart ?
+                        LocalDate.now().atStartOfDay().atZone(ZoneId.systemDefault()).toInstant() :
+                        Instant.now(); // 结束时间使用当前时间
+
+                return queryDeviceElectricity(deviceCode, timeInstant, roomIds);
+            }
+
+            // 解析日期时间
+            Instant timeInstant = parseDateToInstant(dateTime, isStart);
+            return queryDeviceElectricity(deviceCode, timeInstant, roomIds);
+        } catch (Exception e) {
+            log.error("获取设备电表读数失败 - 设备编码: {}, 时间: {}, 异常信息: ", deviceCode, dateTime, e);
+            return null;
+        }
+    }
+
+    /**
+     * 查询指定时间点的设备电表读数
+     * @param deviceCode 设备编码
+     * @param timeInstant 时间点
+     * @param roomIds 房间ID列表
+     * @return 电表读数
+     */
+    private Double queryDeviceElectricity(String deviceCode, Instant timeInstant, String roomIds) {
+        try {
+            // 构建查询
             InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
                     .bucket(influxDBProperties.getBucket())
                     .measurement("device")
                     .fields("Total")
                     .tag("deviceCode", deviceCode)
-                    .limit(1)
                     .pivot()
                     .sort("_time", InfluxQueryBuilder.SORT_DESC)
-                    .timeShift("8h");
+                    .limit(1);
+
             // 处理多roomId查询
             if (StringUtils.isNotBlank(roomIds)) {
                 List<String> roomIdList = Arrays.stream(roomIds.split(","))
@@ -424,63 +487,36 @@ public class DeviceDataController {
                         .toList();
 
                 if (!roomIdList.isEmpty()) {
-                    // 构造 or 条件: r.roomId == "123" or r.roomId == "456" or r.roomId == "789"
                     String roomFilter = roomIdList.stream()
                             .map(id -> String.format("r.roomId == \"%s\"", id))
                             .collect(Collectors.joining(" or "));
                     builder.filter("(" + roomFilter + ")");
                 }
             }
-            // 使用自定义时间范围
-            if (StringUtils.isNotBlank(startTime) && StringUtils.isNotBlank(endTime)) {
-                // 解析日期字符串并转换为Instant
-                Instant startInstant = parseDateToInstant(startTime, true);  // true表示开始时间(00:00:00)
-                Instant endInstant = parseDateToInstant(endTime, false);     // false表示结束时间(23:59:59)
-                builder.range(startInstant, endInstant);
-            } else if (StringUtils.isNotBlank(startTime)) {
-                // 只有开始时间
-                Instant startInstant = parseDateToInstant(startTime, true);
-                // 结束时间默认为今天
-                Instant endInstant = LocalDate.now().atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant();
-                builder.range(startInstant, endInstant);
-            } else if (StringUtils.isNotBlank(endTime)) {
-                // 只有结束时间
-                // 开始时间默认为7天前
-                Instant startInstant = LocalDate.now().minusDays(7).atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
-                Instant endInstant = parseDateToInstant(endTime, false);
-                builder.range(startInstant, endInstant);
+
+            // 设置时间范围查询 - 只查询指定时间点之前的数据
+            if (timeInstant.equals(Instant.now())) {
+                // 如果是当前时间，查询最近一天的数据
+                builder.range(-1L, "d");
             } else {
-                // 默认使用今天的时间范围
-                Instant startInstant = LocalDate.now().atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
-                Instant endInstant = LocalDate.now().atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant();
-                builder.range(startInstant, endInstant);
+                // 如果是指定时间点，查询从该时间点往前一天的数据，然后取最接近的那条
+                builder.range(timeInstant.minusSeconds(86400), timeInstant); // 查询前24小时到指定时间点
             }
 
-            // 构建并打印查询语句
             String fluxQuery = builder.build();
-            log.info("InfluxDB查询 - 设备编码: {}, 时间范围: {} 至 {}, 房间IDs: {}, 查询语句: {}",
-                    deviceCode, startTime, endTime, roomIds, fluxQuery);
+            log.info("查询设备电表读数 - 设备编码: {}, 时间点: {}, 查询语句: {}", deviceCode, timeInstant, fluxQuery);
 
             List<InfluxMqttPlug> tables = influxDBClient.getQueryApi()
                     .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
 
             if (!tables.isEmpty()) {
                 InfluxMqttPlug result = tables.get(0);
-                Double total = result.getTotal();
-                Instant createTime = result.getTime(); // 获取数据的创建时间
-
-                log.info("InfluxDB查询成功 - 设备编码: {}, 时间范围: {} 至 {}, 查询结果: {}, 创建时间: {}",
-                        deviceCode, startTime, endTime, total, createTime);
-
-                return new DeviceElectricityDataVO(total, createTime);
-            } else {
-                log.info("InfluxDB查询无数据 - 设备编码: {}, 时间范围: {} 至 {}",
-                        deviceCode, startTime, endTime);
-                return null;
+                return result.getTotal();
             }
+
+            return null;
         } catch (Exception e) {
-            log.error("InfluxDB查询失败 - 设备编码: {}, 时间范围: {} 至 {}, 异常信息: ",
-                    deviceCode, startTime, endTime, e);
+            log.error("查询设备电表读数失败 - 设备编码: {}, 时间点: {}, 异常信息: ", deviceCode, timeInstant, e);
             return null;
         }
     }
@@ -589,87 +625,124 @@ public class DeviceDataController {
     }
 
     /**
-     * 根据时间范围获取设备用电量
+     * 根据时间范围获取房间用电量（修改版）
      */
     private List<RoomsElectricityVO> getRoomsElectricity(String startTime, String endTime, String roomIds) {
-        //查所有房
+        // 查询所有房间
         List<Room> roomList = roomService.list(new QueryWrapper<Room>().in("id", Arrays.stream(roomIds.split(","))
                 .map(Long::parseLong)
                 .toList()));
 
-        // 根据时间范围构建查询
-        InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
-                .bucket(influxDBProperties.getBucket())
-                .measurement("device")
-                .fields("Total")
-                .limit(1)
-                .pivot()
-                .sort("_time", InfluxQueryBuilder.SORT_DESC)
-                .timeShift("8h");
-        // 处理多roomId查询
-        if (StringUtils.isNotBlank(roomIds)) {
-            List<String> roomIdList = Arrays.stream(roomIds.split(","))
-                    .map(String::trim)
-                    .filter(StringUtils::isNotBlank)
-                    .toList();
+        // 获取起始时间点的电表读数
+        List<InfluxMqttPlug> startTables = queryRoomsElectricityAtTime(startTime, roomIds, true);
 
-            if (!roomIdList.isEmpty()) {
-                // 构造 or 条件: r.roomId == "123" or r.roomId == "456" or r.roomId == "789"
-                String roomFilter = roomIdList.stream()
-                        .map(id -> String.format("r.roomId == \"%s\"", id))
-                        .collect(Collectors.joining(" or "));
-                builder.filter("(" + roomFilter + ")");
-            }
-        }
-        // 使用自定义时间范围
-        if (StringUtils.isNotBlank(startTime) && StringUtils.isNotBlank(endTime)) {
-            // 解析日期字符串并转换为Instant
-            Instant startInstant = parseDateToInstant(startTime, true);  // true表示开始时间(00:00:00)
-            Instant endInstant = parseDateToInstant(endTime, false);     // false表示结束时间(23:59:59)
-            builder.range(startInstant, endInstant);
-        } else if (StringUtils.isNotBlank(startTime)) {
-            // 只有开始时间
-            Instant startInstant = parseDateToInstant(startTime, true);
-            // 结束时间默认为今天
-            Instant endInstant = LocalDate.now().atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant();
-            builder.range(startInstant, endInstant);
-        } else if (StringUtils.isNotBlank(endTime)) {
-            // 只有结束时间
-            // 开始时间默认为7天前
-            Instant startInstant = LocalDate.now().minusDays(7).atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
-            Instant endInstant = parseDateToInstant(endTime, false);
-            builder.range(startInstant, endInstant);
-        } else {
-            // 默认使用今天的时间范围
-            Instant startInstant = LocalDate.now().atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
-            Instant endInstant = LocalDate.now().atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant();
-            builder.range(startInstant, endInstant);
-        }
+        // 获取结束时间点的电表读数
+        List<InfluxMqttPlug> endTables = queryRoomsElectricityAtTime(endTime, roomIds, false);
 
-        // 构建并打印查询语句
-        String fluxQuery = builder.build();
-        log.info("查询语句: {}", fluxQuery);
-        List<InfluxMqttPlug> tables = influxDBClient.getQueryApi()
-                .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
         List<RoomsElectricityVO> resultList = new ArrayList<>();
         for (Room room : roomList) {
             RoomsElectricityVO vo = new RoomsElectricityVO();
             vo.setRoomId(room.getId());
             vo.setRoomName(room.getClassroomCode());
-            // 根据roomId筛选对应的数据
-            Optional<InfluxMqttPlug> roomData = tables.stream()
+
+            // 查找起始时间点的读数
+            Optional<InfluxMqttPlug> startData = startTables.stream()
                     .filter(table -> table.getRoomId() != null &&
                             table.getRoomId().equals(String.valueOf(room.getId())))
                     .findFirst();
-            if (roomData.isPresent()) {
-                vo.setTotalElectricity(roomData.get().getTotal());
+
+            // 查找结束时间点的读数
+            Optional<InfluxMqttPlug> endData = endTables.stream()
+                    .filter(table -> table.getRoomId() != null &&
+                            table.getRoomId().equals(String.valueOf(room.getId())))
+                    .findFirst();
+
+            // 计算用电量差值
+            Double totalElectricity = null;
+            Double startTotal = startData.isPresent() ? startData.get().getTotal() : null;
+            Double endTotal = endData.isPresent() ? endData.get().getTotal() : null;
+
+            if (startTotal != null && endTotal != null) {
+                totalElectricity = Math.max(0, endTotal - startTotal); // 确保不为负数
+            } else if (startTotal == null && endTotal != null) {
+                totalElectricity = endTotal; // 如果没有起始值，直接使用结束值
+            } else if (startTotal != null && endTotal == null) {
+                totalElectricity = startTotal; // 如果没有结束值，直接使用起始值
             } else {
-                vo.setTotalElectricity(0.0);
+                totalElectricity = 0.0; // 都没有数据则为0
             }
+
+            vo.setTotalElectricity(totalElectricity);
             resultList.add(vo);
         }
         return resultList;
     }
+
+    /**
+     * 查询指定时间点的房间电表读数
+     * @param dateTime 时间字符串
+     * @param roomIds 房间ID列表
+     * @param isStart 是否为起始时间
+     * @return 电表读数列表
+     */
+    private List<InfluxMqttPlug> queryRoomsElectricityAtTime(String dateTime, String roomIds, boolean isStart) {
+        try {
+            // 根据时间范围构建查询
+            InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
+                    .bucket(influxDBProperties.getBucket())
+                    .measurement("device")
+                    .fields("Total")
+                    .pivot()
+                    .sort("_time", InfluxQueryBuilder.SORT_DESC)
+                    .limit(1);
+
+            // 处理多roomId查询
+            if (StringUtils.isNotBlank(roomIds)) {
+                List<String> roomIdList = Arrays.stream(roomIds.split(","))
+                        .map(String::trim)
+                        .filter(StringUtils::isNotBlank)
+                        .toList();
+
+                if (!roomIdList.isEmpty()) {
+                    String roomFilter = roomIdList.stream()
+                            .map(id -> String.format("r.roomId == \"%s\"", id))
+                            .collect(Collectors.joining(" or "));
+                    builder.filter("(" + roomFilter + ")");
+                }
+            }
+
+            // 解析时间
+            Instant timeInstant;
+            if (StringUtils.isBlank(dateTime)) {
+                // 如果时间为空，使用默认值
+                timeInstant = isStart ?
+                        LocalDate.now().atStartOfDay().atZone(ZoneId.systemDefault()).toInstant() :
+                        Instant.now(); // 结束时间使用当前时间
+            } else {
+                timeInstant = parseDateToInstant(dateTime, isStart);
+            }
+
+            // 设置时间范围查询 - 只查询指定时间点之前的数据
+            if (timeInstant.equals(Instant.now())) {
+                // 如果是当前时间，查询最近一天的数据
+                builder.range(-1L, "d");
+            } else {
+                // 如果是指定时间点，查询从该时间点往前一天的数据
+                builder.range(timeInstant.minusSeconds(86400), timeInstant);
+            }
+
+            // 构建并执行查询语句
+            String fluxQuery = builder.build();
+            log.info("查询房间电表读数 - 时间点: {}, 查询语句: {}", timeInstant, fluxQuery);
+
+            return influxDBClient.getQueryApi()
+                    .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
+        } catch (Exception e) {
+            log.error("查询房间电表读数失败 - 时间: {}, 异常信息: ", dateTime, e);
+            return new ArrayList<>();
+        }
+    }
+
 
     @Operation(summary = "分页查询各部门总用电量")
     @GetMapping("/department/electricity")
