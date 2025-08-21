@@ -119,11 +119,11 @@ public class BuildingServiceImpl extends ServiceImpl<BuildingMapper, Building> i
     }
 
     @Override
-    public List<Option<Long>> buildingStructureOptions() {
+    public List<Option<String>> buildingStructureOptions() {
         // 1. 查询所有楼宇
         List<Building> buildings = baseMapper.selectList(null);
 
-        // 2. 转换为Option列表并添加楼层子节点
+        // 2. 转换为Option列表并添加楼层子节点，使用复合ID解决ID重复问题
         return buildings.stream().map(building -> {
             // 2.1 查询当前楼宇的所有楼层
             List<Floor> floors = floorService.list(
@@ -132,7 +132,7 @@ public class BuildingServiceImpl extends ServiceImpl<BuildingMapper, Building> i
             );
 
             // 2.2 转换楼层为Option并添加房间子节点
-            List<Option<Long>> floorOptions = floors.stream().map(floor -> {
+            List<Option<String>> floorOptions = floors.stream().map(floor -> {
                 // 查询当前楼层的所有房间
                 List<Room> classrooms = roomService.list(
                         new LambdaQueryWrapper<Room>()
@@ -140,28 +140,29 @@ public class BuildingServiceImpl extends ServiceImpl<BuildingMapper, Building> i
                                 .eq(Room::getBuildingId, building.getId())
                 );
 
-                // 转换房间为Option
-                List<Option<Long>> classroomOptions = classrooms.stream()
+                // 转换房间为Option，使用"room_"前缀
+                List<Option<String>> classroomOptions = classrooms.stream()
                         .map(classroom -> new Option<>(
-                                classroom.getId(),
+                                "room_" + classroom.getId(),
                                 classroom.getClassroomCode()
                         ))
                         .collect(Collectors.toList());
 
-                // 创建楼层Option，包含房间子节点
+                // 创建楼层Option，使用"floor_"前缀，包含房间子节点
                 return new Option<>(
-                        floor.getId(),
-                        building.getBuildingName() + "-" + floor.getFloorNumber() + "层",
+                        "floor_" + floor.getId(),
+                        floor.getFloorNumber(),
                         classroomOptions
                 );
             }).collect(Collectors.toList());
 
-            // 创建楼宇Option，包含楼层子节点
+            // 创建楼宇Option，使用"building_"前缀，包含楼层子节点
             return new Option<>(
-                    building.getId(),
+                    "building_" + building.getId(),
                     building.getBuildingName(),
                     floorOptions
             );
         }).collect(Collectors.toList());
     }
+
 }

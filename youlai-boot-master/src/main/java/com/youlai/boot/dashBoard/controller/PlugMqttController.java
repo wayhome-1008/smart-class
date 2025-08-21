@@ -3,19 +3,27 @@ package com.youlai.boot.dashBoard.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.exceptions.InfluxException;
+import com.youlai.boot.category.model.entity.Category;
+import com.youlai.boot.category.service.CategoryService;
+import com.youlai.boot.categoryDeviceRelationship.model.CategoryDeviceRelationship;
+import com.youlai.boot.categoryDeviceRelationship.service.CategoryDeviceRelationshipService;
 import com.youlai.boot.common.result.Result;
 import com.youlai.boot.common.util.InfluxQueryBuilder;
 import com.youlai.boot.common.util.MathUtils;
 import com.youlai.boot.config.property.InfluxDBProperties;
+import com.youlai.boot.dashBoard.model.vo.CategoryElectricityVO;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.influx.InfluxMqttPlug;
 import com.youlai.boot.device.model.vo.InfluxMqttPlugVO;
 import com.youlai.boot.device.service.DeviceService;
+import com.youlai.boot.system.model.entity.Config;
+import com.youlai.boot.system.service.ConfigService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,6 +35,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  *@Author: way
@@ -41,7 +50,9 @@ import java.util.*;
 @Slf4j
 public class PlugMqttController {
     private final InfluxDBClient influxDBClient;
-
+    private final ConfigService configService;
+    private final CategoryService categoryService;
+    private final CategoryDeviceRelationshipService categoryDeviceRelationshipService;
 
     private final DeviceService deviceService;
 
@@ -108,10 +119,9 @@ public class PlugMqttController {
             InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
                     .bucket(influxDBProperties.getBucket())
                     .range(range, true)
-//                    .range(timeAmount, timeUnit)  // 多查一天的数据用于计算差值
                     .measurement("device")
                     .fields("Total", "Voltage", "Current")
-                    .timeShift("8h")
+//                    .timeShift("8h")
                     .pivot()
                     .fill()
                     .sort("_time", InfluxQueryBuilder.SORT_ASC);
@@ -255,6 +265,64 @@ public class PlugMqttController {
         return "1d";
     }
 
+//    /**
+//     * 将原始数据转换为VO对象并计算用电量差值
+//     */
+//    private List<InfluxMqttPlugVO> convertToVOWithDifferences(List<InfluxMqttPlug> dataList, String timeUnit) {
+//        if (dataList == null || dataList.isEmpty()) {
+//            return new ArrayList<>();
+//        }
+//
+//        InfluxMqttPlugVO resultVO = new InfluxMqttPlugVO();
+//        List<String> times = new ArrayList<>();
+//        List<Double> values = new ArrayList<>();
+//
+//        // 按时间排序
+//        dataList.sort(Comparator.comparing(InfluxMqttPlug::getTime));
+//
+//        // 如果数据少于2条，无法计算差值
+//        if (dataList.size() < 2) {
+//            List<InfluxMqttPlugVO> result = new ArrayList<>();
+//            result.add(resultVO);
+//            return result;
+//        }
+//
+//        // 去掉倒数第二条数据
+//        List<InfluxMqttPlug> processedDataList = new ArrayList<>();
+//        for (int i = 0; i < dataList.size(); i++) {
+//            // 跳过倒数第二条数据
+//            if (i != dataList.size() - 2) {
+//                processedDataList.add(dataList.get(i));
+//            }
+//        }
+//
+//        // 处理时间数据：索引1,2,3,4,5,6,7 (共7个时间点)
+//        for (int i = 1; i < processedDataList.size(); i++) {
+//            times.add(formatTime(processedDataList.get(i).getTime(), timeUnit));
+//        }
+//
+//        // 处理值数据：1-0, 2-1, 3-2, 4-3, 5-4, 6-5, 7-6, 8-7 (共8个差值，但实际只需要7个)
+//        for (int i = 0; i < processedDataList.size() - 1; i++) {
+//            InfluxMqttPlug currentData = processedDataList.get(i);
+//            InfluxMqttPlug nextData = processedDataList.get(i + 1);
+//
+//            if (currentData.getTotal() != null && nextData.getTotal() != null) {
+//                double difference = Math.max(0, MathUtils.formatDouble(
+//                        nextData.getTotal() - currentData.getTotal()));
+//                values.add(difference);
+//            } else {
+//                values.add(0.0);
+//            }
+//        }
+//
+//        resultVO.setTime(times);
+//        resultVO.setValue(values);
+//
+//        List<InfluxMqttPlugVO> result = new ArrayList<>();
+//        result.add(resultVO);
+//        return result;
+//    }
+
     /**
      * 将原始数据转换为VO对象并计算用电量差值
      */
@@ -277,32 +345,68 @@ public class PlugMqttController {
             return result;
         }
 
-        // 去掉倒数第二条数据
-        List<InfluxMqttPlug> processedDataList = new ArrayList<>();
-        for (int i = 0; i < dataList.size(); i++) {
-            // 跳过倒数第二条数据
-            if (i != dataList.size() - 2) {
-                processedDataList.add(dataList.get(i));
-            }
-        }
+        switch (timeUnit) {
+            case "d":
+                // 天级别：计算当天用电量 = 最新值 - 当天0点值
+                times.add(formatTime(dataList.get(dataList.size() - 1).getTime(), timeUnit));
+                if (dataList.get(0).getTotal() != null && dataList.get(dataList.size() - 1).getTotal() != null) {
+                    double difference = Math.max(0, MathUtils.formatDouble(
+                            dataList.get(dataList.size() - 1).getTotal() - dataList.get(0).getTotal()));
+                    values.add(difference);
+                } else {
+                    values.add(0.0);
+                }
+                break;
 
-        // 处理时间数据：索引1,2,3,4,5,6,7 (共7个时间点)
-        for (int i = 1; i < processedDataList.size(); i++) {
-            times.add(formatTime(processedDataList.get(i).getTime(), timeUnit));
-        }
+            case "w":
+                // 周级别：计算每天的用电量差值
+                // 第一天：第二个数据点 - 第一个数据点
+                // 中间天：当天数据点 - 前一天数据点
+                // 最后一天：最后数据点 - 倒数第二数据点
 
-        // 处理值数据：1-0, 2-1, 3-2, 4-3, 5-4, 6-5, 7-6, 8-7 (共8个差值，但实际只需要7个)
-        for (int i = 0; i < processedDataList.size() - 1; i++) {
-            InfluxMqttPlug currentData = processedDataList.get(i);
-            InfluxMqttPlug nextData = processedDataList.get(i + 1);
+                // 处理时间数据（从第二个数据点开始）
+                for (int i = 1; i < dataList.size(); i++) {
+                    if (i != dataList.size() - 1) {
+                        times.add(formatTime(dataList.get(i).getTime(), timeUnit));
+                    }
+                }
 
-            if (currentData.getTotal() != null && nextData.getTotal() != null) {
-                double difference = Math.max(0, MathUtils.formatDouble(
-                        nextData.getTotal() - currentData.getTotal()));
-                values.add(difference);
-            } else {
-                values.add(0.0);
-            }
+                // 处理值数据：计算相邻数据点的差值
+                for (int i = 0; i < dataList.size() - 1; i++) {
+                    InfluxMqttPlug currentData = dataList.get(i);
+                    InfluxMqttPlug nextData = dataList.get(i + 1);
+
+                    if (currentData.getTotal() != null && nextData.getTotal() != null) {
+                        double difference = Math.max(0, MathUtils.formatDouble(
+                                nextData.getTotal() - currentData.getTotal()));
+                        values.add(difference);
+                    } else {
+                        values.add(0.0);
+                    }
+                }
+                break;
+
+            default:
+                // 其他时间单位保持原有逻辑
+                // 处理时间数据（从第二个数据点开始）
+                for (int i = 1; i < dataList.size(); i++) {
+                    times.add(formatTime(dataList.get(i).getTime(), timeUnit));
+                }
+
+                // 处理值数据：计算相邻数据点的差值
+                for (int i = 0; i < dataList.size() - 1; i++) {
+                    InfluxMqttPlug currentData = dataList.get(i);
+                    InfluxMqttPlug nextData = dataList.get(i + 1);
+
+                    if (currentData.getTotal() != null && nextData.getTotal() != null) {
+                        double difference = Math.max(0, MathUtils.formatDouble(
+                                nextData.getTotal() - currentData.getTotal()));
+                        values.add(difference);
+                    } else {
+                        values.add(0.0);
+                    }
+                }
+                break;
         }
 
         resultVO.setTime(times);
@@ -369,6 +473,139 @@ public class PlugMqttController {
                     time.atZone(utcZone).getSecond());
             default -> time.atZone(utcZone).format(DateTimeFormatter.ISO_LOCAL_TIME);
         };
+    }
+
+    @Operation(summary = "查询配置分类用电量")
+    @GetMapping("/category/demodemo")
+    public Result<CategoryElectricityVO> getCategoryElectricityData() {
+        // 1. 初始化结果对象
+        CategoryElectricityVO result = new CategoryElectricityVO();
+        List<CategoryElectricityVO.CategoryData> categoryDataList = new ArrayList<>();
+
+        // 2. 获取所有分类
+        List<Category> categories = categoryService.list();
+        List<Category> categoriesAll = new ArrayList<>();
+        if (ObjectUtils.isEmpty(categories)) return Result.success();
+        List<String> categoryNames = categories.stream().map(Category::getCategoryName).toList();
+        List<Config> configList = configService.listByKeys(categoryNames);
+        for (Config config : configList) {
+            for (String categoryName : categoryNames) {
+                if (categoryName.equals(config.getConfigKey())) {
+                    categoriesAll.add(categories.stream()
+                            .filter(category1 -> category1.getCategoryName().equals(categoryName))
+                            .findFirst()
+                            .orElse(null));
+                }
+            }
+        }
+
+        // 3. 获取时间模板（从第一个分类的第一个设备获取）
+        if (!categoriesAll.isEmpty()) {
+            List<CategoryDeviceRelationship> relationships =
+                    categoryDeviceRelationshipService.listByCategoryId(categoriesAll.get(0).getId());
+            if (!relationships.isEmpty()) {
+                Device device = deviceService.getById(relationships.get(0).getDeviceId());
+                // 查询第一个设备的数据来获取时间标签
+                List<InfluxMqttPlug> sampleDataList = queryDeviceRawData(device.getDeviceCode(), 1L, "w", "1d");
+                if (!sampleDataList.isEmpty()) {
+                    // 使用convertToVOWithDifferences方法处理数据以获取正确的时间标签
+                    List<InfluxMqttPlugVO> sampleVOList = convertToVOWithDifferences(sampleDataList, "w");
+                    if (!sampleVOList.isEmpty()) {
+                        result.setTimes(sampleVOList.get(0).getTime());
+                    }
+                }
+            }
+        }
+
+        // 4. 处理每个分类
+        for (Category category : categoriesAll) {
+            List<CategoryDeviceRelationship> relationships =
+                    categoryDeviceRelationshipService.listByCategoryId(category.getId());
+            if (!relationships.isEmpty()) {
+                List<Long> deviceIds = relationships.stream()
+                        .map(CategoryDeviceRelationship::getDeviceId)
+                        .collect(Collectors.toList());
+
+                List<Device> masterDevices = deviceService.listByIds(deviceIds).stream()
+                        .filter(device -> device.getIsMaster() == 1)
+                        .toList();
+
+                if (!masterDevices.isEmpty()) {
+                    CategoryElectricityVO.CategoryData data = new CategoryElectricityVO.CategoryData();
+                    data.setCategoryName(category.getCategoryName());
+
+                    // 初始化总值列表，用于累加所有设备的数据
+                    List<Double> totalValues = null;
+
+                    // 遍历所有主设备，获取并累加数据
+                    for (Device masterDevice : masterDevices) {
+                        List<InfluxMqttPlugVO> deviceDataList = querySingleDevice(masterDevice.getDeviceCode(), 1L, "w", "1d", null, null);
+
+                        if (!deviceDataList.isEmpty()) {
+                            InfluxMqttPlugVO deviceData = deviceDataList.get(0);
+
+                            if (totalValues == null) {
+                                // 第一个设备的数据作为初始值
+                                totalValues = new ArrayList<>(deviceData.getValue());
+                            } else {
+                                // 确保两个列表长度相同后再累加
+                                List<Double> deviceValues = deviceData.getValue();
+                                int minSize = Math.min(totalValues.size(), deviceValues.size());
+                                for (int i = 0; i < minSize; i++) {
+                                    Double v1 = MathUtils.formatDouble(totalValues.get(i));
+                                    Double v2 = MathUtils.formatDouble(deviceValues.get(i));
+                                    // 处理null值
+                                    if (v1 == null) v1 = 0.0;
+                                    if (v2 == null) v2 = 0.0;
+                                    totalValues.set(i, v1 + v2);
+                                }
+                            }
+                        }
+                    }
+
+                    data.setValues(totalValues);
+                    categoryDataList.add(data);
+                }
+            }
+        }
+        result.setData(categoryDataList);
+        return Result.success(result);
+    }
+
+    /**
+     * 查询设备原始数据（不进行差值计算）
+     */
+    private List<InfluxMqttPlug> queryDeviceRawData(String deviceCode, Long timeAmount, String timeUnit, String windowSize) {
+        try {
+            String range = getRange(timeAmount, timeUnit);
+            // 构建查询 - 查询所有需要的字段
+            InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
+                    .bucket(influxDBProperties.getBucket())
+                    .range(range, true)
+                    .measurement("device")
+                    .fields("Total", "Voltage", "Current")
+                    .pivot()
+                    .fill()
+                    .sort("_time", InfluxQueryBuilder.SORT_ASC);
+
+            // 添加过滤条件
+            if (StringUtils.isNotBlank(deviceCode)) {
+                builder.tag("deviceCode", deviceCode);
+            }
+            // 应用窗口聚合
+            builder.window(windowSize, "last");
+
+            String fluxQuery = builder.build();
+            log.info("设备原始数据查询语句: {}", fluxQuery);
+
+            // 查询原始数据
+            return influxDBClient.getQueryApi()
+                    .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
+
+        } catch (Exception e) {
+            log.error("查询设备原始数据失败", e);
+            return new ArrayList<>();
+        }
     }
 
 }

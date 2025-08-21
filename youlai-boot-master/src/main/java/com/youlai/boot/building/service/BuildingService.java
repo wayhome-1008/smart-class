@@ -65,5 +65,5 @@ public interface BuildingService extends IService<Building> {
      */
     List<Option<Long>> listBuildingOptions();
 
-    List<Option<Long>> buildingStructureOptions();
+    List<Option<String>> buildingStructureOptions();
 }

@@ -609,7 +609,7 @@ public class InfluxQueryBuilder {
         }
 
         // 时间偏移
-        flux.append(String.format("  |> timeShift(duration: %s)\n", timeShift));
+//        flux.append(String.format("  |> timeShift(duration: %s)\n", timeShift));
 
         // 排序
         flux.append(String.format("  |> sort(columns: [\"%s\"], desc: %s)\n",

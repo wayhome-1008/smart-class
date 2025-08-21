@@ -51,8 +51,8 @@ public class BuildingController {
      * 获取楼宇结构选项列表
      */
     @GetMapping("/struct")
-    public Result<List<Option<Long>>> buildingStructureOptions() {
-        List<Option<Long>> options = buildingService.buildingStructureOptions();
+    public Result<List<Option<String>>> buildingStructureOptions() {
+        List<Option<String>> options = buildingService.buildingStructureOptions();
         return Result.success(options);
     }
 
