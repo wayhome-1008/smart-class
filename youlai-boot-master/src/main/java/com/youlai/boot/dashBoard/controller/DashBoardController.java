@@ -50,6 +50,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -560,28 +561,20 @@ public class DashBoardController {
             }
             // 4. 查询每个房间的日用电量差值
             for (Room room : rooms) {
-                InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
-                        .bucket(influxDBProperties.getBucket())
-                        .measurement("device")
-                        .range(2L, "d")
-                        .fields("Total")
-                        .tag("roomId", String.valueOf(room.getId()))
-                        .pivot()
-                        .fill()
-                        .sort("_time", InfluxQueryBuilder.SORT_ASC)
-                        .window("1d", "last");
-
-                String fluxQuery = builder.build();
-                log.info("Ranking接口当天房间[{}]数据查询语句: {}", room.getClassroomCode(), fluxQuery);
-                List<InfluxMqttPlug> dataList = influxDBClient.getQueryApi()
-                        .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
-
+                List<InfluxMqttPlug> dataList = calculateTodayElectricity(room.getId().toString());
                 if (ObjectUtils.isNotEmpty(dataList)) {
                     RoomElectricityRankingVO vo = new RoomElectricityRankingVO();
                     vo.setRoomId(room.getId());
                     vo.setRoomCode(room.getClassroomCode());
                     vo.setRoomName(room.getClassroomCode());
-                    vo.setTotalElectricity(MathUtils.formatDouble(MathUtils.formatDouble(dataList.get(dataList.size() - 1).getTotal()) - MathUtils.formatDouble(dataList.get(0).getTotal())));
+                    if (dataList.size() >= 2) {
+                        // 用最后一个点减去倒数第二个点
+                        Double current = dataList.get(dataList.size() - 1).getTotal();
+                        Double start = dataList.get(dataList.size() - 2).getTotal();
+                        if (current != null && start != null) {
+                            vo.setTotalElectricity(formatDouble(Math.max(0, current - start)));
+                        }
+                    }
                     rankingList.add(vo);
                 }
             }
@@ -792,7 +785,6 @@ public class DashBoardController {
             // 查询原始数据
             List<InfluxMqttPlug> dataList = influxDBClient.getQueryApi()
                     .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
-            log.info("原始数据长度{}", dataList.size());
             // 转换为VO对象
             return convertToVOWithDifferences(dataList, timeUnit);
 
@@ -911,7 +903,7 @@ public class DashBoardController {
                     InfluxMqttPlug currentData = dataList.get(i);
                     InfluxMqttPlug nextData = dataList.get(i + 1);
                     if (i == 62) {
-                        values.add(MathUtils.formatDouble(MathUtils.formatDouble(dataList.get(dataList.size() - 1).getTotal()) - MathUtils.formatDouble(dataList.get(dataList.size() - 3).getTotal())));
+                        values.add(MathUtils.formatDouble(MathUtils.formatDouble(dataList.get(dataList.size() - 1).getTotal()) - MathUtils.formatDouble(dataList.get(dataList.size() - 2).getTotal())));
                     } else {
                         if (currentData.getTotal() != null && nextData.getTotal() != null) {
                             double difference = Math.max(0, MathUtils.formatDouble(
@@ -934,7 +926,7 @@ public class DashBoardController {
                     InfluxMqttPlug currentData = dataList.get(i);
                     InfluxMqttPlug nextData = dataList.get(i + 1);
                     if (i == 23) {
-                        values.add(MathUtils.formatDouble(MathUtils.formatDouble(dataList.get(dataList.size() - 1).getTotal()) - MathUtils.formatDouble(dataList.get(dataList.size() - 3).getTotal())));
+                        values.add(MathUtils.formatDouble(MathUtils.formatDouble(dataList.get(dataList.size() - 1).getTotal()) - MathUtils.formatDouble(dataList.get(dataList.size() - 2).getTotal())));
                     } else {
                         if (currentData.getTotal() != null && nextData.getTotal() != null) {
                             double difference = Math.max(0, MathUtils.formatDouble(
@@ -958,7 +950,7 @@ public class DashBoardController {
                     InfluxMqttPlug currentData = dataList.get(i);
                     InfluxMqttPlug nextData = dataList.get(i + 1);
                     if (i == 6) {
-                        values.add(MathUtils.formatDouble(MathUtils.formatDouble(dataList.get(dataList.size() - 1).getTotal()) - MathUtils.formatDouble(dataList.get(dataList.size() - 3).getTotal())));
+                        values.add(MathUtils.formatDouble(MathUtils.formatDouble(dataList.get(dataList.size() - 1).getTotal()) - MathUtils.formatDouble(dataList.get(dataList.size() - 2).getTotal())));
                     } else {
                         if (currentData.getTotal() != null && nextData.getTotal() != null) {
                             double difference = Math.max(0, MathUtils.formatDouble(
@@ -980,7 +972,7 @@ public class DashBoardController {
                     InfluxMqttPlug currentData = dataList.get(i);
                     InfluxMqttPlug nextData = dataList.get(i + 1);
                     if (i == 29) {
-                        values.add(MathUtils.formatDouble(MathUtils.formatDouble(dataList.get(dataList.size() - 1).getTotal()) - MathUtils.formatDouble(dataList.get(dataList.size() - 3).getTotal())));
+                        values.add(MathUtils.formatDouble(MathUtils.formatDouble(dataList.get(dataList.size() - 1).getTotal()) - MathUtils.formatDouble(dataList.get(dataList.size() - 2).getTotal())));
                     } else {
                         if (currentData.getTotal() != null && nextData.getTotal() != null) {
                             double difference = Math.max(0, MathUtils.formatDouble(
@@ -998,7 +990,7 @@ public class DashBoardController {
                 for (int i = 1; i < dataList.size() - 1; i++) {
                     //防止脏数据 新增前查询是否该日期已存在
                     String time = formatTime(dataList.get(i).getTime(), timeUnit);
-                    if (times.contains(time)){
+                    if (times.contains(time)) {
                         continue;
                     }
                     times.add(formatTime(dataList.get(i).getTime(), timeUnit));
@@ -1017,7 +1009,7 @@ public class DashBoardController {
                             pre = 0.0;
                         }
                         values.add(MathUtils.formatDouble(last - pre));
-                    }  else {
+                    } else {
                         if (currentData.getTotal() != null && nextData.getTotal() != null) {
                             double difference = Math.max(0, MathUtils.formatDouble(
                                     nextData.getTotal() - currentData.getTotal()));
@@ -1099,5 +1091,47 @@ public class DashBoardController {
         };
     }
 
+    /**
+     * 计算今日用电量
+     */
+    private List<InfluxMqttPlug> calculateTodayElectricity(String roomId) {
+        try {
+            Instant now = Instant.now();
+            Instant startOfDay = LocalDate.now().atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
 
+            // 查询今日0点至今的数据
+            InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
+                    .bucket(influxDBProperties.getBucket())
+                    .measurement("device")
+                    .fields("Total")
+                    .pivot()
+                    .window("1d", "last")
+                    .sort("_time", InfluxQueryBuilder.SORT_ASC)
+                    .range(startOfDay, now);
+
+            if (StringUtils.isNotBlank(roomId)) {
+                List<String> roomIdList = Arrays.stream(roomId.split(","))
+                        .map(String::trim)
+                        .filter(StringUtils::isNotBlank)
+                        .toList();
+
+                if (!roomIdList.isEmpty()) {
+                    String roomFilter = roomIdList.stream()
+                            .map(id -> String.format("r.roomId == \"%s\"", id))
+                            .collect(Collectors.joining(" or "));
+                    builder.filter("(" + roomFilter + ")");
+                }
+            }
+
+            String fluxQuery = builder.build();
+            log.info("查询今日用电查询语句: {}", fluxQuery);
+
+            List<InfluxMqttPlug> results = influxDBClient.getQueryApi()
+                    .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
+
+            return results;
+        } catch (Exception e) {
+            return null;
+        }
+    }
 }

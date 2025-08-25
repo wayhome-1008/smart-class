@@ -406,29 +406,459 @@ public class DeviceDataController {
      */
     private DeviceElectricityDataVO getDeviceElectricityByRange(String deviceCode, String range, String startTime, String endTime, String roomIds) {
         try {
-            // 获取起始时间点的电表读数
-            Double startTotal = getDeviceElectricityAtTime(deviceCode, startTime, roomIds, true);
+            Double totalElectricity = 0.0;
 
-            // 获取结束时间点的电表读数
-            Double endTotal = getDeviceElectricityAtTime(deviceCode, endTime, roomIds, false);
-
-            // 计算用电量差值
-            Double totalElectricity = null;
-            if (startTotal != null && endTotal != null) {
-                totalElectricity = Math.max(0, endTotal - startTotal); // 确保不为负数
-            } else if (startTotal == null && endTotal != null) {
-                totalElectricity = endTotal; // 如果没有起始值，直接使用结束值
-            } else if (startTotal != null && endTotal == null) {
-                totalElectricity = startTotal; // 如果没有结束值，直接使用起始值
+            switch (range) {
+                case "today":
+                    totalElectricity = calculateTodayElectricity(deviceCode, roomIds);
+                    break;
+                case "yesterday":
+                    totalElectricity = calculateYesterdayElectricity(deviceCode, roomIds);
+                    break;
+                case "week":
+                    totalElectricity = calculateWeekElectricity(deviceCode, roomIds);
+                    break;
+                case "lastWeek":
+                    totalElectricity = calculateLastWeekElectricity(deviceCode, roomIds);
+                    break;
+                case "month":
+                    totalElectricity = calculateMonthElectricity(deviceCode, roomIds);
+                    break;
+                case "lastMonth":
+                    totalElectricity = calculateLastMonthElectricity(deviceCode, roomIds);
+                    break;
+                case "custom":
+                    totalElectricity = calculateCustomElectricity(deviceCode, startTime, endTime, roomIds);
+                    break;
+                default:
+                    totalElectricity = calculateCustomElectricity(deviceCode, startTime, endTime, roomIds);
+                    break;
             }
 
-            log.info("设备用电量计算 - 设备编码: {}, 起始电量: {}, 结束电量: {}, 差值: {}",
-                    deviceCode, startTotal, endTotal, totalElectricity);
-
+            log.info("设备用电量计算 - 设备编码: {}, 范围: {}, 用电量: {}", deviceCode, range, totalElectricity);
             return new DeviceElectricityDataVO(totalElectricity, Instant.now());
         } catch (Exception e) {
-            log.error("计算设备用电量失败 - 设备编码: {}, 异常信息: ", deviceCode, e);
+            log.error("计算设备用电量失败 - 设备编码: {}, 范围: {}, 异常信息: ", deviceCode, range, e);
             return null;
+        }
+    }
+    /**
+     * 计算今日用电量
+     */
+    private Double calculateTodayElectricity(String deviceCode, String roomIds) {
+        try {
+            Instant now = Instant.now();
+            Instant startOfDay = LocalDate.now().atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+
+            // 查询今日0点至今的数据
+            InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
+                    .bucket(influxDBProperties.getBucket())
+                    .measurement("device")
+                    .fields("Total")
+                    .tag("deviceCode", deviceCode)
+                    .pivot()
+                    .window("1d", "last")
+                    .sort("_time", InfluxQueryBuilder.SORT_ASC)
+                    .range(startOfDay, now);
+
+            if (StringUtils.isNotBlank(roomIds)) {
+                List<String> roomIdList = Arrays.stream(roomIds.split(","))
+                        .map(String::trim)
+                        .filter(StringUtils::isNotBlank)
+                        .toList();
+
+                if (!roomIdList.isEmpty()) {
+                    String roomFilter = roomIdList.stream()
+                            .map(id -> String.format("r.roomId == \"%s\"", id))
+                            .collect(Collectors.joining(" or "));
+                    builder.filter("(" + roomFilter + ")");
+                }
+            }
+
+            String fluxQuery = builder.build();
+            log.info("查询今日用电量 - 设备编码: {}, 查询语句: {}", deviceCode, fluxQuery);
+
+            List<InfluxMqttPlug> results = influxDBClient.getQueryApi()
+                    .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
+
+            if (results.size() >= 2) {
+                // 用最后一个点减去倒数第二个点
+                Double current = results.get(results.size() - 1).getTotal();
+                Double start = results.get(results.size() - 2).getTotal();
+                if (current != null && start != null) {
+                    return Math.max(0, current - start);
+                }
+            }
+
+            return 0.0;
+        } catch (Exception e) {
+            log.error("计算今日用电量失败 - 设备编码: {}", deviceCode, e);
+            return 0.0;
+        }
+    }
+
+    /**
+     * 计算昨日用电量
+     */
+    private Double calculateYesterdayElectricity(String deviceCode, String roomIds) {
+        try {
+            Instant now = Instant.now();
+            Instant startOfYesterday = LocalDate.now().minusDays(1).atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+            Instant endOfYesterday = LocalDate.now().atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+
+            // 查询昨日0点到今日0点的数据
+            InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
+                    .bucket(influxDBProperties.getBucket())
+                    .measurement("device")
+                    .fields("Total")
+                    .tag("deviceCode", deviceCode)
+                    .pivot()
+                    .window("1d", "last")
+                    .sort("_time", InfluxQueryBuilder.SORT_ASC)
+                    .range(startOfYesterday, now);
+
+            if (StringUtils.isNotBlank(roomIds)) {
+                List<String> roomIdList = Arrays.stream(roomIds.split(","))
+                        .map(String::trim)
+                        .filter(StringUtils::isNotBlank)
+                        .toList();
+
+                if (!roomIdList.isEmpty()) {
+                    String roomFilter = roomIdList.stream()
+                            .map(id -> String.format("r.roomId == \"%s\"", id))
+                            .collect(Collectors.joining(" or "));
+                    builder.filter("(" + roomFilter + ")");
+                }
+            }
+
+            String fluxQuery = builder.build();
+            log.info("查询昨日用电量 - 设备编码: {}, 查询语句: {}", deviceCode, fluxQuery);
+
+            List<InfluxMqttPlug> results = influxDBClient.getQueryApi()
+                    .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
+
+            if (results.size() >= 3) {
+                // 用倒数第二个点减去倒数第三个点
+                Double end = results.get(results.size() - 2).getTotal();
+                Double start = results.get(results.size() - 3).getTotal();
+                if (end != null && start != null) {
+                    return Math.max(0, end - start);
+                }
+            }
+
+            return 0.0;
+        } catch (Exception e) {
+            log.error("计算昨日用电量失败 - 设备编码: {}", deviceCode, e);
+            return 0.0;
+        }
+    }
+
+    /**
+     * 计算本周用电量
+     */
+    private Double calculateWeekElectricity(String deviceCode, String roomIds) {
+        try {
+            Instant now = Instant.now();
+            LocalDate monday = LocalDate.now().with(java.time.DayOfWeek.MONDAY);
+            Instant startOfWeek = monday.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+
+            // 查询本周一0点至今的数据
+            InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
+                    .bucket(influxDBProperties.getBucket())
+                    .measurement("device")
+                    .fields("Total")
+                    .tag("deviceCode", deviceCode)
+                    .pivot()
+                    .window("1d", "last")
+                    .sort("_time", InfluxQueryBuilder.SORT_ASC)
+                    .range(startOfWeek, now);
+
+            if (StringUtils.isNotBlank(roomIds)) {
+                List<String> roomIdList = Arrays.stream(roomIds.split(","))
+                        .map(String::trim)
+                        .filter(StringUtils::isNotBlank)
+                        .toList();
+
+                if (!roomIdList.isEmpty()) {
+                    String roomFilter = roomIdList.stream()
+                            .map(id -> String.format("r.roomId == \"%s\"", id))
+                            .collect(Collectors.joining(" or "));
+                    builder.filter("(" + roomFilter + ")");
+                }
+            }
+
+            String fluxQuery = builder.build();
+            log.info("查询本周用电量 - 设备编码: {}, 查询语句: {}", deviceCode, fluxQuery);
+
+            List<InfluxMqttPlug> results = influxDBClient.getQueryApi()
+                    .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
+
+            if (results.size() >= 2) {
+                Double current = results.get(results.size() - 1).getTotal();
+                Double start = results.get(0).getTotal();
+                if (current != null && start != null) {
+                    return Math.max(0, current - start);
+                }
+            }
+
+            return 0.0;
+        } catch (Exception e) {
+            log.error("计算本周用电量失败 - 设备编码: {}", deviceCode, e);
+            return 0.0;
+        }
+    }
+
+    /**
+     * 计算上周用电量
+     */
+    private Double calculateLastWeekElectricity(String deviceCode, String roomIds) {
+        try {
+            LocalDate lastMonday = LocalDate.now().minusWeeks(1).with(java.time.DayOfWeek.MONDAY);
+            LocalDate thisMonday = LocalDate.now().with(java.time.DayOfWeek.MONDAY);
+            Instant startOfLastWeek = lastMonday.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+            Instant endOfLastWeek = thisMonday.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+            Instant now = Instant.now();
+
+            // 查询上周一0点到本周一0点的数据
+            InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
+                    .bucket(influxDBProperties.getBucket())
+                    .measurement("device")
+                    .fields("Total")
+                    .tag("deviceCode", deviceCode)
+                    .pivot()
+                    .window("1d", "last")
+                    .sort("_time", InfluxQueryBuilder.SORT_ASC)
+                    .range(startOfLastWeek, now);
+
+            if (StringUtils.isNotBlank(roomIds)) {
+                List<String> roomIdList = Arrays.stream(roomIds.split(","))
+                        .map(String::trim)
+                        .filter(StringUtils::isNotBlank)
+                        .toList();
+
+                if (!roomIdList.isEmpty()) {
+                    String roomFilter = roomIdList.stream()
+                            .map(id -> String.format("r.roomId == \"%s\"", id))
+                            .collect(Collectors.joining(" or "));
+                    builder.filter("(" + roomFilter + ")");
+                }
+            }
+
+            String fluxQuery = builder.build();
+            log.info("查询上周用电量 - 设备编码: {}, 查询语句: {}", deviceCode, fluxQuery);
+
+            List<InfluxMqttPlug> results = influxDBClient.getQueryApi()
+                    .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
+
+            if (results.size() >= 3) {
+                // 上周日的数据点减去上周一的数据点
+                Double end = results.get(results.size() - 2).getTotal();
+                Double start = results.get(0).getTotal();
+                if (end != null && start != null) {
+                    return Math.max(0, end - start);
+                }
+            }
+
+            return 0.0;
+        } catch (Exception e) {
+            log.error("计算上周用电量失败 - 设备编码: {}", deviceCode, e);
+            return 0.0;
+        }
+    }
+
+    /**
+     * 计算本月用电量
+     */
+    private Double calculateMonthElectricity(String deviceCode, String roomIds) {
+        try {
+            Instant now = Instant.now();
+            LocalDate firstDayOfMonth = LocalDate.now().withDayOfMonth(1);
+            Instant startOfMonth = firstDayOfMonth.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+
+            // 查询本月1号0点至今的数据
+            InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
+                    .bucket(influxDBProperties.getBucket())
+                    .measurement("device")
+                    .fields("Total")
+                    .tag("deviceCode", deviceCode)
+                    .pivot()
+                    .window("1d", "last")
+                    .sort("_time", InfluxQueryBuilder.SORT_ASC)
+                    .range(startOfMonth, now);
+
+            if (StringUtils.isNotBlank(roomIds)) {
+                List<String> roomIdList = Arrays.stream(roomIds.split(","))
+                        .map(String::trim)
+                        .filter(StringUtils::isNotBlank)
+                        .toList();
+
+                if (!roomIdList.isEmpty()) {
+                    String roomFilter = roomIdList.stream()
+                            .map(id -> String.format("r.roomId == \"%s\"", id))
+                            .collect(Collectors.joining(" or "));
+                    builder.filter("(" + roomFilter + ")");
+                }
+            }
+
+            String fluxQuery = builder.build();
+            log.info("查询本月用电量 - 设备编码: {}, 查询语句: {}", deviceCode, fluxQuery);
+
+            List<InfluxMqttPlug> results = influxDBClient.getQueryApi()
+                    .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
+
+            if (results.size() >= 2) {
+                Double current = results.get(results.size() - 1).getTotal();
+                Double start = results.get(0).getTotal();
+                if (current != null && start != null) {
+                    return Math.max(0, current - start);
+                }
+            }
+
+            return 0.0;
+        } catch (Exception e) {
+            log.error("计算本月用电量失败 - 设备编码: {}", deviceCode, e);
+            return 0.0;
+        }
+    }
+
+    /**
+     * 计算上月用电量
+     */
+    private Double calculateLastMonthElectricity(String deviceCode, String roomIds) {
+        try {
+            LocalDate firstDayOfLastMonth = LocalDate.now().minusMonths(1).withDayOfMonth(1);
+            LocalDate firstDayOfThisMonth = LocalDate.now().withDayOfMonth(1);
+            Instant startOfLastMonth = firstDayOfLastMonth.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+            Instant endOfLastMonth = firstDayOfThisMonth.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+            Instant now = Instant.now();
+
+            // 查询上月1号0点到本月1号0点的数据
+            InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
+                    .bucket(influxDBProperties.getBucket())
+                    .measurement("device")
+                    .fields("Total")
+                    .tag("deviceCode", deviceCode)
+                    .pivot()
+                    .window("1d", "last")
+                    .sort("_time", InfluxQueryBuilder.SORT_ASC)
+                    .range(startOfLastMonth, now);
+
+            if (StringUtils.isNotBlank(roomIds)) {
+                List<String> roomIdList = Arrays.stream(roomIds.split(","))
+                        .map(String::trim)
+                        .filter(StringUtils::isNotBlank)
+                        .toList();
+
+                if (!roomIdList.isEmpty()) {
+                    String roomFilter = roomIdList.stream()
+                            .map(id -> String.format("r.roomId == \"%s\"", id))
+                            .collect(Collectors.joining(" or "));
+                    builder.filter("(" + roomFilter + ")");
+                }
+            }
+
+            String fluxQuery = builder.build();
+            log.info("查询上月用电量 - 设备编码: {}, 查询语句: {}", deviceCode, fluxQuery);
+
+            List<InfluxMqttPlug> results = influxDBClient.getQueryApi()
+                    .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
+
+            if (results.size() >= 3) {
+                // 本月1号的数据点减去上月1号的数据点
+                Double end = results.get(results.size() - 2).getTotal();
+                Double start = results.get(0).getTotal();
+                if (end != null && start != null) {
+                    return Math.max(0, end - start);
+                }
+            }
+
+            return 0.0;
+        } catch (Exception e) {
+            log.error("计算上月用电量失败 - 设备编码: {}", deviceCode, e);
+            return 0.0;
+        }
+    }
+
+    /**
+     * 计算自定义时间范围用电量
+     */
+    private Double calculateCustomElectricity(String deviceCode, String startTime, String endTime, String roomIds) {
+        try {
+            Instant startInstant = parseDateToInstant(startTime, true);
+            Instant endInstant = parseDateToInstant(endTime, false);
+
+            // 为了计算差值，我们需要获取开始时间前一天的数据点
+            Instant queryStart = startInstant.minusSeconds(86400);
+
+            // 查询自定义时间范围的数据
+            InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
+                    .bucket(influxDBProperties.getBucket())
+                    .measurement("device")
+                    .fields("Total")
+                    .tag("deviceCode", deviceCode)
+                    .pivot()
+                    .window("1d", "last")
+                    .sort("_time", InfluxQueryBuilder.SORT_DESC)
+                    .range(queryStart, endInstant);
+
+            if (StringUtils.isNotBlank(roomIds)) {
+                List<String> roomIdList = Arrays.stream(roomIds.split(","))
+                        .map(String::trim)
+                        .filter(StringUtils::isNotBlank)
+                        .toList();
+
+                if (!roomIdList.isEmpty()) {
+                    String roomFilter = roomIdList.stream()
+                            .map(id -> String.format("r.roomId == \"%s\"", id))
+                            .collect(Collectors.joining(" or "));
+                    builder.filter("(" + roomFilter + ")");
+                }
+            }
+
+            String fluxQuery = builder.build();
+            log.info("查询自定义时间用电量 - 设备编码: {}, 开始时间: {}, 结束时间: {}, 查询语句: {}",
+                    deviceCode, startInstant, endInstant, fluxQuery);
+
+            List<InfluxMqttPlug> results = influxDBClient.getQueryApi()
+                    .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
+
+            if (!results.isEmpty()) {
+                // 找到最接近开始时间的数据点和最接近结束时间的数据点
+                InfluxMqttPlug startData = null;
+                InfluxMqttPlug endData = null;
+
+                for (InfluxMqttPlug data : results) {
+                    Instant dataTime = data.getTime();
+                    if (dataTime != null) {
+                        if (dataTime.isAfter(startInstant) && endData == null) {
+                            endData = data;
+                        } else if (!dataTime.isAfter(startInstant)) {
+                            startData = data;
+                        }
+                    }
+                }
+
+                // 如果没找到开始时间点之前的数据，则使用第一个数据点
+                if (startData == null && !results.isEmpty()) {
+                    startData = results.get(0);
+                }
+
+                // 如果没找到结束时间点之后的数据，则使用最后一个数据点
+                if (endData == null && !results.isEmpty()) {
+                    endData = results.get(results.size() - 1);
+                }
+
+                if (startData != null && endData != null &&
+                        startData.getTotal() != null && endData.getTotal() != null) {
+                    return Math.max(0, endData.getTotal() - startData.getTotal());
+                }
+            }
+
+            return 0.0;
+        } catch (Exception e) {
+            log.error("计算自定义时间用电量失败 - 设备编码: {}, 开始时间: {}, 结束时间: {}",
+                    deviceCode, startTime, endTime, e);
+            return 0.0;
         }
     }
 
@@ -494,14 +924,8 @@ public class DeviceDataController {
                 }
             }
 
-            // 设置时间范围查询 - 只查询指定时间点之前的数据
-            if (timeInstant.equals(Instant.now())) {
-                // 如果是当前时间，查询最近一天的数据
-                builder.range(-1L, "d");
-            } else {
-                // 如果是指定时间点，查询从该时间点往前一天的数据，然后取最接近的那条
-                builder.range(timeInstant.minusSeconds(86400), timeInstant); // 查询前24小时到指定时间点
-            }
+            // 设置时间范围查询
+            builder.range(timeInstant.minusSeconds(86400), timeInstant); // 查询前24小时到指定时间点
 
             String fluxQuery = builder.build();
             log.info("查询设备电表读数 - 设备编码: {}, 时间点: {}, 查询语句: {}", deviceCode, timeInstant, fluxQuery);
@@ -520,6 +944,7 @@ public class DeviceDataController {
             return null;
         }
     }
+
 
 
     /**
@@ -693,8 +1118,7 @@ public class DeviceDataController {
                     .measurement("device")
                     .fields("Total")
                     .pivot()
-                    .sort("_time", InfluxQueryBuilder.SORT_DESC)
-                    .limit(1);
+                    .sort("_time", InfluxQueryBuilder.SORT_DESC);
 
             // 处理多roomId查询
             if (StringUtils.isNotBlank(roomIds)) {
@@ -722,14 +1146,8 @@ public class DeviceDataController {
                 timeInstant = parseDateToInstant(dateTime, isStart);
             }
 
-            // 设置时间范围查询 - 只查询指定时间点之前的数据
-            if (timeInstant.equals(Instant.now())) {
-                // 如果是当前时间，查询最近一天的数据
-                builder.range(-1L, "d");
-            } else {
-                // 如果是指定时间点，查询从该时间点往前一天的数据
-                builder.range(timeInstant.minusSeconds(86400), timeInstant);
-            }
+            // 设置时间范围查询
+            builder.range(timeInstant.minusSeconds(86400), timeInstant);
 
             // 构建并执行查询语句
             String fluxQuery = builder.build();
