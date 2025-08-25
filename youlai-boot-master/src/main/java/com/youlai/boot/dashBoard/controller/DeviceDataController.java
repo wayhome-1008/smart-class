@@ -594,8 +594,24 @@ public class DeviceDataController {
                     .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
 
             if (results.size() >= 2) {
-                Double current = results.get(results.size() - 1).getTotal();
-                Double start = results.get(0).getTotal();
+                // 查找最后一个有效的数据点
+                Double current = null;
+                for (int i = results.size() - 1; i >= 0; i--) {
+                    if (results.get(i).getTotal() != null) {
+                        current = results.get(i).getTotal();
+                        break;
+                    }
+                }
+
+                // 查找第一个有效的数据点
+                Double start = null;
+                for (InfluxMqttPlug result : results) {
+                    if (result.getTotal() != null) {
+                        start = result.getTotal();
+                        break;
+                    }
+                }
+
                 if (current != null && start != null) {
                     return Math.max(0, current - start);
                 }
@@ -607,6 +623,7 @@ public class DeviceDataController {
             return 0.0;
         }
     }
+
 
     /**
      * 计算上周用电量
@@ -651,9 +668,24 @@ public class DeviceDataController {
                     .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
 
             if (results.size() >= 3) {
-                // 上周日的数据点减去上周一的数据点
-                Double end = results.get(results.size() - 2).getTotal();
-                Double start = results.get(0).getTotal();
+                // 查找倒数第二个有效的数据点（上周日的数据）
+                Double end = null;
+                for (int i = results.size() - 2; i >= 0; i--) {
+                    if (results.get(i).getTotal() != null) {
+                        end = results.get(i).getTotal();
+                        break;
+                    }
+                }
+
+                // 查找第一个有效的数据点（上周一的数据）
+                Double start = null;
+                for (InfluxMqttPlug result : results) {
+                    if (result.getTotal() != null) {
+                        start = result.getTotal();
+                        break;
+                    }
+                }
+
                 if (end != null && start != null) {
                     return Math.max(0, end - start);
                 }
@@ -707,8 +739,24 @@ public class DeviceDataController {
                     .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
 
             if (results.size() >= 2) {
-                Double current = results.get(results.size() - 1).getTotal();
-                Double start = results.get(0).getTotal();
+                // 查找最后一个有效的数据点
+                Double current = null;
+                for (int i = results.size() - 1; i >= 0; i--) {
+                    if (results.get(i).getTotal() != null) {
+                        current = results.get(i).getTotal();
+                        break;
+                    }
+                }
+
+                // 查找第一个有效的数据点
+                Double start = null;
+                for (InfluxMqttPlug result : results) {
+                    if (result.getTotal() != null) {
+                        start = result.getTotal();
+                        break;
+                    }
+                }
+
                 if (current != null && start != null) {
                     return Math.max(0, current - start);
                 }
@@ -764,9 +812,24 @@ public class DeviceDataController {
                     .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
 
             if (results.size() >= 3) {
-                // 本月1号的数据点减去上月1号的数据点
-                Double end = results.get(results.size() - 2).getTotal();
-                Double start = results.get(0).getTotal();
+                // 查找倒数第二个有效的数据点（本月1号的数据）
+                Double end = null;
+                for (int i = results.size() - 2; i >= 0; i--) {
+                    if (results.get(i).getTotal() != null) {
+                        end = results.get(i).getTotal();
+                        break;
+                    }
+                }
+
+                // 查找第一个有效的数据点（上月1号的数据）
+                Double start = null;
+                for (InfluxMqttPlug result : results) {
+                    if (result.getTotal() != null) {
+                        start = result.getTotal();
+                        break;
+                    }
+                }
+
                 if (end != null && start != null) {
                     return Math.max(0, end - start);
                 }
@@ -823,29 +886,22 @@ public class DeviceDataController {
                     .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
 
             if (!results.isEmpty()) {
-                // 找到最接近开始时间的数据点和最接近结束时间的数据点
-                InfluxMqttPlug startData = null;
+                // 查找最接近结束时间的有效数据点
                 InfluxMqttPlug endData = null;
-
-                for (InfluxMqttPlug data : results) {
-                    Instant dataTime = data.getTime();
-                    if (dataTime != null) {
-                        if (dataTime.isAfter(startInstant) && endData == null) {
-                            endData = data;
-                        } else if (!dataTime.isAfter(startInstant)) {
-                            startData = data;
-                        }
+                for (int i = results.size() - 1; i >= 0; i--) {
+                    if (results.get(i).getTotal() != null) {
+                        endData = results.get(i);
+                        break;
                     }
                 }
 
-                // 如果没找到开始时间点之前的数据，则使用第一个数据点
-                if (startData == null && !results.isEmpty()) {
-                    startData = results.get(0);
-                }
-
-                // 如果没找到结束时间点之后的数据，则使用最后一个数据点
-                if (endData == null && !results.isEmpty()) {
-                    endData = results.get(results.size() - 1);
+                // 查找最接近开始时间的有效数据点
+                InfluxMqttPlug startData = null;
+                for (InfluxMqttPlug result : results) {
+                    if (result.getTotal() != null) {
+                        startData = result;
+                        break;
+                    }
                 }
 
                 if (startData != null && endData != null &&
