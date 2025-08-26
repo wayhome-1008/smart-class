@@ -20,4 +20,10 @@ public class CategoryElectricityDataVO {
 
     @Schema(description = "该分类用电量")
     private Double categoryElectricity;
+
+    @Schema(description = "最早开始")
+    private String startTime;
+
+    @Schema(description = "最晚结束")
+    private String endTime;
 }

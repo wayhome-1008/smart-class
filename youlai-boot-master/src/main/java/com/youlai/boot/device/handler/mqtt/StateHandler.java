@@ -9,6 +9,7 @@ import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.config.property.InfluxDBProperties;
 import com.youlai.boot.device.handler.service.MsgHandler;
 import com.youlai.boot.device.model.entity.Device;
+import com.youlai.boot.device.model.influx.InfluxMqttPlug;
 import com.youlai.boot.device.model.influx.InfluxSensor;
 import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.device.service.impl.AlertRuleEngine;
@@ -78,8 +79,45 @@ public class StateHandler implements MsgHandler {
                 String power = jsonNode.get("POWER").asText();
                 ObjectNode metrics = JsonNodeFactory.instance.objectNode();
                 //接受得数据与旧数据合并)
+                /*
+           {
+    "Time": "2025-08-25T05:17:48",
+    "Uptime": "0T02:45:10",
+    "UptimeSec": 9910,
+    "Heap": 26,
+    "SleepMode": "Dynamic",
+    "Sleep": 50,
+    "LoadAvg": 19,
+    "MqttCount": 1,
+    "POWER": "ON",
+    "Wifi": {
+        "AP": 1,
+        "SSId": "SmartHome",
+        "BSSId": "0E:9B:4B:9D:29:81",
+        "Channel": 11,
+        "Mode": "11n",
+        "RSSI": 100,
+        "Signal": -47,
+        "LinkCount": 1,
+        "Downtime": "0T00:00:04"
+    }
+}
+                 **/
                 metrics.put("count", 1);
                 metrics.put("switch1", power);
+                //创建influx数据
+                InfluxMqttPlug influxPlug = new InfluxMqttPlug();
+                //tag为设备编号
+                influxPlug.setDeviceCode(device.getDeviceCode());
+                influxPlug.setRoomId(device.getDeviceRoom().toString());
+                influxPlug.setDeviceType(String.valueOf(device.getDeviceTypeId()));
+                influxPlug.setSwitchState(power);
+                influxDBClient.getWriteApiBlocking().writeMeasurement(
+                        influxProperties.getBucket(),
+                        influxProperties.getOrg(),
+                        WritePrecision.MS,
+                        influxPlug
+                );
                 JsonNode mergeJson = mergeJson(Optional.of(device).map(Device::getDeviceInfo).orElse(null), metrics);
                 device.setDeviceInfo(mergeJson);
                 device.setStatus(1);

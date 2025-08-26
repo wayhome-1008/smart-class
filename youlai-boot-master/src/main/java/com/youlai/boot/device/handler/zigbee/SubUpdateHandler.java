@@ -315,7 +315,9 @@ public class SubUpdateHandler implements MsgHandler {
         InfluxMqttPlug influxPlug = new InfluxMqttPlug();
         //tag为设备编号
         influxPlug.setDeviceCode(deviceCache.getDeviceCode());
-
+        if (params.has("switches")) {
+        influxPlug.setSwitchState(switchState);
+        }
         //tag为房间id
         influxPlug.setRoomId(deviceCache.getDeviceRoom().toString());
         influxPlug.setDeviceType(String.valueOf(deviceCache.getDeviceTypeId()));

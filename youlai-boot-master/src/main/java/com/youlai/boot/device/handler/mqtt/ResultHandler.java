@@ -9,6 +9,7 @@ import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.config.property.InfluxDBProperties;
 import com.youlai.boot.device.handler.service.MsgHandler;
 import com.youlai.boot.device.model.entity.Device;
+import com.youlai.boot.device.model.influx.InfluxMqttPlug;
 import com.youlai.boot.device.model.influx.InfluxSwitch;
 import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.device.topic.HandlerType;
@@ -81,6 +82,19 @@ public class ResultHandler implements MsgHandler {
         for (Scene scene : scenesByDeviceId) {
             sceneExecuteService.executeScene(scene, device, mqttClient, metrics);
         }
+        //创建influx数据
+        InfluxMqttPlug influxPlug = new InfluxMqttPlug();
+        //tag为设备编号
+        influxPlug.setDeviceCode(device.getDeviceCode());
+        influxPlug.setRoomId(device.getDeviceRoom().toString());
+        influxPlug.setDeviceType(String.valueOf(device.getDeviceTypeId()));
+        influxPlug.setSwitchState(power);
+        influxDBClient.getWriteApiBlocking().writeMeasurement(
+                influxProperties.getBucket(),
+                influxProperties.getOrg(),
+                WritePrecision.MS,
+                influxPlug
+        );
         JsonNode mergedInfo = mergeJson(device.getDeviceInfo(), metrics);
         device.setDeviceInfo(mergedInfo);
         device.setStatus(1);

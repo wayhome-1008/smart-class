@@ -28,4 +28,10 @@ public class CategoryElectricityInfoVO {
 
     @Schema(description = "设备数量")
     private Integer deviceCount;
+
+    @Schema(description = "最早开始")
+    private String startTime;
+
+    @Schema(description = "最晚结束")
+    private String endTime;
 }
