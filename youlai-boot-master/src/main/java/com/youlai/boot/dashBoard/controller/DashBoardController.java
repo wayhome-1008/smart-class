@@ -575,7 +575,11 @@ public class DashBoardController {
                             vo.setTotalElectricity(formatDouble(Math.max(0, current - start)));
                         }
                     }
-                    rankingList.add(vo);
+                    if (vo.getTotalElectricity() != null) {
+                        if (vo.getTotalElectricity() != 0.0) {
+                            rankingList.add(vo);
+                        }
+                    }
                 }
             }
 
