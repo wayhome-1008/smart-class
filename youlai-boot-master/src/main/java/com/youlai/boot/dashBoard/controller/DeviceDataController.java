@@ -83,30 +83,37 @@ public class DeviceDataController {
     @Operation(summary = "设备下拉列表")
     @GetMapping("/options/categoryName")
     public Result<List<Option<String>>> listCategoryNameOptions() {
-        // 2. 获取所有分类
+        // 1. 获取所有分类
         List<Category> categories = categoryService.list();
-        List<Category> categoriesAll = new ArrayList<>();
-        if (ObjectUtils.isEmpty(categories)) return Result.success();
-        List<String> categoryNames = categories.stream().map(Category::getCategoryName).toList();
+        if (ObjectUtils.isEmpty(categories)) {
+            return Result.success(new ArrayList<>());
+        }
+
+        // 2. 获取所有分类名称
+        List<String> categoryNames = categories.stream()
+                .map(Category::getCategoryName)
+                .collect(Collectors.toList());
+
+        // 3. 根据分类名称获取配置列表
         List<Config> configList = configService.listByKeys(categoryNames);
-        for (Config config : configList) {
-            for (String categoryName : categoryNames) {
-                if (categoryName.equals(config.getConfigKey())) {
-                    categoriesAll.add(categories.stream()
-                            .filter(category1 -> category1.getCategoryName().equals(categoryName))
-                            .findFirst()
-                            .orElse(null));
-                }
-            }
-        }
-        List<Option<String>> list1 = new ArrayList<>(categoriesAll.size());
-        for (String name : categoryNames) {
-            Option<String> option = new Option<>();
-            option.setValue(name);
-            option.setLabel(name);
-            list1.add(option);
-        }
-        return Result.success(list1);
+
+        // 4. 筛选出在配置中存在的分类名称
+        List<String> validCategoryNames = configList.stream()
+                .map(Config::getConfigKey)
+                .filter(categoryNames::contains)
+                .toList();
+
+        // 5. 构造返回结果
+        List<Option<String>> options = validCategoryNames.stream()
+                .map(name -> {
+                    Option<String> option = new Option<>();
+                    option.setValue(name);
+                    option.setLabel(name);
+                    return option;
+                })
+                .collect(Collectors.toList());
+
+        return Result.success(options);
     }
 
 

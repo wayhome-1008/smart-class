@@ -31,7 +31,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -89,14 +88,25 @@ public class ElectricityCalculationService {
             double roomTotalElectricity = 0.0;
             for (Device device : roomDevices) {
                 if (ObjectUtils.isNotEmpty(categoryDeviceRelationships)) {
-                    if (!categoryDeviceRelationships.stream().map(CategoryDeviceRelationship::getDeviceId).equals(device.getId())) {
+                    // 检查当前设备是否在分类设备关系列表中
+                    boolean deviceInCategory = categoryDeviceRelationships.stream()
+                            .anyMatch(relation -> relation.getDeviceId().equals(device.getId()));
+
+                    // 如果设备不属于指定分类，则跳过
+                    if (!deviceInCategory) {
                         continue;
                     }
-                }
-                Double deviceElectricity = calculateDeviceElectricity(
-                        device.getDeviceCode(), range, startTime, endTime, roomId.toString());
-                if (deviceElectricity != null) {
-                    roomTotalElectricity += deviceElectricity;
+                    Double deviceElectricity = calculateDeviceElectricity(
+                            device.getDeviceCode(), range, startTime, endTime, roomId.toString());
+                    if (deviceElectricity != null) {
+                        roomTotalElectricity += deviceElectricity;
+                    }
+                } else {
+                    Double deviceElectricity = calculateDeviceElectricity(
+                            device.getDeviceCode(), range, startTime, endTime, roomId.toString());
+                    if (deviceElectricity != null) {
+                        roomTotalElectricity += deviceElectricity;
+                    }
                 }
             }
 
@@ -708,15 +718,15 @@ public class ElectricityCalculationService {
 
         // 根据不同的时间范围计算用电量
         for (Room room : roomList) {
-            RoomsElectricityVO vo = new RoomsElectricityVO();
-            vo.setRoomId(room.getId());
-            vo.setRoomName(room.getClassroomCode());
-
             // 使用已有的计算方法根据range计算用电量
             Double totalElectricity = calculateRoomElectricity(room.getId(), range, startTime, endTime, categoryId);
-            vo.setTotalElectricity(MathUtils.formatDouble(totalElectricity != null ? totalElectricity : 0.0));
-
-            resultList.add(vo);
+            if (totalElectricity != 0.0) {
+                RoomsElectricityVO vo = new RoomsElectricityVO();
+                vo.setRoomId(room.getId());
+                vo.setRoomName(room.getClassroomCode());
+                vo.setTotalElectricity(MathUtils.formatDouble(totalElectricity));
+                resultList.add(vo);
+            }
         }
 
         return resultList;
