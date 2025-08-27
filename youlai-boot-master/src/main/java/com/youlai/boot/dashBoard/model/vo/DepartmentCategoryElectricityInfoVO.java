@@ -1,5 +1,6 @@
 package com.youlai.boot.dashBoard.model.vo;
 
+import cn.idev.excel.annotation.ExcelIgnore;
 import cn.idev.excel.annotation.ExcelProperty;
 import cn.idev.excel.annotation.write.style.ColumnWidth;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -15,6 +16,7 @@ import lombok.Data;
 @ColumnWidth(20)
 public class DepartmentCategoryElectricityInfoVO {
 
+    @ExcelIgnore
     @Schema(description = "部门ID")
     private Long departmentId;
 
@@ -22,6 +24,7 @@ public class DepartmentCategoryElectricityInfoVO {
     @Schema(description = "部门名称")
     private String departmentName;
 
+    @ExcelIgnore
     @Schema(description = "分类ID")
     private Long categoryId;
 
@@ -29,19 +32,24 @@ public class DepartmentCategoryElectricityInfoVO {
     @Schema(description = "分类名称")
     private String categoryName;
 
-    @ExcelProperty(value = "总用电量")
-    @Schema(description = "总用电量")
+    @ExcelProperty(value = "分类用电量")
+    @Schema(description = "分类用电量")
     private Double totalElectricity;
 
-    @Schema(description = "该分类总用电量（所有部门中该分类的用电量总和）")
-    private Double categoryTotalElectricity;
+    //    @ExcelProperty(value = "部门总用电量")
+    @Schema(description = "部门总用电量")
+    @ExcelIgnore
+    private Double departmentTotalElectricity;
 
+    @ExcelIgnore
     @Schema(description = "设备数量")
     private Integer deviceCount;
 
-    @Schema(description ="房间名称")
+    @ExcelIgnore
+    @Schema(description = "房间名称")
     private String roomName;
 
+    @ExcelIgnore
     @Schema(description = "房间ID")
     private Long roomId;
 

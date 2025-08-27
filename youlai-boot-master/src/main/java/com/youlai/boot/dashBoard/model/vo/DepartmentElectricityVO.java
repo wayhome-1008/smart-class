@@ -17,10 +17,16 @@ public class DepartmentElectricityVO {
     @ExcelProperty(value = "部门号")
     @Schema(description = "部门ID")
     private Long departmentId;
+
     @ExcelProperty(value = "部门名称")
     @Schema(description = "部门名称")
     private String departmentName;
+
     @ExcelProperty(value = "总用电量")
     @Schema(description = "总用电量")
     private Double totalElectricity;
+
+    @ExcelProperty(value = "分类名称")
+    @Schema(description = "分类名称")
+    private String categoryName;
 }

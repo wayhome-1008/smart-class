@@ -62,4 +62,6 @@ public interface CategoryService extends IService<Category> {
     boolean bindCategory(BindingForm formData);
 
     List<Option<Long>> listCategoryOptions();
+
+    Category getCategoryByName(String categoryName);
 }

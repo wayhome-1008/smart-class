@@ -111,6 +111,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
                 .toList();
         return this.removeByIds(idList);
     }
+
     @Override
     public boolean bindCategory(BindingForm formData) {
         // 1. 参数校验
@@ -172,6 +173,11 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
     public List<Option<Long>> listCategoryOptions() {
         List<Category> list = this.list(new LambdaQueryWrapper<Category>().eq(Category::getStatus, 1));
         return categoryConverter.toOptions(list);
+    }
+
+    @Override
+    public Category getCategoryByName(String categoryName) {
+        return this.getOne(new LambdaQueryWrapper<Category>().eq(Category::getCategoryName, categoryName));
     }
 
 }

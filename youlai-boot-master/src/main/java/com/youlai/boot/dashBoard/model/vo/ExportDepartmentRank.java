@@ -6,16 +6,14 @@ import lombok.Data;
 
 /**
  *@Author: way
- *@CreateTime: 2025-08-15  11:11
+ *@CreateTime: 2025-08-27  10:28
  *@Description: TODO
  */
 @Data
 @ColumnWidth(20)
-public class RoomsElectricityVO {
-    @ExcelProperty(value = "房间号")
-    private Long roomId;
-    @ExcelProperty(value = "房间名称")
-    private String roomName;
+public class ExportDepartmentRank {
+    @ExcelProperty(value = "部门名称")
+    private String departmentName;
     @ExcelProperty(value = "用电量")
     private Double totalElectricity;
     @ExcelProperty(value = "分类名称")

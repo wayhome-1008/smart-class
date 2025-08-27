@@ -10,12 +10,14 @@ import com.youlai.boot.category.model.entity.Category;
 import com.youlai.boot.category.service.CategoryService;
 import com.youlai.boot.categoryDeviceRelationship.model.CategoryDeviceRelationship;
 import com.youlai.boot.categoryDeviceRelationship.service.CategoryDeviceRelationshipService;
+import com.youlai.boot.common.model.Option;
 import com.youlai.boot.common.result.PageResult;
 import com.youlai.boot.common.result.Result;
 import com.youlai.boot.common.util.InfluxQueryBuilder;
 import com.youlai.boot.common.util.MathUtils;
 import com.youlai.boot.config.property.InfluxDBProperties;
 import com.youlai.boot.dashBoard.model.vo.*;
+import com.youlai.boot.dashBoard.service.ElectricityCalculationService;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.influx.InfluxMqttPlug;
 import com.youlai.boot.device.service.DeviceService;
@@ -30,6 +32,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
@@ -54,9 +57,9 @@ import java.util.stream.Collectors;
 import static com.youlai.boot.common.util.MathUtils.formatDouble;
 
 /**
- *@Author: way
- *@CreateTime: 2025-08-11  15:30
- *@Description: 数据汇总接口
+ * @Author: way
+ * @CreateTime: 2025-08-11  15:30
+ * @Description: 数据汇总接口
  */
 @Tag(name = "数据汇总接口")
 @RestController
@@ -75,8 +78,39 @@ public class DeviceDataController {
     private final DeptService deptService;
     private final BuildingService buildingService;
     private final FloorService floorService;
+    private final ElectricityCalculationService electricityCalculationService;
 
-    @Operation(summary = "部门明细")
+    @Operation(summary = "设备下拉列表")
+    @GetMapping("/options/categoryName")
+    public Result<List<Option<String>>> listCategoryNameOptions() {
+        // 2. 获取所有分类
+        List<Category> categories = categoryService.list();
+        List<Category> categoriesAll = new ArrayList<>();
+        if (ObjectUtils.isEmpty(categories)) return Result.success();
+        List<String> categoryNames = categories.stream().map(Category::getCategoryName).toList();
+        List<Config> configList = configService.listByKeys(categoryNames);
+        for (Config config : configList) {
+            for (String categoryName : categoryNames) {
+                if (categoryName.equals(config.getConfigKey())) {
+                    categoriesAll.add(categories.stream()
+                            .filter(category1 -> category1.getCategoryName().equals(categoryName))
+                            .findFirst()
+                            .orElse(null));
+                }
+            }
+        }
+        List<Option<String>> list1 = new ArrayList<>(categoriesAll.size());
+        for (String name : categoryNames) {
+            Option<String> option = new Option<>();
+            option.setValue(name);
+            option.setLabel(name);
+            list1.add(option);
+        }
+        return Result.success(list1);
+    }
+
+
+    @Operation(summary = "1.部门明细")
     @GetMapping("/department/electricity/detail")
     public Result<DepartmentElectricityDetailVO> getDepartmentElectricityDetail(
             @Parameter(description = "部门ID")
@@ -185,12 +219,12 @@ public class DeviceDataController {
             return Result.success(detailVO);
 
         } catch (Exception e) {
-            log.error("查询部门用电详情失败 - departmentId: {}", departmentId, e);
+            log.error("查询部门用电详情失败 - departmentId: {}, range: {}", departmentId, range, e);
             return Result.failed("查询部门用电详情失败");
         }
     }
 
-    @Operation(summary = "房间明细")
+    @Operation(summary = "2.房间明细")
     @GetMapping("/room/electricity/detail")
     public Result<RoomElectricityDetailVO> getRoomElectricityDetail(
             @Parameter(description = "房间ID")
@@ -268,13 +302,14 @@ public class DeviceDataController {
             return Result.success(detailVO);
 
         } catch (Exception e) {
-            log.error("查询房间用电详情失败 - roomId: {}", roomId, e);
+            log.error("查询房间用电详情失败 - roomId: {}, range: {}", roomId, range, e);
             return Result.failed("查询房间用电详情失败");
         }
     }
 
-    @Operation(summary = "部门汇总")
-    @GetMapping("/department/category/electricity/page")
+
+    @Operation(summary = "3.部门/楼宇汇总分页")
+    @GetMapping("/electricity/page")
     public PageResult<DepartmentCategoryElectricityInfoVO> getDepartmentCategoryElectricityPage(
             @Parameter(description = "页码，默认为1")
             @RequestParam(defaultValue = "1") Integer pageNum,
@@ -299,41 +334,23 @@ public class DeviceDataController {
 
         try {
             return getDepartmentCategoryElectricityInfoVOPageResult(pageNum, pageSize, range, startTime, endTime, deptIds, roomIds);
-
         } catch (Exception e) {
             log.error("分页查询各部门各分类用电量失败: ", e);
         }
         return PageResult.success(null);
     }
 
-    @Operation(summary = "楼宇汇总")
-    @GetMapping("/room/category/electricity/page")
-    public PageResult<RoomsElectricityVO> getRoomElectricityPage(
-            @Parameter(description = "页码，默认为1")
-            @RequestParam(defaultValue = "1") Integer pageNum,
 
-            @Parameter(description = "每页数量，默认为10")
-            @RequestParam(defaultValue = "10") Integer pageSize,
-
-            @Parameter(description = "房间ID")
-            @RequestParam(required = false) String roomIds,
-
-            @Parameter(description = "自定义开始时间(yyyy-MM-dd格式)")
-            @RequestParam(required = false) String startTime,
-
-            @Parameter(description = "自定义结束时间(yyyy-MM-dd格式)")
-            @RequestParam(required = false) String endTime) {
-
-        return getRoomsElectricityVOPageResult(pageNum, pageSize, roomIds, startTime, endTime);
-    }
-
-    @Operation(summary = "楼宇电量汇总导出")
+    @Operation(summary = "4.楼宇电量汇总导出")
     @GetMapping("/export/room/electricity")
     public void exportRoomElectricity(@Parameter(description = "页码，默认为1")
                                       @RequestParam(defaultValue = "1") Integer pageNum,
 
                                       @Parameter(description = "每页数量，默认为10")
                                       @RequestParam(defaultValue = "10") Integer pageSize,
+
+                                      @Parameter(description = "时间范围: today-今天/yesterday-昨天/week-本周/lastWeek-上周/month-本月/lastMonth-上月/custom-自定义")
+                                      @RequestParam(defaultValue = "today") String range,
 
                                       @Parameter(description = "房间ID")
                                       @RequestParam(required = false) String roomIds,
@@ -347,13 +364,22 @@ public class DeviceDataController {
         String fileName = "楼宇电量汇总.xlsx";
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setHeader("Content-Disposition", "attachment; filename=" + URLEncoder.encode(fileName, StandardCharsets.UTF_8));
-        PageResult<RoomsElectricityVO> roomsElectricityVOPageResult = getRoomsElectricityVOPageResult(pageNum, pageSize, roomIds, startTime, endTime);
-        List<RoomsElectricityVO> list = roomsElectricityVOPageResult.getData().getList();
+        PageResult<DepartmentCategoryElectricityInfoVO> departmentElectricityVOPageResult = getDepartmentCategoryElectricityInfoVOPageResult(pageNum, pageSize, range, startTime, endTime, null, roomIds);
+        List<DepartmentCategoryElectricityInfoVO> list = departmentElectricityVOPageResult.getData().getList();
+        List<RoomsElectricityVO> roomsElectricityVOList = new ArrayList<>();
+        for (DepartmentCategoryElectricityInfoVO departmentCategoryElectricityInfoVO : list) {
+            RoomsElectricityVO roomsElectricityVO = new RoomsElectricityVO();
+            roomsElectricityVO.setRoomId(departmentCategoryElectricityInfoVO.getRoomId());
+            roomsElectricityVO.setRoomName(departmentCategoryElectricityInfoVO.getRoomName());
+            roomsElectricityVO.setTotalElectricity(departmentCategoryElectricityInfoVO.getTotalElectricity());
+            roomsElectricityVO.setCategoryName(departmentCategoryElectricityInfoVO.getCategoryName());
+            roomsElectricityVOList.add(roomsElectricityVO);
+        }
         EasyExcel.write(response.getOutputStream(), RoomsElectricityVO.class).sheet("楼宇电量汇总")
-                .doWrite(list);
+                .doWrite(roomsElectricityVOList);
     }
 
-    @Operation(summary = "部门电量汇总导出")
+    @Operation(summary = "5.部门电量汇总导出")
     @GetMapping("/export/department/electricity")
     public void exportDepartmentElectricity(@Parameter(description = "页码，默认为1")
                                             @RequestParam(defaultValue = "1") Integer pageNum,
@@ -381,14 +407,24 @@ public class DeviceDataController {
         response.setHeader("Content-Disposition", "attachment; filename=" + URLEncoder.encode(fileName, StandardCharsets.UTF_8));
         PageResult<DepartmentCategoryElectricityInfoVO> departmentElectricityVOPageResult = getDepartmentCategoryElectricityInfoVOPageResult(pageNum, pageSize, range, startTime, endTime, deptIds, roomIds);
         List<DepartmentCategoryElectricityInfoVO> list = departmentElectricityVOPageResult.getData().getList();
-        EasyExcel.write(response.getOutputStream(), DepartmentCategoryElectricityInfoVO.class).sheet("部门电量汇总")
-                .doWrite(list);
+        List<ExportDepartment> exportDepartmentList = new ArrayList<>();
+        for (DepartmentCategoryElectricityInfoVO departmentCategoryElectricityInfoVO : list) {
+            ExportDepartment exportDepartment = new ExportDepartment();
+            exportDepartment.setDepartmentId(departmentCategoryElectricityInfoVO.getDepartmentId());
+            exportDepartment.setDepartmentName(departmentCategoryElectricityInfoVO.getDepartmentName());
+            exportDepartment.setTotalElectricity(departmentCategoryElectricityInfoVO.getTotalElectricity());
+            exportDepartment.setCategoryName(departmentCategoryElectricityInfoVO.getCategoryName());
+            exportDepartmentList.add(exportDepartment);
+        }
+        EasyExcel.write(response.getOutputStream(), ExportDepartment.class).sheet("部门电量汇总")
+                .doWrite(exportDepartmentList);
     }
 
     /**
      * 查询设备的最早开启时间和最晚关闭时间
+     *
      * @param deviceCode 设备编码
-     * @param range 时间范围 (today/yesterday)
+     * @param range      时间范围 (today/yesterday)
      * @return 包含最早开启时间和最晚关闭时间的对象
      */
     private SwitchTimeInfo queryDeviceSwitchTimes(String deviceCode, String range) {
@@ -462,6 +498,7 @@ public class DeviceDataController {
     /**
      * 用于存储开关时间信息的简单类
      */
+    @Getter
     private static class SwitchTimeInfo {
         private final Instant earliestOnTime;
         private final Instant latestOffTime;
@@ -471,13 +508,6 @@ public class DeviceDataController {
             this.latestOffTime = latestOffTime;
         }
 
-        public Instant getEarliestOnTime() {
-            return earliestOnTime;
-        }
-
-        public Instant getLatestOffTime() {
-            return latestOffTime;
-        }
     }
 
     /**
@@ -614,7 +644,9 @@ public class DeviceDataController {
     }
 
     @NotNull
-    private PageResult<DepartmentCategoryElectricityInfoVO> getDepartmentCategoryElectricityInfoVOPageResult(Integer pageNum, Integer pageSize, String range, String startTime, String endTime, String deptIds, String roomIds) {
+    private PageResult<DepartmentCategoryElectricityInfoVO> getDepartmentCategoryElectricityInfoVOPageResult(
+            Integer pageNum, Integer pageSize, String range, String startTime, String endTime,
+            String deptIds, String roomIds) {
         // 1. 获取所有分类
         List<Category> categories = categoryService.list();
         if (ObjectUtils.isEmpty(categories)) {
@@ -639,8 +671,39 @@ public class DeviceDataController {
                     .ifPresent(validCategories::add);
         }
 
-        // 3. 获取所有房间的信息，用于后续部门映射
-        List<Room> allRooms = roomService.list();
+        // 3. 获取所有房间的信息，用于部门映射
+        QueryWrapper<Room> roomQueryWrapper = new QueryWrapper<>();
+
+        // 根据是否有部门ID或房间ID来决定查询条件
+        boolean hasDeptIds = StringUtils.isNotBlank(deptIds);
+        boolean hasRoomIds = StringUtils.isNotBlank(roomIds);
+
+        if (hasDeptIds) {
+            // 部门汇总：根据部门ID查询
+            List<Long> deptIdList = Arrays.stream(deptIds.split(","))
+                    .map(String::trim)
+                    .filter(StringUtils::isNotBlank)
+                    .map(Long::parseLong)
+                    .toList();
+            roomQueryWrapper.in("department_id", deptIdList);
+        } else if (hasRoomIds) {
+            // 楼宇汇总：根据房间ID查询
+            List<Long> roomIdList = Arrays.stream(roomIds.split(","))
+                    .map(String::trim)
+                    .filter(StringUtils::isNotBlank)
+                    .map(Long::parseLong)
+                    .toList();
+            roomQueryWrapper.in("id", roomIdList);
+        }
+
+        List<Room> allRooms = roomService.list(roomQueryWrapper);
+        if (ObjectUtils.isEmpty(allRooms)) {
+            Page<DepartmentCategoryElectricityInfoVO> page = new Page<>(pageNum, pageSize);
+            page.setTotal(0);
+            page.setRecords(new ArrayList<>());
+            return PageResult.success(page);
+        }
+
         Map<Long, Room> roomMap = allRooms.stream()
                 .collect(Collectors.toMap(
                         Room::getId,
@@ -667,34 +730,39 @@ public class DeviceDataController {
                         .toList();
 
                 for (Device masterDevice : masterDevices) {
-                    DeviceElectricityDataVO deviceData = getDeviceElectricityByRange(masterDevice.getDeviceCode(), range, startTime, endTime, roomIds);
-                    if (deviceData != null && deviceData.getTotalElectricity() != null) {
-                        // 获取设备所在房间
-                        Room room = roomMap.get(masterDevice.getDeviceRoom());
-                        if (room != null) {
-                            Long departmentId = room.getDepartmentId();
-                            Dept department = deptService.getById(departmentId);
-                            String departmentName = department.getName();
+                    // 检查设备是否属于查询范围内的房间
+                    if (roomMap.containsKey(masterDevice.getDeviceRoom())) {
+                        DeviceElectricityDataVO deviceData = getDeviceElectricityByRange(
+                                masterDevice.getDeviceCode(), range, startTime, endTime, roomIds);
 
-                            // 构造分组键：部门ID_分类ID
-                            String groupKey = departmentId + "_" + category.getId();
+                        if (deviceData != null && deviceData.getTotalElectricity() != null) {
+                            // 获取设备所在房间
+                            Room room = roomMap.get(masterDevice.getDeviceRoom());
+                            if (room != null) {
+                                Long departmentId = room.getDepartmentId();
+                                Dept department = deptService.getById(departmentId);
+                                String departmentName = department != null ? department.getName() : "未知部门";
 
-                            DepartmentCategoryElectricityInfoVO vo = departmentCategoryMap.get(groupKey);
-                            if (vo == null) {
-                                vo = new DepartmentCategoryElectricityInfoVO();
-                                vo.setDepartmentId(departmentId);
-                                vo.setDepartmentName(departmentName != null ? departmentName : "未知部门");
-                                vo.setCategoryId(category.getId());
-                                vo.setCategoryName(category.getCategoryName());
-                                vo.setTotalElectricity(0.0);
-                                vo.setDeviceCount(0);
-                                vo.setRoomName(room.getClassroomCode() != null ? room.getClassroomCode() : "未知房间");
-                                vo.setRoomId(room.getId());
-                                departmentCategoryMap.put(groupKey, vo);
+                                // 构造分组键：部门ID_分类ID
+                                String groupKey = departmentId + "_" + category.getId();
+
+                                DepartmentCategoryElectricityInfoVO vo = departmentCategoryMap.get(groupKey);
+                                if (vo == null) {
+                                    vo = new DepartmentCategoryElectricityInfoVO();
+                                    vo.setDepartmentId(departmentId);
+                                    vo.setDepartmentName(departmentName);
+                                    vo.setCategoryId(category.getId());
+                                    vo.setCategoryName(category.getCategoryName());
+                                    vo.setTotalElectricity(0.0);
+                                    vo.setDeviceCount(0);
+                                    vo.setRoomName(room.getClassroomCode() != null ? room.getClassroomCode() : "未知房间");
+                                    vo.setRoomId(room.getId());
+                                    departmentCategoryMap.put(groupKey, vo);
+                                }
+                                // 累加用电量和设备数量
+                                vo.setTotalElectricity(MathUtils.formatDouble(vo.getTotalElectricity() + deviceData.getTotalElectricity()));
+                                vo.setDeviceCount(vo.getDeviceCount() + 1);
                             }
-                            // 累加用电量和设备数量
-                            vo.setTotalElectricity(MathUtils.formatDouble(vo.getTotalElectricity() + deviceData.getTotalElectricity()));
-                            vo.setDeviceCount(vo.getDeviceCount() + 1);
                         }
                     }
                 }
@@ -703,34 +771,23 @@ public class DeviceDataController {
 
         departmentCategoryElectricityList.addAll(departmentCategoryMap.values());
 
-        // 添加部门筛选逻辑
-        if (StringUtils.isNotBlank(deptIds)) {
-            List<Long> deptIdList = Arrays.stream(deptIds.split(","))
-                    .map(String::trim)
-                    .filter(StringUtils::isNotBlank)
-                    .map(Long::parseLong)
-                    .toList();
-
-            departmentCategoryElectricityList = departmentCategoryElectricityList.stream()
-                    .filter(item -> deptIdList.contains(item.getDepartmentId()))
-                    .collect(Collectors.toList());
-        }
-        // 按分类ID分组，计算每个分类的总用电量
-        Map<Long, Double> categoryTotalElectricityMap = departmentCategoryElectricityList.stream()
+        // 按部门ID分组，计算每个部门的总用电量
+        Map<Long, Double> departmentTotalElectricityMap = departmentCategoryElectricityList.stream()
                 .collect(Collectors.groupingBy(
-                        DepartmentCategoryElectricityInfoVO::getCategoryId,
+                        DepartmentCategoryElectricityInfoVO::getDepartmentId,
                         Collectors.summingDouble(DepartmentCategoryElectricityInfoVO::getTotalElectricity)
                 ));
 
         // 为每个记录设置分类总用电量和占比
         for (DepartmentCategoryElectricityInfoVO item : departmentCategoryElectricityList) {
-            Double categoryTotal = categoryTotalElectricityMap.get(item.getCategoryId());
-            if (categoryTotal != null && categoryTotal > 0) {
-                item.setCategoryTotalElectricity(categoryTotal);
+            Double departmentTotal = formatDouble(departmentTotalElectricityMap.get(item.getDepartmentId()));
+            if (departmentTotal != null && departmentTotal > 0) {
+                item.setDepartmentTotalElectricity(departmentTotal);
             } else {
-                item.setCategoryTotalElectricity(0.0);
+                item.setDepartmentTotalElectricity(0.0);
             }
         }
+
         // 5. 分页处理
         int total = departmentCategoryElectricityList.size();
         int fromIndex = (pageNum - 1) * pageSize;
@@ -754,40 +811,13 @@ public class DeviceDataController {
         return PageResult.success(page);
     }
 
+
     /**
      * 根据时间范围获取设备用电量（修改版）
      */
     private DeviceElectricityDataVO getDeviceElectricityByRange(String deviceCode, String range, String startTime, String endTime, String roomIds) {
         try {
-            Double totalElectricity = 0.0;
-
-            switch (range) {
-                case "today":
-                    totalElectricity = calculateTodayElectricity(deviceCode, roomIds);
-                    break;
-                case "yesterday":
-                    totalElectricity = calculateYesterdayElectricity(deviceCode, roomIds);
-                    break;
-                case "week":
-                    totalElectricity = calculateWeekElectricity(deviceCode, roomIds);
-                    break;
-                case "lastWeek":
-                    totalElectricity = calculateLastWeekElectricity(deviceCode, roomIds);
-                    break;
-                case "month":
-                    totalElectricity = calculateMonthElectricity(deviceCode, roomIds);
-                    break;
-                case "lastMonth":
-                    totalElectricity = calculateLastMonthElectricity(deviceCode, roomIds);
-                    break;
-                case "custom":
-                    totalElectricity = calculateCustomElectricity(deviceCode, startTime, endTime, roomIds);
-                    break;
-                default:
-                    totalElectricity = calculateCustomElectricity(deviceCode, startTime, endTime, roomIds);
-                    break;
-            }
-
+            Double totalElectricity = electricityCalculationService.calculateDeviceElectricity(deviceCode, range, startTime, endTime, roomIds);
             log.info("设备用电量计算 - 设备编码: {}, 范围: {}, 用电量: {}", deviceCode, range, totalElectricity);
             return new DeviceElectricityDataVO(totalElectricity, Instant.now());
         } catch (Exception e) {
@@ -796,866 +826,260 @@ public class DeviceDataController {
         }
     }
 
-    /**
-     * 计算今日用电量
-     */
-    private Double calculateTodayElectricity(String deviceCode, String roomIds) {
-        try {
-            Instant now = Instant.now();
-            Instant startOfDay = LocalDate.now().atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+    @Operation(summary = "6.楼宇排名导出")
+    @GetMapping("/export/room/rank")
+    public void exportRoomRanking(
+            @Parameter(description = "页码，默认为1")
+            @RequestParam(defaultValue = "1") Integer pageNum,
 
-            // 查询今日0点至今的数据
-            InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
-                    .bucket(influxDBProperties.getBucket())
-                    .measurement("device")
-                    .fields("Total")
-                    .tag("deviceCode", deviceCode)
-                    .pivot()
-                    .window("1d", "last")
-                    .sort("_time", InfluxQueryBuilder.SORT_ASC)
-                    .range(startOfDay, now);
+            @Parameter(description = "每页数量，默认为10")
+            @RequestParam(defaultValue = "10") Integer pageSize,
 
-            if (StringUtils.isNotBlank(roomIds)) {
-                List<String> roomIdList = Arrays.stream(roomIds.split(","))
-                        .map(String::trim)
-                        .filter(StringUtils::isNotBlank)
-                        .toList();
+            @Parameter(description = "时间范围: today-今天/yesterday-昨天/week-本周/lastWeek-上周/month-本月/lastMonth-上月/custom-自定义")
+            @RequestParam(defaultValue = "today") String range,
 
-                if (!roomIdList.isEmpty()) {
-                    String roomFilter = roomIdList.stream()
-                            .map(id -> String.format("r.roomId == \"%s\"", id))
-                            .collect(Collectors.joining(" or "));
-                    builder.filter("(" + roomFilter + ")");
-                }
-            }
+            @Parameter(description = "房间ID")
+            @RequestParam(required = false) String roomIds,
+            @Parameter(description = "分类名称")
+            @RequestParam(required = false) String categoryName,
 
-            String fluxQuery = builder.build();
-            log.info("查询今日用电量 - 设备编码: {}, 查询语句: {}", deviceCode, fluxQuery);
+            @Parameter(description = "自定义开始时间(yyyy-MM-dd格式)")
+            @RequestParam(required = false) String startTime,
 
-            List<InfluxMqttPlug> results = influxDBClient.getQueryApi()
-                    .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
-
-            if (results.size() >= 2) {
-                // 用最后一个点减去倒数第二个点
-                Double current = results.get(results.size() - 1).getTotal();
-                Double start = results.get(results.size() - 2).getTotal();
-                if (current != null && start != null) {
-                    return Math.max(0, current - start);
-                }
-            }
-
-            return 0.0;
-        } catch (Exception e) {
-            log.error("计算今日用电量失败 - 设备编码: {}", deviceCode, e);
-            return 0.0;
+            @Parameter(description = "自定义结束时间(yyyy-MM-dd格式)")
+            @RequestParam(required = false) String endTime,
+            HttpServletResponse response
+    ) throws IOException {
+        String fileName = "楼宇排名.xlsx";
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename=" + URLEncoder.encode(fileName, StandardCharsets.UTF_8));
+        PageResult<RoomsElectricityVO> roomsElectricityVOPageResult = electricityCalculationService.getRoomsElectricityVOPageResult(pageNum, pageSize, roomIds, startTime, endTime, range, categoryName);
+        List<RoomsElectricityVO> list = roomsElectricityVOPageResult.getData().getList();
+        List<ExportRoomRank> exportRoomRanksList = new ArrayList<>();
+        for (RoomsElectricityVO electricityVO : list) {
+            ExportRoomRank exportRoomRank = new ExportRoomRank();
+            exportRoomRank.setRoomName(electricityVO.getRoomName());
+            exportRoomRank.setTotalElectricity(electricityVO.getTotalElectricity());
+            exportRoomRank.setCategoryName(electricityVO.getCategoryName());
+            exportRoomRanksList.add(exportRoomRank);
         }
+        EasyExcel.write(response.getOutputStream(), ExportRoomRank.class).sheet("楼宇排名")
+                .doWrite(exportRoomRanksList);
+
     }
 
-    /**
-     * 计算昨日用电量
-     */
-    private Double calculateYesterdayElectricity(String deviceCode, String roomIds) {
-        try {
-            Instant now = Instant.now();
-            Instant startOfYesterday = LocalDate.now().minusDays(1).atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
-            Instant endOfYesterday = LocalDate.now().atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+    @Operation(summary = "7.楼宇排名")
+    @GetMapping("/room/electricity/rank")
+    public PageResult<RoomsElectricityVO> getRoomRankingPage(
+            @Parameter(description = "页码，默认为1")
+            @RequestParam(defaultValue = "1") Integer pageNum,
 
-            // 查询昨日0点到今日0点的数据
-            InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
-                    .bucket(influxDBProperties.getBucket())
-                    .measurement("device")
-                    .fields("Total")
-                    .tag("deviceCode", deviceCode)
-                    .pivot()
-                    .window("1d", "last")
-                    .sort("_time", InfluxQueryBuilder.SORT_ASC)
-                    .range(startOfYesterday, now);
+            @Parameter(description = "每页数量，默认为10")
+            @RequestParam(defaultValue = "10") Integer pageSize,
 
-            if (StringUtils.isNotBlank(roomIds)) {
-                List<String> roomIdList = Arrays.stream(roomIds.split(","))
-                        .map(String::trim)
-                        .filter(StringUtils::isNotBlank)
-                        .toList();
+            @Parameter(description = "时间范围: today-今天/yesterday-昨天/week-本周/lastWeek-上周/month-本月/lastMonth-上月/custom-自定义")
+            @RequestParam(defaultValue = "today") String range,
 
-                if (!roomIdList.isEmpty()) {
-                    String roomFilter = roomIdList.stream()
-                            .map(id -> String.format("r.roomId == \"%s\"", id))
-                            .collect(Collectors.joining(" or "));
-                    builder.filter("(" + roomFilter + ")");
-                }
-            }
+            @Parameter(description = "房间ID")
+            @RequestParam(required = false) String roomIds,
+            @Parameter(description = "分类名称")
+            @RequestParam(required = false) String categoryName,
 
-            String fluxQuery = builder.build();
-            log.info("查询昨日用电量 - 设备编码: {}, 查询语句: {}", deviceCode, fluxQuery);
+            @Parameter(description = "自定义开始时间(yyyy-MM-dd格式)")
+            @RequestParam(required = false) String startTime,
 
-            List<InfluxMqttPlug> results = influxDBClient.getQueryApi()
-                    .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
+            @Parameter(description = "自定义结束时间(yyyy-MM-dd格式)")
+            @RequestParam(required = false) String endTime) {
 
-            if (results.size() >= 3) {
-                // 用倒数第二个点减去倒数第三个点
-                Double end = results.get(results.size() - 2).getTotal();
-                Double start = results.get(results.size() - 3).getTotal();
-                if (end != null && start != null) {
-                    return Math.max(0, end - start);
-                }
-            }
-
-            return 0.0;
-        } catch (Exception e) {
-            log.error("计算昨日用电量失败 - 设备编码: {}", deviceCode, e);
-            return 0.0;
-        }
+        return electricityCalculationService.getRoomsElectricityVOPageResult(pageNum, pageSize, roomIds, startTime, endTime, range, categoryName);
     }
 
-    /**
-     * 计算本周用电量
-     */
-    private Double calculateWeekElectricity(String deviceCode, String roomIds) {
-        try {
-            Instant now = Instant.now();
-            LocalDate monday = LocalDate.now().with(java.time.DayOfWeek.MONDAY);
-            Instant startOfWeek = monday.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+    @Operation(summary = "8.部门排名")
+    @GetMapping("/department/electricity/rank")
+    public PageResult<DepartmentElectricityVO> getDepartmentRankingPage(
+            @Parameter(description = "页码，默认为1")
+            @RequestParam(defaultValue = "1") Integer pageNum,
 
-            // 查询本周一0点至今的数据
-            InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
-                    .bucket(influxDBProperties.getBucket())
-                    .measurement("device")
-                    .fields("Total")
-                    .tag("deviceCode", deviceCode)
-                    .pivot()
-                    .window("1d", "last")
-                    .sort("_time", InfluxQueryBuilder.SORT_ASC)
-                    .range(startOfWeek, now);
+            @Parameter(description = "每页数量，默认为10")
+            @RequestParam(defaultValue = "10") Integer pageSize,
 
-            if (StringUtils.isNotBlank(roomIds)) {
-                List<String> roomIdList = Arrays.stream(roomIds.split(","))
-                        .map(String::trim)
-                        .filter(StringUtils::isNotBlank)
-                        .toList();
+            @Parameter(description = "时间范围: today-今天/yesterday-昨天/week-本周/lastWeek-上周/month-本月/lastMonth-上月/custom-自定义")
+            @RequestParam(defaultValue = "today") String range,
 
-                if (!roomIdList.isEmpty()) {
-                    String roomFilter = roomIdList.stream()
-                            .map(id -> String.format("r.roomId == \"%s\"", id))
-                            .collect(Collectors.joining(" or "));
-                    builder.filter("(" + roomFilter + ")");
-                }
-            }
+            @Parameter(description = "部门IDs，多个用逗号分隔")
+            @RequestParam(required = false) String deptIds,
 
-            String fluxQuery = builder.build();
-            log.info("查询本周用电量 - 设备编码: {}, 查询语句: {}", deviceCode, fluxQuery);
+            @Parameter(description = "分类名称")
+            @RequestParam(required = false) String categoryName,
 
-            List<InfluxMqttPlug> results = influxDBClient.getQueryApi()
-                    .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
+            @Parameter(description = "自定义开始时间(yyyy-MM-dd格式)")
+            @RequestParam(required = false) String startTime,
 
-            if (results.size() >= 2) {
-                // 查找最后一个有效的数据点
-                Double current = null;
-                for (int i = results.size() - 1; i >= 0; i--) {
-                    if (results.get(i).getTotal() != null) {
-                        current = results.get(i).getTotal();
-                        break;
-                    }
-                }
-
-                // 查找第一个有效的数据点
-                Double start = null;
-                for (InfluxMqttPlug result : results) {
-                    if (result.getTotal() != null) {
-                        start = result.getTotal();
-                        break;
-                    }
-                }
-
-                if (current != null && start != null) {
-                    return Math.max(0, current - start);
-                }
-            }
-
-            return 0.0;
-        } catch (Exception e) {
-            log.error("计算本周用电量失败 - 设备编码: {}", deviceCode, e);
-            return 0.0;
-        }
+            @Parameter(description = "自定义结束时间(yyyy-MM-dd格式)")
+            @RequestParam(required = false) String endTime) {
+        return getDepartmentElectricityVOPageResult(pageNum, pageSize, deptIds, startTime, endTime, range, categoryName);
     }
 
+    @Operation(summary = "9.部门排名导出")
+    @GetMapping("/export/department/rank")
+    public void exportDepartmentRanking(
+            @Parameter(description = "页码，默认为1")
+            @RequestParam(defaultValue = "1") Integer pageNum,
 
-    /**
-     * 计算上周用电量
-     */
-    private Double calculateLastWeekElectricity(String deviceCode, String roomIds) {
-        try {
-            LocalDate lastMonday = LocalDate.now().minusWeeks(1).with(java.time.DayOfWeek.MONDAY);
-            LocalDate thisMonday = LocalDate.now().with(java.time.DayOfWeek.MONDAY);
-            Instant startOfLastWeek = lastMonday.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
-            Instant endOfLastWeek = thisMonday.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
-            Instant now = Instant.now();
+            @Parameter(description = "每页数量，默认为10")
+            @RequestParam(defaultValue = "10") Integer pageSize,
 
-            // 查询上周一0点到本周一0点的数据
-            InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
-                    .bucket(influxDBProperties.getBucket())
-                    .measurement("device")
-                    .fields("Total")
-                    .tag("deviceCode", deviceCode)
-                    .pivot()
-                    .window("1d", "last")
-                    .sort("_time", InfluxQueryBuilder.SORT_ASC)
-                    .range(startOfLastWeek, now);
+            @Parameter(description = "时间范围: today-今天/yesterday-昨天/week-本周/lastWeek-上周/month-本月/lastMonth-上月/custom-自定义")
+            @RequestParam(defaultValue = "today") String range,
 
-            if (StringUtils.isNotBlank(roomIds)) {
-                List<String> roomIdList = Arrays.stream(roomIds.split(","))
-                        .map(String::trim)
-                        .filter(StringUtils::isNotBlank)
-                        .toList();
+            @Parameter(description = "房间ID")
+            @RequestParam(required = false) String roomIds,
+            @Parameter(description = "分类名称")
+            @RequestParam(required = false) String categoryName,
 
-                if (!roomIdList.isEmpty()) {
-                    String roomFilter = roomIdList.stream()
-                            .map(id -> String.format("r.roomId == \"%s\"", id))
-                            .collect(Collectors.joining(" or "));
-                    builder.filter("(" + roomFilter + ")");
-                }
-            }
+            @Parameter(description = "自定义开始时间(yyyy-MM-dd格式)")
+            @RequestParam(required = false) String startTime,
 
-            String fluxQuery = builder.build();
-            log.info("查询上周用电量 - 设备编码: {}, 查询语句: {}", deviceCode, fluxQuery);
-
-            List<InfluxMqttPlug> results = influxDBClient.getQueryApi()
-                    .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
-
-            if (results.size() >= 3) {
-                // 查找倒数第二个有效的数据点（上周日的数据）
-                Double end = null;
-                for (int i = results.size() - 2; i >= 0; i--) {
-                    if (results.get(i).getTotal() != null) {
-                        end = results.get(i).getTotal();
-                        break;
-                    }
-                }
-
-                // 查找第一个有效的数据点（上周一的数据）
-                Double start = null;
-                for (InfluxMqttPlug result : results) {
-                    if (result.getTotal() != null) {
-                        start = result.getTotal();
-                        break;
-                    }
-                }
-
-                if (end != null && start != null) {
-                    return Math.max(0, end - start);
-                }
-            }
-
-            return 0.0;
-        } catch (Exception e) {
-            log.error("计算上周用电量失败 - 设备编码: {}", deviceCode, e);
-            return 0.0;
+            @Parameter(description = "自定义结束时间(yyyy-MM-dd格式)")
+            @RequestParam(required = false) String endTime,
+            HttpServletResponse response
+    ) throws IOException {
+        String fileName = "部门排名.xlsx";
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename=" + URLEncoder.encode(fileName, StandardCharsets.UTF_8));
+        PageResult<DepartmentElectricityVO> departmentElectricityVOPageResult = getDepartmentElectricityVOPageResult(pageNum, pageSize, roomIds, startTime, endTime, range, categoryName);
+        List<DepartmentElectricityVO> list = departmentElectricityVOPageResult.getData().getList();
+        List<ExportDepartmentRank> exportDepartments = new ArrayList<>();
+        for (DepartmentElectricityVO departmentElectricityVO : list) {
+            ExportDepartmentRank exportDepartmentRank = new ExportDepartmentRank();
+            exportDepartmentRank.setDepartmentName(departmentElectricityVO.getDepartmentName());
+            exportDepartmentRank.setTotalElectricity(departmentElectricityVO.getTotalElectricity());
+            exportDepartmentRank.setCategoryName(departmentElectricityVO.getCategoryName());
+            exportDepartments.add(exportDepartmentRank);
         }
-    }
+        EasyExcel.write(response.getOutputStream(), ExportDepartmentRank.class).sheet("部门排名")
+                .doWrite(exportDepartments);
 
-    /**
-     * 计算本月用电量
-     */
-    private Double calculateMonthElectricity(String deviceCode, String roomIds) {
-        try {
-            Instant now = Instant.now();
-            LocalDate firstDayOfMonth = LocalDate.now().withDayOfMonth(1);
-            Instant startOfMonth = firstDayOfMonth.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
-
-            // 查询本月1号0点至今的数据
-            InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
-                    .bucket(influxDBProperties.getBucket())
-                    .measurement("device")
-                    .fields("Total")
-                    .tag("deviceCode", deviceCode)
-                    .pivot()
-                    .window("1d", "last")
-                    .sort("_time", InfluxQueryBuilder.SORT_ASC)
-                    .range(startOfMonth, now);
-
-            if (StringUtils.isNotBlank(roomIds)) {
-                List<String> roomIdList = Arrays.stream(roomIds.split(","))
-                        .map(String::trim)
-                        .filter(StringUtils::isNotBlank)
-                        .toList();
-
-                if (!roomIdList.isEmpty()) {
-                    String roomFilter = roomIdList.stream()
-                            .map(id -> String.format("r.roomId == \"%s\"", id))
-                            .collect(Collectors.joining(" or "));
-                    builder.filter("(" + roomFilter + ")");
-                }
-            }
-
-            String fluxQuery = builder.build();
-            log.info("查询本月用电量 - 设备编码: {}, 查询语句: {}", deviceCode, fluxQuery);
-
-            List<InfluxMqttPlug> results = influxDBClient.getQueryApi()
-                    .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
-
-            if (results.size() >= 2) {
-                // 查找最后一个有效的数据点
-                Double current = null;
-                for (int i = results.size() - 1; i >= 0; i--) {
-                    if (results.get(i).getTotal() != null) {
-                        current = results.get(i).getTotal();
-                        break;
-                    }
-                }
-
-                // 查找第一个有效的数据点
-                Double start = null;
-                for (InfluxMqttPlug result : results) {
-                    if (result.getTotal() != null) {
-                        start = result.getTotal();
-                        break;
-                    }
-                }
-
-                if (current != null && start != null) {
-                    return Math.max(0, current - start);
-                }
-            }
-
-            return 0.0;
-        } catch (Exception e) {
-            log.error("计算本月用电量失败 - 设备编码: {}", deviceCode, e);
-            return 0.0;
-        }
-    }
-
-    /**
-     * 计算上月用电量
-     */
-    private Double calculateLastMonthElectricity(String deviceCode, String roomIds) {
-        try {
-            LocalDate firstDayOfLastMonth = LocalDate.now().minusMonths(1).withDayOfMonth(1);
-            LocalDate firstDayOfThisMonth = LocalDate.now().withDayOfMonth(1);
-            Instant startOfLastMonth = firstDayOfLastMonth.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
-            Instant endOfLastMonth = firstDayOfThisMonth.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
-            Instant now = Instant.now();
-
-            // 查询上月1号0点到本月1号0点的数据
-            InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
-                    .bucket(influxDBProperties.getBucket())
-                    .measurement("device")
-                    .fields("Total")
-                    .tag("deviceCode", deviceCode)
-                    .pivot()
-                    .window("1d", "last")
-                    .sort("_time", InfluxQueryBuilder.SORT_ASC)
-                    .range(startOfLastMonth, now);
-
-            if (StringUtils.isNotBlank(roomIds)) {
-                List<String> roomIdList = Arrays.stream(roomIds.split(","))
-                        .map(String::trim)
-                        .filter(StringUtils::isNotBlank)
-                        .toList();
-
-                if (!roomIdList.isEmpty()) {
-                    String roomFilter = roomIdList.stream()
-                            .map(id -> String.format("r.roomId == \"%s\"", id))
-                            .collect(Collectors.joining(" or "));
-                    builder.filter("(" + roomFilter + ")");
-                }
-            }
-
-            String fluxQuery = builder.build();
-            log.info("查询上月用电量 - 设备编码: {}, 查询语句: {}", deviceCode, fluxQuery);
-
-            List<InfluxMqttPlug> results = influxDBClient.getQueryApi()
-                    .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
-
-            if (results.size() >= 3) {
-                // 查找倒数第二个有效的数据点（本月1号的数据）
-                Double end = null;
-                for (int i = results.size() - 2; i >= 0; i--) {
-                    if (results.get(i).getTotal() != null) {
-                        end = results.get(i).getTotal();
-                        break;
-                    }
-                }
-
-                // 查找第一个有效的数据点（上月1号的数据）
-                Double start = null;
-                for (InfluxMqttPlug result : results) {
-                    if (result.getTotal() != null) {
-                        start = result.getTotal();
-                        break;
-                    }
-                }
-
-                if (end != null && start != null) {
-                    return Math.max(0, end - start);
-                }
-            }
-
-            return 0.0;
-        } catch (Exception e) {
-            log.error("计算上月用电量失败 - 设备编码: {}", deviceCode, e);
-            return 0.0;
-        }
-    }
-
-    /**
-     * 计算自定义时间范围用电量
-     */
-    private Double calculateCustomElectricity(String deviceCode, String startTime, String endTime, String roomIds) {
-        try {
-            Instant startInstant = parseDateToInstant(startTime, true);
-            Instant endInstant = parseDateToInstant(endTime, false);
-
-            // 为了计算差值，我们需要获取开始时间前一天的数据点
-            Instant queryStart = startInstant.minusSeconds(86400);
-
-            // 查询自定义时间范围的数据
-            InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
-                    .bucket(influxDBProperties.getBucket())
-                    .measurement("device")
-                    .fields("Total")
-                    .tag("deviceCode", deviceCode)
-                    .pivot()
-                    .window("1d", "last")
-                    .sort("_time", InfluxQueryBuilder.SORT_DESC)
-                    .range(queryStart, endInstant);
-
-            if (StringUtils.isNotBlank(roomIds)) {
-                List<String> roomIdList = Arrays.stream(roomIds.split(","))
-                        .map(String::trim)
-                        .filter(StringUtils::isNotBlank)
-                        .toList();
-
-                if (!roomIdList.isEmpty()) {
-                    String roomFilter = roomIdList.stream()
-                            .map(id -> String.format("r.roomId == \"%s\"", id))
-                            .collect(Collectors.joining(" or "));
-                    builder.filter("(" + roomFilter + ")");
-                }
-            }
-
-            String fluxQuery = builder.build();
-            log.info("查询自定义时间用电量 - 设备编码: {}, 开始时间: {}, 结束时间: {}, 查询语句: {}",
-                    deviceCode, startInstant, endInstant, fluxQuery);
-
-            List<InfluxMqttPlug> results = influxDBClient.getQueryApi()
-                    .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
-
-            if (!results.isEmpty()) {
-                // 查找最接近结束时间的有效数据点
-                InfluxMqttPlug endData = null;
-                for (int i = results.size() - 1; i >= 0; i--) {
-                    if (results.get(i).getTotal() != null) {
-                        endData = results.get(i);
-                        break;
-                    }
-                }
-
-                // 查找最接近开始时间的有效数据点
-                InfluxMqttPlug startData = null;
-                for (InfluxMqttPlug result : results) {
-                    if (result.getTotal() != null) {
-                        startData = result;
-                        break;
-                    }
-                }
-
-                if (startData != null && endData != null &&
-                        startData.getTotal() != null && endData.getTotal() != null) {
-                    return Math.max(0, endData.getTotal() - startData.getTotal());
-                }
-            }
-
-            return 0.0;
-        } catch (Exception e) {
-            log.error("计算自定义时间用电量失败 - 设备编码: {}, 开始时间: {}, 结束时间: {}",
-                    deviceCode, startTime, endTime, e);
-            return 0.0;
-        }
-    }
-
-    /**
-     * 获取指定时间点的设备电表读数
-     * @param deviceCode 设备编码
-     * @param dateTime 时间字符串
-     * @param roomIds 房间ID列表
-     * @param isStart 是否为起始时间
-     * @return 电表读数
-     */
-    private Double getDeviceElectricityAtTime(String deviceCode, String dateTime, String roomIds, boolean isStart) {
-        try {
-            if (StringUtils.isBlank(dateTime)) {
-                // 如果时间为空，使用默认值
-                Instant timeInstant = isStart ?
-                        LocalDate.now().atStartOfDay().atZone(ZoneId.systemDefault()).toInstant() :
-                        Instant.now(); // 结束时间使用当前时间
-
-                return queryDeviceElectricity(deviceCode, timeInstant, roomIds);
-            }
-
-            // 解析日期时间
-            Instant timeInstant = parseDateToInstant(dateTime, isStart);
-            return queryDeviceElectricity(deviceCode, timeInstant, roomIds);
-        } catch (Exception e) {
-            log.error("获取设备电表读数失败 - 设备编码: {}, 时间: {}, 异常信息: ", deviceCode, dateTime, e);
-            return null;
-        }
-    }
-
-    /**
-     * 查询指定时间点的设备电表读数
-     * @param deviceCode 设备编码
-     * @param timeInstant 时间点
-     * @param roomIds 房间ID列表
-     * @return 电表读数
-     */
-    private Double queryDeviceElectricity(String deviceCode, Instant timeInstant, String roomIds) {
-        try {
-            // 构建查询
-            InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
-                    .bucket(influxDBProperties.getBucket())
-                    .measurement("device")
-                    .fields("Total")
-                    .tag("deviceCode", deviceCode)
-                    .pivot()
-                    .sort("_time", InfluxQueryBuilder.SORT_DESC)
-                    .limit(1);
-
-            // 处理多roomId查询
-            if (StringUtils.isNotBlank(roomIds)) {
-                List<String> roomIdList = Arrays.stream(roomIds.split(","))
-                        .map(String::trim)
-                        .filter(StringUtils::isNotBlank)
-                        .toList();
-
-                if (!roomIdList.isEmpty()) {
-                    String roomFilter = roomIdList.stream()
-                            .map(id -> String.format("r.roomId == \"%s\"", id))
-                            .collect(Collectors.joining(" or "));
-                    builder.filter("(" + roomFilter + ")");
-                }
-            }
-
-            // 设置时间范围查询
-            builder.range(timeInstant.minusSeconds(86400), timeInstant); // 查询前24小时到指定时间点
-
-            String fluxQuery = builder.build();
-            log.info("查询设备电表读数 - 设备编码: {}, 时间点: {}, 查询语句: {}", deviceCode, timeInstant, fluxQuery);
-
-            List<InfluxMqttPlug> tables = influxDBClient.getQueryApi()
-                    .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
-
-            if (!tables.isEmpty()) {
-                InfluxMqttPlug result = tables.get(0);
-                return result.getTotal();
-            }
-
-            return null;
-        } catch (Exception e) {
-            log.error("查询设备电表读数失败 - 设备编码: {}, 时间点: {}, 异常信息: ", deviceCode, timeInstant, e);
-            return null;
-        }
-    }
-
-
-    /**
-     * 将日期字符串解析为Instant对象
-     * @param dateStr 日期字符串，格式为 yyyy-MM-dd
-     * @param isStart 是否为开始时间（true: 00:00:00, false: 23:59:59）
-     * @return Instant对象
-     */
-    private Instant parseDateToInstant(String dateStr, boolean isStart) {
-        try {
-            LocalDate date = LocalDate.parse(dateStr, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-            if (isStart) {
-                return date.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
-            } else {
-                return date.atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant();
-            }
-        } catch (Exception e) {
-            log.error("日期解析失败: {}", dateStr, e);
-            // 返回默认值
-            if (isStart) {
-                return LocalDate.now().atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
-            } else {
-                return LocalDate.now().atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant();
-            }
-        }
     }
 
     @NotNull
-    private PageResult<RoomsElectricityVO> getRoomsElectricityVOPageResult(Integer pageNum, Integer pageSize, String roomIds, String startTime, String endTime) {
+    private PageResult<DepartmentElectricityVO> getDepartmentElectricityVOPageResult(Integer pageNum, Integer pageSize, String deptIds, String startTime, String endTime, String range, String categoryName) {
         try {
-            if (StringUtils.isEmpty(roomIds)) {
-                List<Room> roomList = roomService.list(new LambdaQueryWrapper<Room>().eq(Room::getIsDeleted, 0));
-                if (ObjectUtils.isEmpty(roomList)) {
-                    return PageResult.success(new Page<>());
-                }
-                roomIds = roomList.stream().map(Room::getId).map(String::valueOf).collect(Collectors.joining(","));
+            // 获取所有部门
+            List<Dept> allDepts = deptService.list();
+            if (ObjectUtils.isEmpty(allDepts)) {
+                Page<DepartmentElectricityVO> page = new Page<>(pageNum, pageSize);
+                page.setTotal(0);
+                page.setRecords(new ArrayList<>());
+                return PageResult.success(page);
             }
-            List<RoomsElectricityVO> roomsElectricityList = getRoomsElectricity(startTime, endTime, roomIds);
+
+            // 解析部门ID列表
+            List<Long> deptIdList;
+            if (StringUtils.isNotBlank(deptIds)) {
+                deptIdList = Arrays.stream(deptIds.split(","))
+                        .map(String::trim)
+                        .filter(StringUtils::isNotBlank)
+                        .map(Long::parseLong)
+                        .toList();
+            } else {
+                deptIdList = allDepts.stream().map(Dept::getId).toList();
+            }
+
+            // 根据部门ID查询房间列表
+            List<Room> allRooms = roomService.list(new QueryWrapper<Room>().in("department_id", deptIdList));
+            if (allRooms.isEmpty()) {
+                Page<DepartmentElectricityVO> page = new Page<>(pageNum, pageSize);
+                page.setTotal(0);
+                page.setRecords(new ArrayList<>());
+                return PageResult.success(page);
+            }
+
+            // 按部门ID分组房间
+            Map<Long, List<Room>> roomsByDept = allRooms.stream()
+                    .collect(Collectors.groupingBy(Room::getDepartmentId));
+
+            // 获取所有房间ID
+            List<Long> roomIds = allRooms.stream()
+                    .map(Room::getId)
+                    .toList();
+
+            // 将房间ID列表转换为字符串格式
+            String roomIdsStr = roomIds.stream()
+                    .map(String::valueOf)
+                    .collect(Collectors.joining(","));
+            Long categoryId = null;
+            if (StringUtils.isNotEmpty(categoryName)) {
+                //根据名称查询categoryId
+                Category category = categoryService.getCategoryByName(categoryName);
+                if (ObjectUtils.isNotEmpty(category)) {
+                    categoryId = category.getId();
+                }
+            }
+            // 查询所有房间的用电量数据
+            List<RoomsElectricityVO> roomsElectricityList = electricityCalculationService.getRoomsElectricity(startTime, endTime, roomIdsStr, range, categoryId);
+
+            // 构建部门用电量结果
+            List<DepartmentElectricityVO> result = new ArrayList<>();
+
+            // 按部门分组计算用电量
+            for (Map.Entry<Long, List<Room>> entry : roomsByDept.entrySet()) {
+                Long departmentId = entry.getKey();
+                List<Room> roomsInDept = entry.getValue();
+
+                // 获取部门信息
+                Dept department = allDepts.stream()
+                        .filter(dept -> dept.getId().equals(departmentId))
+                        .findFirst()
+                        .orElse(null);
+
+                if (department == null) {
+                    continue;
+                }
+
+                // 获取该部门下所有房间的用电量
+                List<Long> roomIdsInDept = roomsInDept.stream()
+                        .map(Room::getId)
+                        .toList();
+
+                // 计算该部门总用电量
+                double totalElectricity = roomsElectricityList.stream()
+                        .filter(vo -> roomIdsInDept.contains(vo.getRoomId()) && vo.getTotalElectricity() != null)
+                        .mapToDouble(RoomsElectricityVO::getTotalElectricity)
+                        .sum();
+
+                // 构造返回结果
+                DepartmentElectricityVO deptElectricityVO = new DepartmentElectricityVO();
+                deptElectricityVO.setDepartmentId(departmentId);
+                deptElectricityVO.setDepartmentName(department.getName());
+                deptElectricityVO.setTotalElectricity(formatDouble(totalElectricity));
+                deptElectricityVO.setCategoryName(categoryName);
+                result.add(deptElectricityVO);
+            }
 
             // 按用电量降序排列
-            roomsElectricityList.sort((a, b) -> Double.compare(b.getTotalElectricity(), a.getTotalElectricity()));
+            result.sort((a, b) -> Double.compare(b.getTotalElectricity(), a.getTotalElectricity()));
 
             // 分页处理
-            int total = roomsElectricityList.size();
+            int total = result.size();
             int fromIndex = (pageNum - 1) * pageSize;
             int toIndex = Math.min(fromIndex + pageSize, total);
 
-            List<RoomsElectricityVO> pagedResult = new ArrayList<>();
+            List<DepartmentElectricityVO> pagedResult = new ArrayList<>();
             if (fromIndex < total) {
-                pagedResult = roomsElectricityList.subList(fromIndex, toIndex);
+                pagedResult = result.subList(fromIndex, toIndex);
             }
 
             // 构造分页结果
-            Page<RoomsElectricityVO> page = new Page<>(pageNum, pageSize);
+            Page<DepartmentElectricityVO> page = new Page<>(pageNum, pageSize);
             page.setTotal(total);
             page.setRecords(pagedResult);
 
             return PageResult.success(page);
+
         } catch (Exception e) {
-            log.error("分页查询房间用电量失败 - roomIds: {}", roomIds, e);
+            log.error("分页查询各部门用电量失败 - deptIds: {}, range: {}", deptIds, range, e);
             return PageResult.success(null);
         }
     }
-
-
-    /**
-     * 根据时间范围获取房间用电量（修改版）
-     */
-    private List<RoomsElectricityVO> getRoomsElectricity(String startTime, String endTime, String roomIds) {
-        // 查询所有房间
-        List<Room> roomList = roomService.list(new QueryWrapper<Room>().in("id", Arrays.stream(roomIds.split(","))
-                .map(Long::parseLong)
-                .toList()));
-
-        // 获取起始时间点的电表读数
-        List<InfluxMqttPlug> startTables = queryRoomsElectricityAtTime(startTime, roomIds, true);
-
-        // 获取结束时间点的电表读数
-        List<InfluxMqttPlug> endTables = queryRoomsElectricityAtTime(endTime, roomIds, false);
-
-        List<RoomsElectricityVO> resultList = new ArrayList<>();
-        for (Room room : roomList) {
-            RoomsElectricityVO vo = new RoomsElectricityVO();
-            vo.setRoomId(room.getId());
-            vo.setRoomName(room.getClassroomCode());
-
-            // 查找起始时间点的读数
-            Optional<InfluxMqttPlug> startData = startTables.stream()
-                    .filter(table -> table.getRoomId() != null &&
-                            table.getRoomId().equals(String.valueOf(room.getId())))
-                    .findFirst();
-
-            // 查找结束时间点的读数
-            Optional<InfluxMqttPlug> endData = endTables.stream()
-                    .filter(table -> table.getRoomId() != null &&
-                            table.getRoomId().equals(String.valueOf(room.getId())))
-                    .findFirst();
-
-            // 计算用电量差值
-            Double totalElectricity = null;
-            Double startTotal = startData.isPresent() ? startData.get().getTotal() : null;
-            Double endTotal = endData.isPresent() ? endData.get().getTotal() : null;
-
-            if (startTotal != null && endTotal != null) {
-                totalElectricity = Math.max(0, endTotal - startTotal); // 确保不为负数
-            } else if (startTotal == null && endTotal != null) {
-                totalElectricity = endTotal; // 如果没有起始值，直接使用结束值
-            } else if (startTotal != null && endTotal == null) {
-                totalElectricity = startTotal; // 如果没有结束值，直接使用起始值
-            } else {
-                totalElectricity = 0.0; // 都没有数据则为0
-            }
-
-            vo.setTotalElectricity(totalElectricity);
-            resultList.add(vo);
-        }
-        return resultList;
-    }
-
-    /**
-     * 查询指定时间点的房间电表读数
-     * @param dateTime 时间字符串
-     * @param roomIds 房间ID列表
-     * @param isStart 是否为起始时间
-     * @return 电表读数列表
-     */
-    private List<InfluxMqttPlug> queryRoomsElectricityAtTime(String dateTime, String roomIds, boolean isStart) {
-        try {
-            // 根据时间范围构建查询
-            InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
-                    .bucket(influxDBProperties.getBucket())
-                    .measurement("device")
-                    .fields("Total")
-                    .pivot()
-                    .sort("_time", InfluxQueryBuilder.SORT_DESC);
-
-            // 处理多roomId查询
-            if (StringUtils.isNotBlank(roomIds)) {
-                List<String> roomIdList = Arrays.stream(roomIds.split(","))
-                        .map(String::trim)
-                        .filter(StringUtils::isNotBlank)
-                        .toList();
-
-                if (!roomIdList.isEmpty()) {
-                    String roomFilter = roomIdList.stream()
-                            .map(id -> String.format("r.roomId == \"%s\"", id))
-                            .collect(Collectors.joining(" or "));
-                    builder.filter("(" + roomFilter + ")");
-                }
-            }
-
-            // 解析时间
-            Instant timeInstant;
-            if (StringUtils.isBlank(dateTime)) {
-                // 如果时间为空，使用默认值
-                timeInstant = isStart ?
-                        LocalDate.now().atStartOfDay().atZone(ZoneId.systemDefault()).toInstant() :
-                        Instant.now(); // 结束时间使用当前时间
-            } else {
-                timeInstant = parseDateToInstant(dateTime, isStart);
-            }
-
-            // 设置时间范围查询
-            builder.range(timeInstant.minusSeconds(86400), timeInstant);
-
-            // 构建并执行查询语句
-            String fluxQuery = builder.build();
-            log.info("查询房间电表读数 - 时间点: {}, 查询语句: {}", timeInstant, fluxQuery);
-
-            return influxDBClient.getQueryApi()
-                    .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
-        } catch (Exception e) {
-            log.error("查询房间电表读数失败 - 时间: {}, 异常信息: ", dateTime, e);
-            return new ArrayList<>();
-        }
-    }
-
-//    @Operation(summary = "分页查询各部门总用电量")
-//    @GetMapping("/department/electricity")
-//    public PageResult<DepartmentElectricityVO> getDepartmentElectricityPage(
-//            @Parameter(description = "页码，默认为1")
-//            @RequestParam(defaultValue = "1") Integer pageNum,
-//
-//            @Parameter(description = "每页数量，默认为10")
-//            @RequestParam(defaultValue = "10") Integer pageSize,
-//
-//            @Parameter(description = "部门IDs，多个用逗号分隔")
-//            @RequestParam(required = false) String deptIds,
-//
-//            @Parameter(description = "自定义开始时间(yyyy-MM-dd格式)")
-//            @RequestParam(required = false) String startTime,
-//
-//            @Parameter(description = "自定义结束时间(yyyy-MM-dd格式)")
-//            @RequestParam(required = false) String endTime) {
-//        return getDepartmentElectricityVOPageResult(pageNum, pageSize, deptIds, startTime, endTime);
-//    }
-//    @NotNull
-//    private PageResult<DepartmentElectricityVO> getDepartmentElectricityVOPageResult(Integer pageNum, Integer pageSize, String deptIds, String startTime, String endTime) {
-//        List<Long> deptIdList;
-//        try {
-//            if (StringUtils.isBlank(deptIds)) {
-//                List<Dept> list = deptService.list();
-//                if (list.isEmpty()) {
-//                    Page<DepartmentElectricityVO> page = new Page<>(pageNum, pageSize);
-//                    page.setTotal(0);
-//                    page.setRecords(new ArrayList<>());
-//                    return PageResult.success(page);
-//                }
-//                deptIds = list.stream().map(Dept::getId).map(String::valueOf).collect(Collectors.joining(","));
-//            }
-//            // 解析部门ID列表
-//            deptIdList = Arrays.stream(deptIds.split(","))
-//                    .map(String::trim)
-//                    .filter(StringUtils::isNotBlank)
-//                    .map(Long::parseLong)
-//                    .toList();
-//            // 根据部门ID查询房间列表
-//            List<Room> allRooms = roomService.list(new QueryWrapper<Room>().in("department_id", deptIdList));
-//
-//            if (allRooms.isEmpty()) {
-//                Page<DepartmentElectricityVO> page = new Page<>(pageNum, pageSize);
-//                page.setTotal(0);
-//                page.setRecords(new ArrayList<>());
-//                return PageResult.success(page);
-//            }
-//
-//            // 按部门ID分组房间
-//            Map<Long, List<Room>> roomsByDept = allRooms.stream()
-//                    .collect(Collectors.groupingBy(Room::getDepartmentId));
-//
-//            // 获取所有房间ID
-//            List<Long> roomIds = allRooms.stream()
-//                    .map(Room::getId)
-//                    .toList();
-//
-//            // 将房间ID列表转换为字符串格式
-//            String roomIdsStr = roomIds.stream()
-//                    .map(String::valueOf)
-//                    .collect(Collectors.joining(","));
-//
-//            // 查询所有房间的用电量数据
-//            List<RoomsElectricityVO> roomsElectricityList = getRoomsElectricity(startTime, endTime, roomIdsStr);
-//
-//            // 构建部门用电量结果
-//            List<DepartmentElectricityVO> result = new ArrayList<>();
-//
-//            // 按部门分组计算用电量
-//            for (Map.Entry<Long, List<Room>> entry : roomsByDept.entrySet()) {
-//                Long departmentId = entry.getKey();
-//                List<Room> roomsInDept = entry.getValue();
-//
-//                // 获取部门信息
-//                Dept department = deptService.getById(departmentId);
-//                if (department == null) {
-//                    continue;
-//                }
-//
-//                // 获取该部门下所有房间的用电量
-//                List<Long> roomIdsInDept = roomsInDept.stream()
-//                        .map(Room::getId)
-//                        .toList();
-//
-//                // 计算该部门总用电量
-//                double totalElectricity = roomsElectricityList.stream()
-//                        .filter(vo -> roomIdsInDept.contains(vo.getRoomId()) && vo.getTotalElectricity() != null)
-//                        .mapToDouble(RoomsElectricityVO::getTotalElectricity)
-//                        .sum();
-//
-//                // 构造返回结果
-//                DepartmentElectricityVO deptElectricityVO = new DepartmentElectricityVO();
-//                deptElectricityVO.setDepartmentId(departmentId);
-//                deptElectricityVO.setDepartmentName(department.getName());
-//                deptElectricityVO.setTotalElectricity(formatDouble(totalElectricity));
-//
-//                result.add(deptElectricityVO);
-//            }
-//
-//            // 按用电量降序排列
-//            result.sort((a, b) -> Double.compare(b.getTotalElectricity(), a.getTotalElectricity()));
-//
-//            // 分页处理
-//            int total = result.size();
-//            int fromIndex = (pageNum - 1) * pageSize;
-//            int toIndex = Math.min(fromIndex + pageSize, total);
-//
-//            List<DepartmentElectricityVO> pagedResult = new ArrayList<>();
-//            if (fromIndex < total) {
-//                pagedResult = result.subList(fromIndex, toIndex);
-//            }
-//
-//            // 构造分页结果
-//            Page<DepartmentElectricityVO> page = new Page<>(pageNum, pageSize);
-//            page.setTotal(total);
-//            page.setRecords(pagedResult);
-//
-//            return PageResult.success(page);
-//
-//        } catch (Exception e) {
-//            log.error("分页查询各部门用电量失败 - deptIds: {}", deptIds, e);
-//            return PageResult.success(null);
-//        }
-//    }
-
-
 }
