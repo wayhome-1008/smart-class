@@ -53,4 +53,7 @@ public class DepartmentCategoryElectricityInfoVO {
     @Schema(description = "房间ID")
     private Long roomId;
 
+    @Schema(description = "房间总用电量")
+    private Double roomTotalElectricity;
+
 }

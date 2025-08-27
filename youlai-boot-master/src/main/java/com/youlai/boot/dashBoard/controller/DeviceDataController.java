@@ -378,7 +378,7 @@ public class DeviceDataController {
             RoomsElectricityVO roomsElectricityVO = new RoomsElectricityVO();
             roomsElectricityVO.setRoomId(departmentCategoryElectricityInfoVO.getRoomId());
             roomsElectricityVO.setRoomName(departmentCategoryElectricityInfoVO.getRoomName());
-            roomsElectricityVO.setTotalElectricity(departmentCategoryElectricityInfoVO.getTotalElectricity());
+            roomsElectricityVO.setTotalElectricity(departmentCategoryElectricityInfoVO.getRoomTotalElectricity());
             roomsElectricityVO.setCategoryName(departmentCategoryElectricityInfoVO.getCategoryName());
             roomsElectricityVOList.add(roomsElectricityVO);
         }
@@ -419,7 +419,7 @@ public class DeviceDataController {
             ExportDepartment exportDepartment = new ExportDepartment();
             exportDepartment.setDepartmentId(departmentCategoryElectricityInfoVO.getDepartmentId());
             exportDepartment.setDepartmentName(departmentCategoryElectricityInfoVO.getDepartmentName());
-            exportDepartment.setTotalElectricity(departmentCategoryElectricityInfoVO.getTotalElectricity());
+            exportDepartment.setTotalElectricity(departmentCategoryElectricityInfoVO.getDepartmentTotalElectricity());
             exportDepartment.setCategoryName(departmentCategoryElectricityInfoVO.getCategoryName());
             exportDepartmentList.add(exportDepartment);
         }
@@ -723,6 +723,9 @@ public class DeviceDataController {
         // 按部门和分类分组统计
         Map<String, DepartmentCategoryElectricityInfoVO> departmentCategoryMap = new HashMap<>();
 
+        // 用于计算房间总用电量
+        Map<String, Double> roomTotalElectricityMap = new HashMap<>();
+
         for (Category category : validCategories) {
             List<CategoryDeviceRelationship> relationships =
                     categoryDeviceRelationshipService.listByCategoryId(category.getId());
@@ -750,8 +753,11 @@ public class DeviceDataController {
                                 Dept department = deptService.getById(departmentId);
                                 String departmentName = department != null ? department.getName() : "未知部门";
 
-                                // 构造分组键：部门ID_分类ID
-                                String groupKey = departmentId + "_" + category.getId();
+                                // 构造分组键：部门ID_分类ID_房间ID
+                                String groupKey = departmentId + "_" + category.getId() + "_" + room.getId();
+
+                                // 构造房间分组键：房间ID_分类ID
+                                String roomGroupKey = room.getId() + "_" + category.getId();
 
                                 DepartmentCategoryElectricityInfoVO vo = departmentCategoryMap.get(groupKey);
                                 if (vo == null) {
@@ -769,6 +775,9 @@ public class DeviceDataController {
                                 // 累加用电量和设备数量
                                 vo.setTotalElectricity(MathUtils.formatDouble(vo.getTotalElectricity() + deviceData.getTotalElectricity()));
                                 vo.setDeviceCount(vo.getDeviceCount() + 1);
+                                // 累加房间总用电量
+                                roomTotalElectricityMap.put(roomGroupKey,
+                                        roomTotalElectricityMap.getOrDefault(roomGroupKey, 0.0) + deviceData.getTotalElectricity());
                             }
                         }
                     }
@@ -777,6 +786,15 @@ public class DeviceDataController {
         }
 
         departmentCategoryElectricityList.addAll(departmentCategoryMap.values());
+
+        // 设置房间总用电量
+        for (DepartmentCategoryElectricityInfoVO item : departmentCategoryElectricityList) {
+            String roomGroupKey = item.getRoomId() + "_" + item.getCategoryId();
+            Double roomTotal = roomTotalElectricityMap.get(roomGroupKey);
+            if (roomTotal != null) {
+                item.setRoomTotalElectricity(MathUtils.formatDouble(roomTotal));
+            }
+        }
 
         // 按部门ID分组，计算每个部门的总用电量
         Map<Long, Double> departmentTotalElectricityMap = departmentCategoryElectricityList.stream()
@@ -805,7 +823,8 @@ public class DeviceDataController {
             // 按部门和分类排序
             departmentCategoryElectricityList.sort(Comparator
                     .comparing(DepartmentCategoryElectricityInfoVO::getDepartmentName)
-                    .thenComparing(DepartmentCategoryElectricityInfoVO::getCategoryName));
+                    .thenComparing(DepartmentCategoryElectricityInfoVO::getCategoryName)
+                    .thenComparing(DepartmentCategoryElectricityInfoVO::getRoomName));
 
             pagedResult = departmentCategoryElectricityList.subList(fromIndex, toIndex);
         }
@@ -867,7 +886,7 @@ public class DeviceDataController {
             ExportRoomRank exportRoomRank = new ExportRoomRank();
             exportRoomRank.setRoomName(electricityVO.getRoomName());
             exportRoomRank.setTotalElectricity(electricityVO.getTotalElectricity());
-            exportRoomRank.setCategoryName(electricityVO.getCategoryName());
+//            exportRoomRank.setCategoryName(electricityVO.getCategoryName());
             exportRoomRanksList.add(exportRoomRank);
         }
         EasyExcel.write(response.getOutputStream(), ExportRoomRank.class).sheet("楼宇排名")
@@ -961,7 +980,7 @@ public class DeviceDataController {
             ExportDepartmentRank exportDepartmentRank = new ExportDepartmentRank();
             exportDepartmentRank.setDepartmentName(departmentElectricityVO.getDepartmentName());
             exportDepartmentRank.setTotalElectricity(departmentElectricityVO.getTotalElectricity());
-            exportDepartmentRank.setCategoryName(departmentElectricityVO.getCategoryName());
+//            exportDepartmentRank.setCategoryName(departmentElectricityVO.getCategoryName());
             exportDepartments.add(exportDepartmentRank);
         }
         EasyExcel.write(response.getOutputStream(), ExportDepartmentRank.class).sheet("部门排名")

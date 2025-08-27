@@ -16,6 +16,6 @@ public class ExportDepartmentRank {
     private String departmentName;
     @ExcelProperty(value = "用电量")
     private Double totalElectricity;
-    @ExcelProperty(value = "分类名称")
-    private String categoryName;
+//    @ExcelProperty(value = "分类名称")
+//    private String categoryName;
 }
