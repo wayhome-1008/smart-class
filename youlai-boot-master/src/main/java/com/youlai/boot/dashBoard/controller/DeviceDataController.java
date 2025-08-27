@@ -860,7 +860,7 @@ public class DeviceDataController {
         String fileName = "楼宇排名.xlsx";
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setHeader("Content-Disposition", "attachment; filename=" + URLEncoder.encode(fileName, StandardCharsets.UTF_8));
-        PageResult<RoomsElectricityVO> roomsElectricityVOPageResult = electricityCalculationService.getRoomsElectricityVOPageResult(pageNum, pageSize, roomIds, startTime, endTime, range, categoryName);
+        PageResult<RoomsElectricityVO> roomsElectricityVOPageResult = electricityCalculationService.getRoomsElectricityVOPageResult(pageNum, pageSize, roomIds, startTime, endTime, range, categoryName, true); // true表示导出
         List<RoomsElectricityVO> list = roomsElectricityVOPageResult.getData().getList();
         List<ExportRoomRank> exportRoomRanksList = new ArrayList<>();
         for (RoomsElectricityVO electricityVO : list) {
@@ -898,7 +898,7 @@ public class DeviceDataController {
             @Parameter(description = "自定义结束时间(yyyy-MM-dd格式)")
             @RequestParam(required = false) String endTime) {
 
-        return electricityCalculationService.getRoomsElectricityVOPageResult(pageNum, pageSize, roomIds, startTime, endTime, range, categoryName);
+        return electricityCalculationService.getRoomsElectricityVOPageResult(pageNum, pageSize, roomIds, startTime, endTime, range, categoryName, false); // false表示分页查询
     }
 
     @Operation(summary = "8.部门排名")
@@ -924,7 +924,7 @@ public class DeviceDataController {
 
             @Parameter(description = "自定义结束时间(yyyy-MM-dd格式)")
             @RequestParam(required = false) String endTime) {
-        return getDepartmentElectricityVOPageResult(pageNum, pageSize, deptIds, startTime, endTime, range, categoryName);
+        return getDepartmentElectricityVOPageResult(pageNum, pageSize, deptIds, startTime, endTime, range, categoryName, false); // false表示分页查询
     }
 
     @Operation(summary = "9.部门排名导出")
@@ -954,7 +954,7 @@ public class DeviceDataController {
         String fileName = "部门排名.xlsx";
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setHeader("Content-Disposition", "attachment; filename=" + URLEncoder.encode(fileName, StandardCharsets.UTF_8));
-        PageResult<DepartmentElectricityVO> departmentElectricityVOPageResult = getDepartmentElectricityVOPageResult(pageNum, pageSize, roomIds, startTime, endTime, range, categoryName);
+        PageResult<DepartmentElectricityVO> departmentElectricityVOPageResult = getDepartmentElectricityVOPageResult(pageNum, pageSize, roomIds, startTime, endTime, range, categoryName, true); // true表示导出
         List<DepartmentElectricityVO> list = departmentElectricityVOPageResult.getData().getList();
         List<ExportDepartmentRank> exportDepartments = new ArrayList<>();
         for (DepartmentElectricityVO departmentElectricityVO : list) {
@@ -966,11 +966,10 @@ public class DeviceDataController {
         }
         EasyExcel.write(response.getOutputStream(), ExportDepartmentRank.class).sheet("部门排名")
                 .doWrite(exportDepartments);
-
     }
 
     @NotNull
-    private PageResult<DepartmentElectricityVO> getDepartmentElectricityVOPageResult(Integer pageNum, Integer pageSize, String deptIds, String startTime, String endTime, String range, String categoryName) {
+    private PageResult<DepartmentElectricityVO> getDepartmentElectricityVOPageResult(Integer pageNum, Integer pageSize, String deptIds, String startTime, String endTime, String range, String categoryName, boolean isExport) {
         try {
             // 获取所有部门
             List<Dept> allDepts = deptService.list();
@@ -1055,26 +1054,33 @@ public class DeviceDataController {
                         .mapToDouble(RoomsElectricityVO::getTotalElectricity)
                         .sum();
 
-                // 构造返回结果
-                DepartmentElectricityVO deptElectricityVO = new DepartmentElectricityVO();
-                deptElectricityVO.setDepartmentId(departmentId);
-                deptElectricityVO.setDepartmentName(department.getName());
-                deptElectricityVO.setTotalElectricity(formatDouble(totalElectricity));
-                deptElectricityVO.setCategoryName(categoryName);
-                result.add(deptElectricityVO);
+                // 对于分页查询，totalElectricity为0.0时不显示；对于导出则需要显示
+                if (isExport || totalElectricity != 0.0) {
+                    // 构造返回结果
+                    DepartmentElectricityVO deptElectricityVO = new DepartmentElectricityVO();
+                    deptElectricityVO.setDepartmentId(departmentId);
+                    deptElectricityVO.setDepartmentName(department.getName());
+                    deptElectricityVO.setTotalElectricity(formatDouble(totalElectricity));
+                    deptElectricityVO.setCategoryName(categoryName);
+                    result.add(deptElectricityVO);
+                }
             }
 
-            // 按用电量降序排列
-            result.sort((a, b) -> Double.compare(b.getTotalElectricity(), a.getTotalElectricity()));
+            // 按用电量升序排列（从低到高）
+            result.sort(Comparator.comparingDouble(DepartmentElectricityVO::getTotalElectricity));
 
-            // 分页处理
+
+            // 分页处理（仅对分页查询生效）
             int total = result.size();
             int fromIndex = (pageNum - 1) * pageSize;
             int toIndex = Math.min(fromIndex + pageSize, total);
 
             List<DepartmentElectricityVO> pagedResult = new ArrayList<>();
-            if (fromIndex < total) {
+            if (fromIndex < total && !isExport) {
                 pagedResult = result.subList(fromIndex, toIndex);
+            } else if (isExport) {
+                // 导出时返回所有数据
+                pagedResult = result;
             }
 
             // 构造分页结果

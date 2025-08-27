@@ -30,6 +30,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -645,7 +646,7 @@ public class ElectricityCalculationService {
     }
 
     @NotNull
-    public PageResult<RoomsElectricityVO> getRoomsElectricityVOPageResult(Integer pageNum, Integer pageSize, String roomIds, String startTime, String endTime, String range, String categoryName) {
+    public PageResult<RoomsElectricityVO> getRoomsElectricityVOPageResult(Integer pageNum, Integer pageSize, String roomIds, String startTime, String endTime, String range, String categoryName, boolean isExport) {
         try {
             if (StringUtils.isEmpty(roomIds)) {
                 List<Room> roomList = roomService.list(new LambdaQueryWrapper<Room>().eq(Room::getIsDeleted, 0));
@@ -664,8 +665,15 @@ public class ElectricityCalculationService {
             }
             List<RoomsElectricityVO> roomsElectricityList = getRoomsElectricity(startTime, endTime, roomIds, range, categoryId);
 
-            // 按用电量降序排列
-            roomsElectricityList.sort((a, b) -> Double.compare(b.getTotalElectricity(), a.getTotalElectricity()));
+            // 按用电量升序排列（从低到高）
+            roomsElectricityList.sort(Comparator.comparingDouble(RoomsElectricityVO::getTotalElectricity));
+
+            // 如果不是导出场景，过滤掉totalElectricity为0.0的记录
+            if (!isExport) {
+                roomsElectricityList = roomsElectricityList.stream()
+                        .filter(vo -> vo.getTotalElectricity() != null && vo.getTotalElectricity() != 0.0)
+                        .collect(Collectors.toList());
+            }
 
             // 分页处理
             int total = roomsElectricityList.size();
