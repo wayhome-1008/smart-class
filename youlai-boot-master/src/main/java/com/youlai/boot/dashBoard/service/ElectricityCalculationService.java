@@ -146,7 +146,7 @@ public class ElectricityCalculationService {
     /**
      * 计算今日用电量
      */
-    private Double calculateTodayElectricity(String deviceCode, String roomIds) {
+    public Double calculateTodayElectricity(String deviceCode, String roomIds) {
         try {
             Instant now = Instant.now();
             Instant startOfDay = LocalDate.now().atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
@@ -797,5 +797,14 @@ public class ElectricityCalculationService {
             log.error("查询房间电表读数失败 - 时间: {}, 异常信息: ", dateTime, e);
             return new ArrayList<>();
         }
+    }
+    // 辅助方法
+    public double calculateDifference(Double next, Double current) {
+        if (next == null || current == null) {
+            return 0.0; // 任何一个值为null，用电量设为0
+        }
+
+        Double difference = MathUtils.formatDouble(next - current);
+        return difference != null ? Math.max(0, difference) : 0.0;
     }
 }

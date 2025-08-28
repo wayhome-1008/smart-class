@@ -21,6 +21,7 @@ import com.youlai.boot.dashBoard.model.vo.CategoryElectricityVO;
 import com.youlai.boot.dashBoard.model.vo.CountResult;
 import com.youlai.boot.dashBoard.model.vo.DashCount;
 import com.youlai.boot.dashBoard.model.vo.RoomElectricityRankingVO;
+import com.youlai.boot.dashBoard.service.ElectricityCalculationService;
 import com.youlai.boot.device.Enum.CommunicationModeEnum;
 import com.youlai.boot.device.Enum.DeviceTypeEnum;
 import com.youlai.boot.device.factory.DeviceInfoParserFactory;
@@ -81,6 +82,7 @@ public class DashBoardController {
     private final CategoryService categoryService;
     private final CategoryDeviceRelationshipService categoryDeviceRelationshipService;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final ElectricityCalculationService electricityCalculationService;
 
     @Operation(summary = "查询配置分类用电量")
     @GetMapping("/category/electricity")
@@ -930,15 +932,13 @@ public class DashBoardController {
                     InfluxMqttPlug currentData = dataList.get(i);
                     InfluxMqttPlug nextData = dataList.get(i + 1);
                     if (i == 23) {
-                        values.add(MathUtils.formatDouble(MathUtils.formatDouble(dataList.get(dataList.size() - 1).getTotal()) - MathUtils.formatDouble(dataList.get(dataList.size() - 2).getTotal())));
+                        Double lastTotal = MathUtils.formatDouble(dataList.get(dataList.size() - 1).getTotal());
+                        Double secondLastTotal = MathUtils.formatDouble(dataList.get(dataList.size() - 2).getTotal());
+                        values.add(electricityCalculationService.calculateDifference(lastTotal, secondLastTotal));
                     } else {
-                        if (currentData.getTotal() != null && nextData.getTotal() != null) {
-                            double difference = Math.max(0, MathUtils.formatDouble(
-                                    MathUtils.formatDouble(nextData.getTotal()) - MathUtils.formatDouble(currentData.getTotal())));
-                            values.add(difference);
-                        } else {
-                            values.add(0.0);
-                        }
+                        Double currentTotal = MathUtils.formatDouble(currentData.getTotal());
+                        Double nextTotal = MathUtils.formatDouble(nextData.getTotal());
+                        values.add(electricityCalculationService.calculateDifference(nextTotal, currentTotal));
                     }
                 }
                 break;

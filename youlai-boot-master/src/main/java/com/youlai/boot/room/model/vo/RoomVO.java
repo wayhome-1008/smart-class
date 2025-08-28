@@ -59,5 +59,7 @@ public class RoomVO implements Serializable {
     private Integer lightNum;
     @Schema(description = "开插座数量")
     private Integer plugNum;
+    @Schema(description = "房间本日用电量")
+    private Double todayElectricity;
 
 }

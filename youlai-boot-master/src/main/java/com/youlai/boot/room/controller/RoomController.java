@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.youlai.boot.common.model.Option;
 import com.youlai.boot.common.result.PageResult;
 import com.youlai.boot.common.result.Result;
+import com.youlai.boot.dashBoard.service.ElectricityCalculationService;
 import com.youlai.boot.device.model.vo.DeviceInfo;
 import com.youlai.boot.device.model.vo.DeviceInfoVO;
 import com.youlai.boot.device.service.DeviceService;
@@ -42,6 +43,7 @@ public class RoomController {
 
     private final RoomService roomService;
     private final DeviceService deviceService;
+    private final ElectricityCalculationService electricityCalculationService;
 
     @Operation(summary = "房间管理分页列表")
     @GetMapping("/page")
@@ -65,6 +67,12 @@ public class RoomController {
                 roomVO.setDeviceInfo(roomDevices); // 一次性设置完整设备列表
                 // 初始化房间的状态指标
                 initRoomStatusIndicators(roomVO, roomDevices);
+                //根据roomDevices查询influxdb获取当天用电数据
+                double todayElectricity = 0.0;
+                for (DeviceInfoVO roomDevice : roomDevices) {
+                    todayElectricity = todayElectricity + electricityCalculationService.calculateTodayElectricity(roomDevice.getDeviceCode(), String.valueOf(roomVO.getId()));
+                }
+                roomVO.setTodayElectricity(todayElectricity);
             });
         }
 
