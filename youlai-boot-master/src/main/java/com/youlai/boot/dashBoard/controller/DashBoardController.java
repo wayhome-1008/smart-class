@@ -797,7 +797,11 @@ public class DashBoardController {
 
         } catch (Exception e) {
             log.error("查询单设备数据失败", e);
-            return new ArrayList<>();
+            // 发生异常时返回空的结果而不是null
+            InfluxMqttPlugVO emptyVO = new InfluxMqttPlugVO();
+            emptyVO.setTime(new ArrayList<>());
+            emptyVO.setValue(new ArrayList<>());
+            return List.of(emptyVO);
         }
     }
 
@@ -807,49 +811,51 @@ public class DashBoardController {
     private List<InfluxMqttPlugVO> queryMultipleDevices(List<Device> deviceList, Long timeAmount, String timeUnit,
                                                         String windowSize, String roomId) {
         // 初始化总值列表，用于累加所有设备的数据
-        List<Double> totalValues = null;
-        List<String> times = null;
+        List<Double> totalValues = new ArrayList<>();
+        List<String> times = new ArrayList<>();
 
         // 遍历所有设备，获取并累加数据
+        boolean hasData = false;
         for (Device device : deviceList) {
             List<InfluxMqttPlugVO> deviceDataList = querySingleDevice(device.getDeviceCode(), timeAmount, timeUnit, windowSize, roomId, null);
 
-            if (!deviceDataList.isEmpty()) {
+            if (!deviceDataList.isEmpty() && deviceDataList.get(0) != null) {
                 InfluxMqttPlugVO deviceData = deviceDataList.get(0);
 
-                if (totalValues == null) {
-                    // 第一个设备的数据作为初始值
-                    totalValues = new ArrayList<>(deviceData.getValue());
-                    times = new ArrayList<>(deviceData.getTime());
-                } else {
-                    // 确保两个列表长度相同后再累加
-                    List<Double> deviceValues = deviceData.getValue();
-                    int minSize = Math.min(totalValues.size(), deviceValues.size());
-                    for (int i = 0; i < minSize; i++) {
-                        Double v1 = MathUtils.formatDouble(totalValues.get(i));
-                        Double v2 = MathUtils.formatDouble(deviceValues.get(i));
-                        // 处理null值
-                        if (v1 == null) v1 = 0.0;
-                        if (v2 == null) v2 = 0.0;
-                        totalValues.set(i, v1 + v2);
+                // 检查是否有有效数据
+                if (deviceData.getTime() != null && deviceData.getValue() != null &&
+                        !deviceData.getTime().isEmpty() && !deviceData.getValue().isEmpty()) {
+
+                    if (!hasData) {
+                        // 第一个设备的数据作为初始值
+                        times.addAll(deviceData.getTime());
+                        totalValues.addAll(deviceData.getValue());
+                        hasData = true;
+                    } else {
+                        // 确保两个列表长度相同后再累加
+                        List<Double> deviceValues = deviceData.getValue();
+                        int minSize = Math.min(totalValues.size(), deviceValues.size());
+                        for (int i = 0; i < minSize; i++) {
+                            Double v1 = totalValues.get(i);
+                            Double v2 = deviceValues.get(i);
+                            // 处理null值
+                            if (v1 == null) v1 = 0.0;
+                            if (v2 == null) v2 = 0.0;
+                            totalValues.set(i, v1 + v2);
+                        }
                     }
                 }
             }
         }
 
         // 创建结果对象
-        if (totalValues != null) {
-            InfluxMqttPlugVO result = new InfluxMqttPlugVO();
-            result.setValue(totalValues);
-            result.setTime(times);
+        InfluxMqttPlugVO result = new InfluxMqttPlugVO();
+        result.setTime(times);
+        result.setValue(totalValues);
 
-            List<InfluxMqttPlugVO> resultList = new ArrayList<>();
-            resultList.add(result);
-            return resultList;
-        }
-
-        return new ArrayList<>();
+        return Arrays.asList(result);
     }
+
 
     private String getRange(Long timeAmount, String timeUnit) {
         // timeAmount时间范围值->1,2,3  timeUnit时间单位d,w,m,y
@@ -882,22 +888,27 @@ public class DashBoardController {
      * 将原始数据转换为VO对象并计算用电量差值
      */
     private List<InfluxMqttPlugVO> convertToVOWithDifferences(List<InfluxMqttPlug> dataList, String timeUnit) {
-        if (dataList == null || dataList.isEmpty()) {
-            return new ArrayList<>();
-        }
-
+        // 初始化结果对象
         InfluxMqttPlugVO resultVO = new InfluxMqttPlugVO();
         List<String> times = new ArrayList<>();
         List<Double> values = new ArrayList<>();
+
+        // 处理空数据情况
+        if (dataList == null || dataList.isEmpty()) {
+            resultVO.setTime(times);
+            resultVO.setValue(values);
+            return Arrays.asList(resultVO);
+        }
 
         // 按时间排序
         dataList.sort(Comparator.comparing(InfluxMqttPlug::getTime));
 
         // 如果数据少于2条，无法计算差值
         if (dataList.size() < 2) {
-            List<InfluxMqttPlugVO> result = new ArrayList<>();
-            result.add(resultVO);
-            return result;
+            // 即使只有一条数据，也返回空的时间和值列表，而不是null
+            resultVO.setTime(times);
+            resultVO.setValue(values);
+            return Arrays.asList(resultVO);
         }
 
         switch (timeUnit) {
@@ -910,17 +921,14 @@ public class DashBoardController {
                     InfluxMqttPlug currentData = dataList.get(i);
                     InfluxMqttPlug nextData = dataList.get(i + 1);
                     if (i == 62) {
-                        values.add(MathUtils.formatDouble(MathUtils.formatDouble(dataList.get(dataList.size() - 1).getTotal()) - MathUtils.formatDouble(dataList.get(dataList.size() - 2).getTotal())));
+                        Double lastTotal = formatDouble(getTotalFromData(dataList, dataList.size() - 1));
+                        Double secondLastTotal = formatDouble(getTotalFromData(dataList, dataList.size() - 2));
+                        values.add(electricityCalculationService.calculateDifference(lastTotal, secondLastTotal));
                     } else {
-                        if (currentData.getTotal() != null && nextData.getTotal() != null) {
-                            double difference = Math.max(0, MathUtils.formatDouble(
-                                    nextData.getTotal() - currentData.getTotal()));
-                            values.add(difference);
-                        } else {
-                            values.add(0.0);
-                        }
+                        Double currentTotal = formatDouble(getTotalFromData(dataList, i));
+                        Double nextTotal = formatDouble(getTotalFromData(dataList, i + 1));
+                        values.add(electricityCalculationService.calculateDifference(nextTotal, currentTotal));
                     }
-
                 }
                 break;
 
@@ -933,12 +941,12 @@ public class DashBoardController {
                     InfluxMqttPlug currentData = dataList.get(i);
                     InfluxMqttPlug nextData = dataList.get(i + 1);
                     if (i == 23) {
-                        Double lastTotal = MathUtils.formatDouble(dataList.get(dataList.size() - 1).getTotal());
-                        Double secondLastTotal = MathUtils.formatDouble(dataList.get(dataList.size() - 2).getTotal());
+                        Double lastTotal = formatDouble(getTotalFromData(dataList, dataList.size() - 1));
+                        Double secondLastTotal = formatDouble(getTotalFromData(dataList, dataList.size() - 2));
                         values.add(electricityCalculationService.calculateDifference(lastTotal, secondLastTotal));
                     } else {
-                        Double currentTotal = MathUtils.formatDouble(currentData.getTotal());
-                        Double nextTotal = MathUtils.formatDouble(nextData.getTotal());
+                        Double currentTotal = formatDouble(getTotalFromData(dataList, i));
+                        Double nextTotal = formatDouble(getTotalFromData(dataList, i + 1));
                         values.add(electricityCalculationService.calculateDifference(nextTotal, currentTotal));
                     }
                 }
@@ -952,18 +960,14 @@ public class DashBoardController {
 
                 // 处理值数据：计算相邻数据点的差值
                 for (int i = 0; i < dataList.size() - 2; i++) {
-                    InfluxMqttPlug currentData = dataList.get(i);
-                    InfluxMqttPlug nextData = dataList.get(i + 1);
                     if (i == 6) {
-                        values.add(MathUtils.formatDouble(MathUtils.formatDouble(dataList.get(dataList.size() - 1).getTotal()) - MathUtils.formatDouble(dataList.get(dataList.size() - 2).getTotal())));
+                        Double lastTotal = formatDouble(getTotalFromData(dataList, dataList.size() - 1));
+                        Double secondLastTotal = formatDouble(getTotalFromData(dataList, dataList.size() - 2));
+                        values.add(electricityCalculationService.calculateDifference(lastTotal, secondLastTotal));
                     } else {
-                        if (currentData.getTotal() != null && nextData.getTotal() != null) {
-                            double difference = Math.max(0, MathUtils.formatDouble(
-                                    MathUtils.formatDouble(nextData.getTotal()) - MathUtils.formatDouble(currentData.getTotal())));
-                            values.add(difference);
-                        } else {
-                            values.add(0.0);
-                        }
+                        Double currentTotal = formatDouble(getTotalFromData(dataList, i));
+                        Double nextTotal = formatDouble(getTotalFromData(dataList, i + 1));
+                        values.add(electricityCalculationService.calculateDifference(nextTotal, currentTotal));
                     }
                 }
                 break;
@@ -974,20 +978,15 @@ public class DashBoardController {
                 }
                 // 处理值数据：计算相邻数据点的差值
                 for (int i = 0; i < dataList.size() - 2; i++) {
-                    InfluxMqttPlug currentData = dataList.get(i);
-                    InfluxMqttPlug nextData = dataList.get(i + 1);
                     if (i == 29) {
-                        values.add(MathUtils.formatDouble(MathUtils.formatDouble(dataList.get(dataList.size() - 1).getTotal()) - MathUtils.formatDouble(dataList.get(dataList.size() - 2).getTotal())));
+                        Double lastTotal = formatDouble(getTotalFromData(dataList, dataList.size() - 1));
+                        Double secondLastTotal = formatDouble(getTotalFromData(dataList, dataList.size() - 2));
+                        values.add(electricityCalculationService.calculateDifference(lastTotal, secondLastTotal));
                     } else {
-                        if (currentData.getTotal() != null && nextData.getTotal() != null) {
-                            double difference = Math.max(0, MathUtils.formatDouble(
-                                    nextData.getTotal() - currentData.getTotal()));
-                            values.add(difference);
-                        } else {
-                            values.add(0.0);
-                        }
+                        Double currentTotal = formatDouble(getTotalFromData(dataList, i));
+                        Double nextTotal = formatDouble(getTotalFromData(dataList, i + 1));
+                        values.add(electricityCalculationService.calculateDifference(nextTotal, currentTotal));
                     }
-
                 }
                 break;
 
@@ -998,30 +997,18 @@ public class DashBoardController {
                     if (times.contains(time)) {
                         continue;
                     }
-                    times.add(formatTime(dataList.get(i).getTime(), timeUnit));
+                    times.add(time);
                 }
                 // 处理值数据：计算相邻数据点的差值
                 for (int i = 0; i < dataList.size() - 2; i++) {
-                    InfluxMqttPlug currentData = dataList.get(i);
-                    InfluxMqttPlug nextData = dataList.get(i + 1);
                     if (i == 11) {
-                        Double last = formatDouble(dataList.get(dataList.size() - 1).getTotal());
-                        if (last == null) {
-                            last = 0.0;
-                        }
-                        Double pre = formatDouble(dataList.get(dataList.size() - 3).getTotal());
-                        if (pre == null) {
-                            pre = 0.0;
-                        }
-                        values.add(MathUtils.formatDouble(last - pre));
+                        Double last = formatDouble(getTotalFromData(dataList, dataList.size() - 1));
+                        Double pre = formatDouble(getTotalFromData(dataList, dataList.size() - 3));
+                        values.add(electricityCalculationService.calculateDifference(last, pre));
                     } else {
-                        if (currentData.getTotal() != null && nextData.getTotal() != null) {
-                            double difference = Math.max(0, MathUtils.formatDouble(
-                                    nextData.getTotal() - currentData.getTotal()));
-                            values.add(difference);
-                        } else {
-                            values.add(0.0);
-                        }
+                        Double currentTotal = formatDouble(getTotalFromData(dataList, i));
+                        Double nextTotal = formatDouble(getTotalFromData(dataList, i + 1));
+                        values.add(electricityCalculationService.calculateDifference(nextTotal, currentTotal));
                     }
                 }
                 break;
@@ -1033,9 +1020,7 @@ public class DashBoardController {
         resultVO.setTime(times);
         resultVO.setValue(values);
 
-        List<InfluxMqttPlugVO> result = new ArrayList<>();
-        result.add(resultVO);
-        return result;
+        return Arrays.asList(resultVO);
     }
 
     /**
@@ -1137,4 +1122,23 @@ public class DashBoardController {
             return null;
         }
     }
+    /**
+     * 安全获取数据点的Total值
+     * @param dataList 数据列表
+     * @param index 索引
+     * @return Total值，如果数据不存在或为null则返回0.0
+     */
+    private Double getTotalFromData(List<InfluxMqttPlug> dataList, int index) {
+        if (dataList == null || index < 0 || index >= dataList.size()) {
+            return 0.0;
+        }
+
+        InfluxMqttPlug data = dataList.get(index);
+        if (data == null || data.getTotal() == null) {
+            return 0.0;
+        }
+
+        return data.getTotal();
+    }
+
 }
