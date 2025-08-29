@@ -69,7 +69,7 @@ public class MqttCallback implements MqttCallbackExtended {
     private String normalizeTopic(String topic) {
         if (topic.startsWith("/zbgw")) {
             return MacUtils.removeZbgwMacPart(topic); // 示例: "/zbgw/abc123/manage" -> "/manage"
-        } else if (topic.contains("tasmota")) {
+        } else if (topic.contains("tasmota") || topic.contains("SmartLife")) {
             return MacUtils.getFinalByTopic(topic);   // 示例: "tele/tasmota_abc/STATE" -> "STATE"
         }
         return topic;
@@ -85,6 +85,8 @@ public class MqttCallback implements MqttCallbackExtended {
             case "SENSOR" -> HandlerType.SENSOR;
             case "LIGHT" -> HandlerType.LIGHT;
             case "SENSOR3ON1" -> HandlerType.SENSOR3ON1;
+            case "status"-> HandlerType.status;
+            case "POWER" -> HandlerType.POWER;
             // 处理通用路径
             case "/register" -> HandlerType.REGISTER;
             case "/report_subdevice" -> HandlerType.REPORT_SUBDEVICE;
@@ -156,7 +158,6 @@ public class MqttCallback implements MqttCallbackExtended {
     @Override
     public void connectComplete(boolean reconnect, String serverURI) {
         //获取设备
-//        List<Device> deviceList = deviceService.getDeviceList();
         List<Device> deviceList = deviceService.list();
         if (ObjectUtils.isNotEmpty(deviceList)) {
             try {
@@ -181,6 +182,10 @@ public class MqttCallback implements MqttCallbackExtended {
                         mqttClient.subscribe("stat/" + device.getDeviceCode() + "/RESULT", 2);
                         log.info("订阅主题:{}", "stat/" + device.getDeviceCode() + "/STATUS8");
                         mqttClient.subscribe("stat/" + device.getDeviceCode() + "/STATUS8", 2);
+                        log.info("订阅主题:{}", "stat/" + device.getDeviceCode() + "/status");
+                        mqttClient.subscribe("stat/" + device.getDeviceCode() + "/status", 2);
+                        log.info("订阅主题:{}", "cmnd/" + device.getDeviceCode() + "/POWER");
+                        mqttClient.subscribe("cmnd/" + device.getDeviceCode() + "/POWER", 2);
                     }
                 }
             } catch (MqttException e) {
@@ -189,14 +194,6 @@ public class MqttCallback implements MqttCallbackExtended {
         } else {
             log.warn("目前无设备主题可订阅");
         }
-
-//        if ( ObjectUtils.isNotEmpty(consumerTopics)) {
-//            for (CarDevice carDevice : carDeviceList) {
-//                for (String consumerTopic : consumerTopics) {
-//                        log.info("订阅主题:{}", carDevice.getCarDeviceSN() + consumerTopic);
-//                }
-//            }
-//        }
     }
 
     @Setter

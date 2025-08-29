@@ -37,13 +37,14 @@ public class DeviceInfoParserFactory {
         PARSER_MAP.put("Switch:ZigBee/Serial", new ZigBeeSerialParser());
         //MQTT温湿度传感器
         PARSER_MAP.put("Sensor:WiFi", new MqttSensorParser());
-        //MQTT灯光
-        PARSER_MAP.put("Light:WiFi", new MqttLightParser());
+       // MQTT开关
+        PARSER_MAP.put("Switch:WiFi", new MqttLightParser());
          //MQTT3合1传感器
         PARSER_MAP.put("Sensor3On1:WiFi", new MqttSensor3On1Parser());
         //MQTT计量插座
         PARSER_MAP.put("Plug:WiFi", new MqttPlugParser());
-
+        //MQTT空开
+        PARSER_MAP.put("AirSwitch:WiFi", new MqttPlugParser());
     }
 
     /**
