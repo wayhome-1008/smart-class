@@ -74,8 +74,12 @@
             <if test="queryParams.communicationModeItemId != null and queryParams.communicationModeItemId != ''">
                 AND communication_mode_item_id = #{queryParams.communicationModeItemId}
             </if>
-            <if test="queryParams.deviceTypeId != null">
-                AND device_type_id = #{queryParams.deviceTypeId}
+            <if test="queryParams.deviceTypeIds != null and queryParams.deviceTypeIds != ''">
+                AND d.device_type_id IN
+                <foreach collection="queryParams.deviceTypeIds.split(',')" item="deviceTypeId"
+                         open="(" separator="," close=")">
+                    #{deviceTypeId}
+                </foreach>
             </if>
             <!-- 新增网关显示控制 -->
             <if test="queryParams.showGateway != null and !queryParams.showGateway">

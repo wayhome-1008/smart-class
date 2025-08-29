@@ -26,7 +26,7 @@ public class DeviceQuery extends BasePageQuery {
     @Schema(description = "网关")
     private String deviceMac;
     @Schema(description = "设备类型")
-    private Long deviceTypeId;
+    private String deviceTypeIds;
     @Schema(description = "通讯方式")
     private Long communicationModeItemId;
     @Schema(description = "设备序号")
