@@ -243,80 +243,131 @@ public class DashBoardController {
         return Result.failed();
     }
 
-    @Operation(summary = "房间当天用电信息(仅显示总用电、功率、电压)")
-    @GetMapping("/room/electricity")
-    public Result<RoomElectricity> getRoomElectricityData(
-            @Parameter(description = "房间id")
-            @RequestParam Long roomId) {
-        try {
-            // 查询当天最早的数据点
-            InfluxQueryBuilder earliestBuilder = InfluxQueryBuilder.newBuilder()
-                    .bucket(influxDBProperties.getBucket())
-                    .today()
-                    .measurement("device")
-                    .fields("Total", "Voltage", "Current")
-                    .pivot()
-                    .fill()
-                    .sort("_time", InfluxQueryBuilder.SORT_ASC)
-                    .limit(1);
-            earliestBuilder.tag("roomId", String.valueOf(roomId));
+@Operation(summary = "房间当天用电信息(仅显示总用电、功率、电压)")
+@GetMapping("/room/electricity")
+public Result<RoomElectricity> getRoomElectricityData(
+        @Parameter(description = "房间id")
+        @RequestParam Long roomId) {
+    try {
+        // 查询当天该房间所有设备的数据
+        InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
+                .bucket(influxDBProperties.getBucket())
+                .today()
+                .measurement("device")
+                .fields("Total", "Voltage", "Current")
+                .pivot()
+                .fill()
+                .sort("_time", InfluxQueryBuilder.SORT_ASC);
+        builder.tag("roomId", String.valueOf(roomId));
 
-            // 查询当天最晚的数据点
-            InfluxQueryBuilder latestBuilder = InfluxQueryBuilder.newBuilder()
-                    .bucket(influxDBProperties.getBucket())
-                    .today()
-                    .measurement("device")
-                    .fields("Total", "Voltage", "Current")
-                    .pivot()
-                    .fill()
-                    .sort("_time", InfluxQueryBuilder.SORT_DESC)
-                    .limit(1);
-            latestBuilder.tag("roomId", String.valueOf(roomId));
+        String fluxQuery = builder.build();
+        log.info("房间当天用电数据InfluxDB查询语句: {}", fluxQuery);
 
-            String earliestFluxQuery = earliestBuilder.build();
-            String latestFluxQuery = latestBuilder.build();
+        List<InfluxMqttPlug> allDeviceData = influxDBClient.getQueryApi()
+                .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
 
-            log.info("房间当天用电最早数据InfluxDB查询语句: {}", earliestFluxQuery);
-            log.info("房间当天用电最晚数据InfluxDB查询语句: {}", latestFluxQuery);
+        if (allDeviceData.isEmpty()) {
+            return Result.success();
+        }
 
-            List<InfluxMqttPlug> earliestTables = influxDBClient.getQueryApi()
-                    .query(earliestFluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
+        // 按设备分组数据
+        Map<String, List<InfluxMqttPlug>> deviceDataMap = allDeviceData.stream()
+                .filter(data -> data.getDeviceCode() != null)
+                .collect(Collectors.groupingBy(InfluxMqttPlug::getDeviceCode));
 
-            List<InfluxMqttPlug> latestTables = influxDBClient.getQueryApi()
-                    .query(latestFluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
+        // 计算每个设备的用电量差值
+        double roomTotalElectricity = 0.0;
+        Double avgVoltage = null;
+        Double avgCurrent = null;
+        int voltageCurrentCount = 0;
 
-            if (!earliestTables.isEmpty() && !latestTables.isEmpty()) {
-                InfluxMqttPlug earliestData = earliestTables.get(0);
-                InfluxMqttPlug latestData = latestTables.get(0);
+        for (Map.Entry<String, List<InfluxMqttPlug>> entry : deviceDataMap.entrySet()) {
+            List<InfluxMqttPlug> deviceDataList = entry.getValue();
 
-                RoomElectricity result = new RoomElectricity();
+            // 按时间排序
+            deviceDataList.sort(Comparator.comparing(InfluxMqttPlug::getTime));
 
-                // 计算当天用电量（最晚值 - 最早值）
+            if (deviceDataList.size() >= 2) {
+                // 获取最早和最晚的数据点
+                InfluxMqttPlug earliestData = deviceDataList.get(0);
+                InfluxMqttPlug latestData = deviceDataList.get(deviceDataList.size() - 1);
+
+                // 计算单个设备的用电量差值
                 if (earliestData.getTotal() != null && latestData.getTotal() != null) {
-                    double todayConsumption = latestData.getTotal() - earliestData.getTotal();
-                    result.setTotal(Math.max(0, formatDouble(todayConsumption))); // 确保不为负数
+                    double deviceConsumption = latestData.getTotal() - earliestData.getTotal();
+                    roomTotalElectricity += Math.max(0, formatDouble(deviceConsumption));
                 }
 
-                // 使用最晚时间点的电压和电流数据
-                result.setVoltage(latestData.getVoltage());
-                result.setCurrent(latestData.getCurrent());
+                // 累加电压和电流用于计算平均值
+                if (latestData.getVoltage() != null) {
+                    if (avgVoltage == null) {
+                        avgVoltage = 0.0;
+                    }
+                    avgVoltage += latestData.getVoltage();
+                }
 
-                return Result.success(result);
-            } else if (!latestTables.isEmpty()) {
-                // 如果只有最晚数据，返回该数据（向后兼容）
-                InfluxMqttPlug latestData = latestTables.get(0);
-                RoomElectricity result = new RoomElectricity();
-                result.setTotal(formatDouble(latestData.getTotal()));
-                result.setVoltage(latestData.getVoltage());
-                result.setCurrent(latestData.getCurrent());
-                return Result.success(result);
+                if (latestData.getCurrent() != null) {
+                    if (avgCurrent == null) {
+                        avgCurrent = 0.0;
+                    }
+                    avgCurrent += latestData.getCurrent();
+                }
+
+                if (latestData.getVoltage() != null || latestData.getCurrent() != null) {
+                    voltageCurrentCount++;
+                }
+            } else if (deviceDataList.size() == 1) {
+                // 如果只有一个数据点，使用该点的数据（向后兼容）
+                InfluxMqttPlug data = deviceDataList.get(0);
+                if (data.getTotal() != null) {
+                    roomTotalElectricity += formatDouble(data.getTotal());
+                }
+
+                // 累加电压和电流用于计算平均值
+                if (data.getVoltage() != null) {
+                    if (avgVoltage == null) {
+                        avgVoltage = 0.0;
+                    }
+                    avgVoltage += data.getVoltage();
+                }
+
+                if (data.getCurrent() != null) {
+                    if (avgCurrent == null) {
+                        avgCurrent = 0.0;
+                    }
+                    avgCurrent += data.getCurrent();
+                }
+
+                if (data.getVoltage() != null || data.getCurrent() != null) {
+                    voltageCurrentCount++;
+                }
             }
-            return Result.success();
-        } catch (InfluxException e) {
-            log.error("查询用电数据失败: {}", e.getMessage());
-            return Result.failed("查询用电数据失败");
         }
+
+        RoomElectricity result = new RoomElectricity();
+        result.setTotal(formatDouble(roomTotalElectricity));
+
+        // 计算平均电压和电流
+        if (voltageCurrentCount > 0) {
+            if (avgVoltage != null) {
+                result.setVoltage(formatDouble(avgVoltage / voltageCurrentCount));
+            }
+            if (avgCurrent != null) {
+                result.setCurrent(formatDouble(avgCurrent / voltageCurrentCount));
+            }
+        }
+
+        return Result.success(result);
+
+    } catch (InfluxException e) {
+        log.error("查询用电数据失败: {}", e.getMessage());
+        return Result.failed("查询用电数据失败");
+    } catch (Exception e) {
+        log.error("处理用电数据时发生错误: ", e);
+        return Result.failed("系统错误");
     }
+}
+
 
     @Operation(summary = "查询传感器数据")
     @GetMapping("/sensor/data")
