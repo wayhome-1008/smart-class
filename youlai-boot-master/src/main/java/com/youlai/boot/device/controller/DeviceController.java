@@ -534,6 +534,10 @@ public class DeviceController {
         log.info("动态取消订阅主题\"tele/\" + device.getDeviceCode() + \"/INFO3\"");
         mqttCallback.unsubscribeTopic("tele/" + device.getDeviceCode() + "/STATE");
         log.info("动态取消订阅主题\"tele/\" + device.getDeviceCode() + \"/STATE\"");
+        mqttCallback.unsubscribeTopic("tele/" + device.getDeviceCode() + "/status");
+        log.info("动态取消订阅主题\"tele/\" + device.getDeviceCode() + \"/status\"");
+        mqttCallback.unsubscribeTopic("tele/" + device.getDeviceCode() + "/POWER");
+        log.info("动态取消订阅主题\"tele/\" + device.getDeviceCode() + \"/POWER\"");
     }
 
     private void zigBeeGateWayDelDel(Device device) {
@@ -591,9 +595,10 @@ public class DeviceController {
         mqttCallback.subscribeTopic("tele/" + formData.getDeviceMac() + "/SENSOR");
         mqttCallback.subscribeTopic("tele/" + formData.getDeviceMac() + "/INFO3");
         mqttCallback.subscribeTopic("tele/" + formData.getDeviceMac() + "/STATE");
-//        mqttCallback.subscribeTopic("stat/" + formData.getDeviceMac() + "/POWER");
+        mqttCallback.subscribeTopic("stat/" + formData.getDeviceMac() + "/POWER");
         mqttCallback.subscribeTopic("stat/" + formData.getDeviceMac() + "/RESULT");
         mqttCallback.subscribeTopic("stat/" + formData.getDeviceCode() + "/STATUS8");
+        mqttCallback.subscribeTopic("stat/" + formData.getDeviceCode() + "/status");
     }
 
     private void mqttDevice(@Valid DeviceForm formData) {
