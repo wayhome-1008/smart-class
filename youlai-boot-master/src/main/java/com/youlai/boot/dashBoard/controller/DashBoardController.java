@@ -1131,10 +1131,8 @@ public class DashBoardController {
             String fluxQuery = builder.build();
             log.info("查询今日用电查询语句: {}", fluxQuery);
 
-            List<InfluxMqttPlug> results = influxDBClient.getQueryApi()
+            return influxDBClient.getQueryApi()
                     .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
-
-            return results;
         } catch (Exception e) {
             return null;
         }

@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static com.youlai.boot.common.util.JsonUtils.mergeJson;
-import static com.youlai.boot.common.util.JsonUtils.stringToJsonNode;
 import static com.youlai.boot.common.util.MacUtils.getCodeByTopic;
 
 /**
@@ -43,7 +42,6 @@ import static com.youlai.boot.common.util.MacUtils.getCodeByTopic;
 @RequiredArgsConstructor
 public class AirSwitchPowerHandler implements MsgHandler {
     private final RedisTemplate<String, Object> redisTemplate;
-    private final DeviceService deviceService;
     private final InfluxDBProperties influxProperties;
     private final InfluxDBClient influxDBClient;
     private final SceneExecuteService sceneExecuteService;

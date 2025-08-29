@@ -8,8 +8,6 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.youlai.boot.category.model.entity.Category;
 import com.youlai.boot.category.service.CategoryService;
-import com.youlai.boot.categoryDeviceRelationship.model.CategoryDeviceRelationship;
-import com.youlai.boot.categoryDeviceRelationship.service.CategoryDeviceRelationshipService;
 import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.common.model.Option;
 import com.youlai.boot.core.security.util.SecurityUtils;
@@ -68,7 +66,6 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     private final DeviceTypeMapper deviceTypeMapper;
     private final RedisTemplate<String, Object> redisTemplate;
     private final RoomService roomService;
-    private final CategoryDeviceRelationshipService categoryDeviceRelationshipService;
     private final CategoryService categoryService;
 
     @PostConstruct
