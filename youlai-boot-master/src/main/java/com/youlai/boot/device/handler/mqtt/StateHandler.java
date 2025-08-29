@@ -61,7 +61,7 @@ public class StateHandler implements MsgHandler {
             handlerPlug(topic, jsonMsg);
         }
         //灯光
-        if (device.getDeviceTypeId() == 8) {
+        if (device.getDeviceTypeId() == 7) {
             handlerLight(topic, jsonMsg);
         }
         //三合一传感器

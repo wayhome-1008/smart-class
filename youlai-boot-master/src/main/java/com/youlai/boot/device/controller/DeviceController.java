@@ -119,57 +119,43 @@ public class DeviceController {
         result.getRecords().forEach(d -> {
             d.setIsOpenIcon(false);
             if (d.getDeviceTypeId() != null) {
-                //4->计量插座 7->开关 10->智能插座
-                if (d.getDeviceTypeId() == 4 || d.getDeviceTypeId() == 7 || d.getDeviceTypeId() == 10) {
-                    d.setIsOpenIcon(true);
-                    //获取开关状态
-                    Optional<Integer> count = DeviceInfo.getValueByName(d.getDeviceInfoList(), "count", Integer.class);
-                    if (count.isPresent()) {
-                        boolean found = false;
-                        for (int i = 0; i < count.get() && !found; i++) {
-                            Optional<String> switchStatus = DeviceInfo.getValueByName(
-                                    d.getDeviceInfoList(),
-                                    "switch" + (i + 1),
-                                    String.class
-                            );
-                            if (switchStatus.isPresent() && switchStatus.get().equals("ON")) {
-                                d.setIsOpen(true);
-                                found = true; // 找到ON状态后立即跳出循环
-                            }
-                        }
-                        // 如果没有找到ON状态，设置为false
-                        if (!found) {
-                            d.setIsOpen(false);
-                        }
-                    }
-                }
-                //8->灯光
-                if (d.getDeviceTypeId() == 8) {
-                    d.setIsOpenIcon(true);
-                    //获取开关状态
-                    Optional<Integer> count = DeviceInfo.getValueByName(d.getDeviceInfoList(), "count", Integer.class);
-                    if (count.isPresent()) {
-                        boolean found = false;
-                        for (int i = 0; i < count.get() && !found; i++) {
-                            Optional<String> switchStatus = DeviceInfo.getValueByName(
-                                    d.getDeviceInfoList(),
-                                    "switch" + (i + 1),
-                                    String.class
-                            );
-                            if (switchStatus.isPresent() && switchStatus.get().equals("ON")) {
-                                d.setIsOpen(true);
-                                found = true; // 找到ON状态后立即跳出循环
-                            }
-                        }
-                        // 如果没有找到ON状态，设置为false
-                        if (!found) {
-                            d.setIsOpen(false);
-                        }
-                    }
+                //4->计量插座 7->开关 8->空开 10->智能插座
+                Set<Long> switchDeviceTypes = Set.of(4L, 7L, 8L, 10L);
+                if (switchDeviceTypes.contains(d.getDeviceTypeId())) {
+                    processDeviceSwitchStatus(d);
                 }
             }
         });
+
         return PageResult.success(result);
+    }
+
+    /**
+     * 处理设备开关状态
+     * @param deviceVO 设备VO对象
+     */
+    private void processDeviceSwitchStatus(DeviceVO deviceVO) {
+        deviceVO.setIsOpenIcon(true);
+        //获取开关状态
+        Optional<Integer> count = DeviceInfo.getValueByName(deviceVO.getDeviceInfoList(), "count", Integer.class);
+        if (count.isPresent()) {
+            boolean found = false;
+            for (int i = 0; i < count.get() && !found; i++) {
+                Optional<String> switchStatus = DeviceInfo.getValueByName(
+                        deviceVO.getDeviceInfoList(),
+                        "switch" + (i + 1),
+                        String.class
+                );
+                if (switchStatus.isPresent() && switchStatus.get().equals("ON")) {
+                    deviceVO.setIsOpen(true);
+                    found = true; // 找到ON状态后立即跳出循环
+                }
+            }
+            // 如果没有找到ON状态，设置为false
+            if (!found) {
+                deviceVO.setIsOpen(false);
+            }
+        }
     }
 
     @Operation(summary = "主从配置管理分页列表")
@@ -195,7 +181,7 @@ public class DeviceController {
                     .distinct()
                     .collect(Collectors.toList());
         }
-        // 3. 查询房间信息
+        // 3. 查询房间的信息
         Map<Long, Room> roomMap = roomService.listByIds(roomIds).stream()
                 .collect(Collectors.toMap(Room::getId, room -> room));
         // 4. 过滤设备 - 只保留指定房间的设备
@@ -228,6 +214,9 @@ public class DeviceController {
                 .map(CategoryDeviceRelationship::getCategoryId)
                 .distinct()
                 .collect(Collectors.toList());
+        if (categoryIds.isEmpty()) {
+            return PageResult.success(new Page<>());
+        }
         Map<Long, Category> categoryMap = categoryService.listByIds(categoryIds).stream()
                 .collect(Collectors.toMap(Category::getId, category -> category));
         // 7. 构建返回结果

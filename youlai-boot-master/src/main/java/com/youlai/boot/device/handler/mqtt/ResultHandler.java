@@ -62,7 +62,7 @@ public class ResultHandler implements MsgHandler {
                 plug(jsonNode, device, deviceCode, mqttClient);
             }
             //灯
-            if (device.getDeviceTypeId() == 8) {
+            if (device.getDeviceTypeId() == 7) {
                 light(jsonNode, device, deviceCode, mqttClient);
             }
 

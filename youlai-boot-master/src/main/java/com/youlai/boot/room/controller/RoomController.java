@@ -88,45 +88,40 @@ public class RoomController {
         roomVO.setLightNum(0);
         roomVO.setPlugNum(0);
         for (DeviceInfoVO device : devices) {
-            if (device.getStatus() == 1) {
-                switch (device.getDeviceTypeId().intValue()) {
-                    case 2: // 2->温湿度传感器
-                        DeviceInfo.getValueByName(device.getDeviceInfo(), "temperature", Double.class)
-                                .map(temp -> Double.parseDouble(String.format("%.2f", temp)))
-                                .ifPresent(roomVO::setTemperature);
+            if (ObjectUtils.isNotEmpty((device.getCategoryId()))) {
+                if (device.getStatus() == 1) {
+                    switch (device.getCategoryId().intValue()) {
+                        case 6: // 2->温湿度传感器
+                            DeviceInfo.getValueByName(device.getDeviceInfo(), "temperature", Double.class)
+                                    .map(temp -> Double.parseDouble(String.format("%.2f", temp)))
+                                    .ifPresent(roomVO::setTemperature);
 
-                        DeviceInfo.getValueByName(device.getDeviceInfo(), "humidity", Double.class)
-                                .map(hum -> Double.parseDouble(String.format("%.2f", hum)))
-                                .ifPresent(roomVO::setHumidity);
+                            DeviceInfo.getValueByName(device.getDeviceInfo(), "humidity", Double.class)
+                                    .map(hum -> Double.parseDouble(String.format("%.2f", hum)))
+                                    .ifPresent(roomVO::setHumidity);
 
-                        DeviceInfo.getValueByName(device.getDeviceInfo(), "illuminance", Double.class)
-                                .map(ill -> Double.parseDouble(String.format("%.2f", ill)))
-                                .ifPresent(roomVO::setIlluminance);
-                        break;
+                            DeviceInfo.getValueByName(device.getDeviceInfo(), "illuminance", Double.class)
+                                    .map(ill -> Double.parseDouble(String.format("%.2f", ill)))
+                                    .ifPresent(roomVO::setIlluminance);
+                            break;
 
-                    case 8: // 8->灯光
-                        checkDeviceLightStatus(device, roomVO);
-                        break;
-                    case 7:
-                        break;
-                    case 4:
-                    case 10: // 4->计量插座,7->开关,10->智能插座
-                        checkDeviceSwitchStatus(device, roomVO);
-                        break;
+                        case 1: // 8->灯光
+                            checkDeviceLightStatus(device, roomVO);
+                            break;
+                        case 4:
+//                    case 10: // 4->计量插座,7->开关,10->智能插座
+                            checkDeviceSwitchStatus(device, roomVO);
+                            break;
 
-                    case 5: // 5->人体感应雷达
-                        DeviceInfo.getValueByName(device.getDeviceInfo(), "motion", Integer.class)
-                                .filter(motion -> motion == 1)
-                                .ifPresent(motion -> roomVO.setHuman(true));
-                        break;
-
-                    case 6: // 6->人体存在感应
-                        DeviceInfo.getValueByName(device.getDeviceInfo(), "motion", Integer.class)
-                                .filter(motion -> motion == 1)
-                                .ifPresent(motion -> roomVO.setHuman(true));
-                        break;
+                        case 3: // 5->人体感应雷达
+                            DeviceInfo.getValueByName(device.getDeviceInfo(), "motion", Integer.class)
+                                    .filter(motion -> motion == 1)
+                                    .ifPresent(motion -> roomVO.setHuman(true));
+                            break;
+                    }
                 }
             }
+
         }
     }
 
