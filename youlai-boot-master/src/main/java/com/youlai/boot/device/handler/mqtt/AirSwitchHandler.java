@@ -52,7 +52,6 @@ public class AirSwitchHandler implements MsgHandler {
     private final SceneExecuteService sceneExecuteService;
     private final SceneService sceneService;
     private final AlertRuleEngine alertRuleEngine;
-
     // 使用ConcurrentHashMap存储设备最后接收数据的时间
     private static final ConcurrentHashMap<String, Long> deviceLastDataTimeMap = new ConcurrentHashMap<>();
 
@@ -80,7 +79,7 @@ public class AirSwitchHandler implements MsgHandler {
             metrics.put("current", current);
             metrics.put("power", power);
             metrics.put("total", total);
-            metrics.put("switch", relayState ? "ON" : "OFF");
+            metrics.put("switch1", relayState ? "ON" : "OFF");
             metrics.put("count", 1);
             //场景
             List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(device.getDeviceCode());
@@ -104,7 +103,7 @@ public class AirSwitchHandler implements MsgHandler {
             InfluxMqttPlug influxPlug = new InfluxMqttPlug();
             //tag为设备编号
             influxPlug.setDeviceCode(device.getDeviceCode());
-            influxPlug.setSwitchState(metrics.get("switch").asText());
+            influxPlug.setSwitchState(metrics.get("switch1").asText());
             //tag为房间id
             influxPlug.setRoomId(device.getDeviceRoom().toString());
             influxPlug.setDeviceType(String.valueOf(device.getDeviceTypeId()));

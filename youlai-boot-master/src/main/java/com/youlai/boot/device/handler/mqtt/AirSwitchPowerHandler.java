@@ -63,7 +63,7 @@ public class AirSwitchPowerHandler implements MsgHandler {
                 metrics.put("current", deviceInfo.get("current").asInt());
                 metrics.put("power", deviceInfo.get("power").asInt());
                 metrics.put("total", deviceInfo.get("total").asDouble());
-                metrics.put("switch", jsonMsg);
+                metrics.put("switch1", jsonMsg);
                 metrics.put("count", 1);
                 //场景
                 List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(device.getDeviceCode());
@@ -87,7 +87,7 @@ public class AirSwitchPowerHandler implements MsgHandler {
                 InfluxMqttPlug influxPlug = new InfluxMqttPlug();
                 //tag为设备编号
                 influxPlug.setDeviceCode(device.getDeviceCode());
-                influxPlug.setSwitchState(metrics.get("switch").asText());
+                influxPlug.setSwitchState(metrics.get("switch1").asText());
                 //tag为房间id
                 influxPlug.setRoomId(device.getDeviceRoom().toString());
                 influxPlug.setDeviceType(String.valueOf(device.getDeviceTypeId()));
