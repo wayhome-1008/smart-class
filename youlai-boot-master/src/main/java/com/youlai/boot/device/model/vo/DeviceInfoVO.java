@@ -38,6 +38,10 @@ public class DeviceInfoVO implements Serializable {
      * 设备类型
      */
     private Long deviceTypeId;
+    /**
+     * 设备类型
+     */
+    private Long categoryId;
     private Long communicationModeItemId;
     private String deviceNo;
     /**

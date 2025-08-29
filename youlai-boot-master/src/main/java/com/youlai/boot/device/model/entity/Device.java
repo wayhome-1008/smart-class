@@ -50,6 +50,10 @@ public class Device extends BaseEntity {
      */
     private Long deviceTypeId;
     /**
+     * 设备分类
+     */
+    private Long categoryId;
+    /**
      * 设备数据信息
      */
     // 指定数据库字段为JSON类型，并使用TypeHandler处理序列化

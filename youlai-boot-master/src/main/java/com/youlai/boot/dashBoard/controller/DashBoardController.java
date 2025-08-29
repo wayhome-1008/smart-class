@@ -659,6 +659,7 @@ public class DashBoardController {
         deviceInfoVO.setRoomName(roomCode);
         deviceInfoVO.setDeviceMac(device.getDeviceMac());
         deviceInfoVO.setDeviceGatewayId(device.getDeviceGatewayId());
+        deviceInfoVO.setCategoryId(device.getCategoryId());
         deviceInfoVO.setDeviceTypeId(device.getDeviceTypeId());
         deviceInfoVO.setCommunicationModeItemId(device.getCommunicationModeItemId());
         deviceInfoVO.setDeviceNo(device.getDeviceNo());

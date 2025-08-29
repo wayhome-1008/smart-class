@@ -118,15 +118,15 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
         }
         DeviceForm form = deviceConverter.toForm(entity);
         //查询分类
-        CategoryDeviceRelationship relationship = categoryDeviceRelationshipService.getByDeviceId(id);
-        if (ObjectUtils.isNotEmpty(relationship)) {
-            form.setCategoryId(relationship.getCategoryId());
-            //查询分类名称
-            Category category = categoryService.getById(relationship.getCategoryId());
-            if (ObjectUtils.isNotEmpty(category)) {
-                form.setCategoryName(category.getCategoryName());
-            }
+//        CategoryDeviceRelationship relationship = categoryDeviceRelationshipService.getByDeviceId(id);
+//        if (ObjectUtils.isNotEmpty(relationship)) {
+//            form.setCategoryId(relationship.getCategoryId());
+        //查询分类名称
+        Category category = categoryService.getById(form.getCategoryId());
+        if (ObjectUtils.isNotEmpty(category)) {
+            form.setCategoryName(category.getCategoryName());
         }
+//        }
         return form;
     }
 
