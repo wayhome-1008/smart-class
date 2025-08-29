@@ -101,7 +101,7 @@ public class FloorController {
                         case 1: // 8->灯光
                             checkDeviceLightStatus(device, floor);
                             break;
-                        case 4:
+                        case 4,8:
                             // 4->计量插座,7->开关,10->智能插座
                             checkDeviceSwitchStatus(device, floor);
                             break;

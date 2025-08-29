@@ -108,7 +108,7 @@ public class RoomController {
                         case 1: // 8->灯光
                             checkDeviceLightStatus(device, roomVO);
                             break;
-                        case 4:
+                        case 4,8:
 //                    case 10: // 4->计量插座,7->开关,10->智能插座
                             checkDeviceSwitchStatus(device, roomVO);
                             break;
