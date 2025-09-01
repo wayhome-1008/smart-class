@@ -55,6 +55,8 @@ public class DeviceVO implements Serializable {
     @Schema(description = "设备数据信息")
     private JsonNode deviceInfo;
 
+    @Schema(description = "icon")
+    private String icon;
     private Long deviceGatewayId;
 
     @Schema(description = "是否开启icon")

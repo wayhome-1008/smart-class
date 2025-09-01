@@ -57,7 +57,8 @@ public class DeviceForm implements Serializable {
     private String deviceNo;
     @Schema(description = "状态")
     private Integer status;
-
+    @Schema(description = "icon")
+    private String icon;
     @Schema(description = "备注信息")
     private String remark;
 

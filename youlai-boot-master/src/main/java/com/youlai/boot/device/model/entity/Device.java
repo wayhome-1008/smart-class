@@ -72,6 +72,7 @@ public class Device extends BaseEntity {
     @TableField(exist = false)
     private String communicationModeItemName;
 
+    private String icon;
     private String deviceNo;
     /**
      * 状态
