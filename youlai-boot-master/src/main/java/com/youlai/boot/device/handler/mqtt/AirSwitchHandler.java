@@ -125,6 +125,7 @@ public class AirSwitchHandler implements MsgHandler {
                         influxPlug
                 );
             }
+            device.setStatus(1);
             // 更新设备信息到缓存
             redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
         }
