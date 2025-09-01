@@ -97,6 +97,7 @@
         d.device_room,
         d.device_mac,
         d.status,
+        d.icon,
         d.remark,
         d.device_no,
         d.device_type_id AS deviceTypeId,
