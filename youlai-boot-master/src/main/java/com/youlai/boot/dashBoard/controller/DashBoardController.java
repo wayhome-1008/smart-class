@@ -2,6 +2,7 @@ package com.youlai.boot.dashBoard.controller;
 
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -368,6 +369,53 @@ public class DashBoardController {
         }
     }
 
+    @Operation(summary = "房间本周用电量")
+    @GetMapping("/room/total")
+    public Result<CategoryElectricityVO> getRoomElectricityWeeklyData(
+            @Parameter(description = "房间id")
+            @RequestParam Long roomId) {
+        try {
+            CategoryElectricityVO result = new CategoryElectricityVO();
+            // 获取房间内所有主设备
+            List<Device> roomDevices = deviceService.list(new QueryWrapper<Device>()
+                    .eq("device_room", roomId)
+                    .eq("is_master", 1));
+            List<Double> totalValues = null;
+            for (Device device : roomDevices) {
+                List<InfluxMqttPlugVO> deviceDataList = querySingleDevice(device.getDeviceCode(), 1L, "w", "1d", null, null);
+                if (!deviceDataList.isEmpty()) {
+                    CategoryElectricityVO.CategoryData data = new CategoryElectricityVO.CategoryData();
+                    InfluxMqttPlugVO deviceData = deviceDataList.get(0);
+
+                    if (totalValues == null) {
+                        // 第一个设备的数据作为初始值
+                        totalValues = new ArrayList<>(deviceData.getValue());
+                        result.setTimes(deviceData.getTime());
+                    } else {
+                        // 确保两个列表长度相同后再累加
+                        List<Double> deviceValues = deviceData.getValue();
+                        int minSize = Math.min(totalValues.size(), deviceValues.size());
+                        for (int i = 0; i < minSize; i++) {
+                            Double v1 = MathUtils.formatDouble(totalValues.get(i));
+                            Double v2 = MathUtils.formatDouble(deviceValues.get(i));
+                            // 处理null值
+                            if (v1 == null) v1 = 0.0;
+                            if (v2 == null) v2 = 0.0;
+                            totalValues.set(i, v1 + v2);
+                        }
+                    }
+                    data.setValues(totalValues);
+                }
+            }
+            return Result.success(result);
+        } catch (InfluxException e) {
+            log.error("查询用电数据失败: {}", e.getMessage());
+            return Result.failed("查询用电数据失败");
+        } catch (Exception e) {
+            log.error("处理用电数据时发生错误: ", e);
+            return Result.failed("系统错误");
+        }
+    }
 
     @Operation(summary = "查询传感器数据")
     @GetMapping("/sensor/data")

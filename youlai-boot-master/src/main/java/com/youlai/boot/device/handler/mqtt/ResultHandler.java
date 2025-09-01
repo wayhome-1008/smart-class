@@ -90,6 +90,7 @@ public class ResultHandler implements MsgHandler {
         InfluxMqttPlug influxPlug = new InfluxMqttPlug();
         //tag为设备编号
         influxPlug.setDeviceCode(device.getDeviceCode());
+        influxPlug.setCategoryId(device.getCategoryId().toString());
         influxPlug.setRoomId(device.getDeviceRoom().toString());
         influxPlug.setDeviceType(String.valueOf(device.getDeviceTypeId()));
         influxPlug.setSwitchState(power);

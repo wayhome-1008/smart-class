@@ -95,6 +95,7 @@ public class AirSwitchHandler implements MsgHandler {
             }
             //创建influx数据
             InfluxMqttPlug influxPlug = new InfluxMqttPlug();
+            influxPlug.setCategoryId(device.getCategoryId().toString());
             //tag为设备编号
             influxPlug.setDeviceCode(device.getDeviceCode());
             influxPlug.setSwitchState(metrics.get("switch1").asText());

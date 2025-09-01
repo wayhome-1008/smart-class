@@ -107,6 +107,7 @@ public class StateHandler implements MsgHandler {
                 metrics.put("switch1", power);
                 //创建influx数据
                 InfluxMqttPlug influxPlug = new InfluxMqttPlug();
+                influxPlug.setCategoryId(device.getCategoryId().toString());
                 //tag为设备编号
                 influxPlug.setDeviceCode(device.getDeviceCode());
                 influxPlug.setRoomId(device.getDeviceRoom().toString());
@@ -211,6 +212,7 @@ public class StateHandler implements MsgHandler {
                 JsonNode deviceInfo = device.getDeviceInfo();
                 //创建influx数据
                 InfluxSensor point = new InfluxSensor();
+
                 //tag为设备编号
                 point.setDeviceCode(device.getDeviceCode());
                 //tag为房间编号

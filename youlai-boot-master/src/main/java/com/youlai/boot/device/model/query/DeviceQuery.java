@@ -33,4 +33,6 @@ public class DeviceQuery extends BasePageQuery {
     private String deviceNo;
     @Schema(description = "是否显示网关")
     private Boolean showGateway;
+    @Schema(description = "状态")
+    private Integer status;
 }

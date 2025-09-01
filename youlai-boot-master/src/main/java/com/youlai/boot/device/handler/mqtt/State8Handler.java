@@ -86,6 +86,7 @@ public class State8Handler implements MsgHandler {
         }
         //创建influx数据
         InfluxMqttPlug influxPlug = new InfluxMqttPlug();
+        influxPlug.setCategoryId(device.getCategoryId().toString());
         //tag为设备编号
         influxPlug.setDeviceCode(device.getDeviceCode());
         influxPlug.setRoomId(device.getDeviceRoom().toString());
