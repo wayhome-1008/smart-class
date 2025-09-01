@@ -11,7 +11,6 @@ import com.youlai.boot.config.property.InfluxDBProperties;
 import com.youlai.boot.device.handler.service.MsgHandler;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.influx.InfluxMqttPlug;
-import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.device.service.impl.AlertRuleEngine;
 import com.youlai.boot.device.topic.HandlerType;
 import com.youlai.boot.scene.liteFlow.SceneExecuteService;
