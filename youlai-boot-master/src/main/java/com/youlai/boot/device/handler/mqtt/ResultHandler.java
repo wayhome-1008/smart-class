@@ -8,6 +8,7 @@ import com.influxdb.client.domain.WritePrecision;
 import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.config.property.InfluxDBProperties;
 import com.youlai.boot.device.handler.service.MsgHandler;
+import com.youlai.boot.device.handler.status.DeviceStatusManager;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.influx.InfluxMqttPlug;
 import com.youlai.boot.device.model.influx.InfluxSwitch;
@@ -45,6 +46,7 @@ public class ResultHandler implements MsgHandler {
     private final InfluxDBClient influxDBClient;
     private final SceneExecuteService sceneExecuteService;
     private final SceneService sceneService;
+    private final DeviceStatusManager deviceStatusManager;
 
     @Override
     public void process(String topic, String jsonMsg, MqttClient mqttClient) {
@@ -57,6 +59,8 @@ public class ResultHandler implements MsgHandler {
             if (ObjectUtils.isEmpty(device)) {
                 device = deviceService.getByCode(deviceCode);
             }
+            // 更新设备在线状态
+            deviceStatusManager.updateDeviceOnlineStatus(deviceCode, device, deviceService);
             //计量插座
             if (device.getDeviceTypeId() == 4) {
                 plug(jsonNode, device, deviceCode, mqttClient);

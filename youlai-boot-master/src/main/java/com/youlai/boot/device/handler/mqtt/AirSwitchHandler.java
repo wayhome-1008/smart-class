@@ -9,6 +9,7 @@ import com.influxdb.client.domain.WritePrecision;
 import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.config.property.InfluxDBProperties;
 import com.youlai.boot.device.handler.service.MsgHandler;
+import com.youlai.boot.device.handler.status.DeviceStatusManager;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.influx.InfluxMqttPlug;
 import com.youlai.boot.device.service.DeviceService;
@@ -27,10 +28,8 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
 import static com.youlai.boot.common.util.JsonUtils.mergeJson;
 import static com.youlai.boot.common.util.JsonUtils.stringToJsonNode;
@@ -52,8 +51,7 @@ public class AirSwitchHandler implements MsgHandler {
     private final SceneExecuteService sceneExecuteService;
     private final SceneService sceneService;
     private final AlertRuleEngine alertRuleEngine;
-    // 使用ConcurrentHashMap存储设备最后接收数据的时间
-    private static final ConcurrentHashMap<String, Long> deviceLastDataTimeMap = new ConcurrentHashMap<>();
+    private final DeviceStatusManager deviceStatusManager;
 
     @Override
     public void process(String topic, String jsonMsg, MqttClient mqttClient) throws MqttException, JsonProcessingException {
@@ -63,12 +61,8 @@ public class AirSwitchHandler implements MsgHandler {
         // 2. 获取设备信息（缓存优先）
         Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
         if (ObjectUtils.isNotEmpty(device)) {
-            // 更新设备最后接收数据的时间
-            updateDeviceLastDataTime(deviceCode);
-
-            // 检查并更新设备在线状态
-            checkAndUpdateDeviceStatus(device);
-
+            // 更新设备在线状态
+            deviceStatusManager.updateDeviceOnlineStatus(deviceCode, device, deviceService);
             ObjectNode metrics = JsonNodeFactory.instance.objectNode();
             int voltageA = jsonNode.get("voltageA").asInt();
             int current = jsonNode.get("current").asInt();
@@ -137,67 +131,10 @@ public class AirSwitchHandler implements MsgHandler {
     }
 
     /**
-     * 更新设备最后接收数据的时间
-     * @param deviceCode 设备编码
-     */
-    private void updateDeviceLastDataTime(String deviceCode) {
-        deviceLastDataTimeMap.put(deviceCode, Instant.now().toEpochMilli());
-    }
-
-    /**
-     * 检查并更新设备在线状态
-     * @param device 设备对象
-     */
-    private void checkAndUpdateDeviceStatus(Device device) {
-        Long lastDataTime = deviceLastDataTimeMap.get(device.getDeviceCode());
-
-        if (lastDataTime != null) {
-            long currentTime = Instant.now().toEpochMilli();
-            long timeDiff = currentTime - lastDataTime;
-
-            // 如果超过1分钟没有收到数据，将设备状态设置为离线
-            if (timeDiff > 60 * 1000) { // 60秒 = 1分钟
-                if (device.getStatus() != 0) { // 0表示离线，1表示在线
-                    device.setStatus(0);
-                    // 更新数据库中的设备状态
-                    deviceService.updateById(device);
-                    log.info("设备 {} 超时未接收数据，状态已设置为离线", device.getDeviceCode());
-                }
-            } else {
-                // 如果在1分钟内收到了数据，确保设备状态为在线
-                if (device.getStatus() != 1) {
-                    device.setStatus(1);
-                    // 更新数据库中的设备状态
-                    deviceService.updateById(device);
-                    log.info("设备 {} 接收到数据，状态已设置为在线", device.getDeviceCode());
-                }
-            }
-        } else {
-            // 如果没有记录最后数据时间，初始化为当前时间
-            updateDeviceLastDataTime(device.getDeviceCode());
-            if (device.getStatus() != 1) {
-                device.setStatus(1);
-                deviceService.updateById(device);
-                log.info("设备 {} 初始化在线状态", device.getDeviceCode());
-            }
-        }
-    }
-
-    /**
      * 定时清理过期的设备时间记录（每10分钟执行一次）
      */
     @Scheduled(fixedRate = 10 * 60 * 1000) // 10分钟
     public void cleanExpiredDeviceRecords() {
-        long currentTime = Instant.now().toEpochMilli();
-        long expireTime = 5 * 60 * 1000; // 5分钟过期
-
-        deviceLastDataTimeMap.entrySet().removeIf(entry -> {
-            long timeDiff = currentTime - entry.getValue();
-            if (timeDiff > expireTime) {
-                log.debug("清理过期设备记录: {}", entry.getKey());
-                return true;
-            }
-            return false;
-        });
+        deviceStatusManager.cleanExpiredDeviceRecords();
     }
 }

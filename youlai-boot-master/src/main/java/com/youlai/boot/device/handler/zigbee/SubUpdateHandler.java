@@ -12,6 +12,7 @@ import com.influxdb.client.domain.WritePrecision;
 import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.config.property.InfluxDBProperties;
 import com.youlai.boot.device.handler.service.MsgHandler;
+import com.youlai.boot.device.handler.status.DeviceStatusManager;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.SubUpdateSensorRsp;
 import com.youlai.boot.device.model.influx.InfluxHumanRadarSensor;
@@ -57,7 +58,7 @@ public class SubUpdateHandler implements MsgHandler {
     private final AlertRuleEngine alertRuleEngine;
     private final SceneExecuteService sceneExecuteService;
     private final SceneService sceneService;
-
+    private final DeviceStatusManager deviceStatusManager;
     /**
      * @description: zigBee设备统一分处理方法
      * @author: way
@@ -74,6 +75,7 @@ public class SubUpdateHandler implements MsgHandler {
             }
             device.setStatus(1);
             if (ObjectUtil.isNotEmpty(device)) {
+                deviceStatusManager.updateDeviceOnlineStatus(originalMac, device, deviceService);
                 //先校验是否是串口的
                 //串口透传设备
                 if (device.getCommunicationModeItemId() == 5) {
@@ -375,6 +377,7 @@ public class SubUpdateHandler implements MsgHandler {
                 );
             }
         }
+        deviceCache.setStatus(1);
         redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCache.getDeviceCode(), deviceCache);
     }
 
@@ -427,6 +430,7 @@ public class SubUpdateHandler implements MsgHandler {
                 point
         );
         log.info("人体传感器数据:{}", point);
+        deviceCache.setStatus(1);
         redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCache.getDeviceCode(), deviceCache);
         RspMqtt(topic, mqttClient, deviceCache.getDeviceCode(), sequence);
     }
@@ -509,6 +513,7 @@ public class SubUpdateHandler implements MsgHandler {
                     WritePrecision.MS,
                     point
             );
+            deviceCache.setStatus(1);
             redisTemplate.opsForHash().put(
                     RedisConstants.Device.DEVICE,
                     deviceCache.getDeviceCode(),
