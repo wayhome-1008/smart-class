@@ -243,130 +243,130 @@ public class DashBoardController {
         return Result.failed();
     }
 
-@Operation(summary = "房间当天用电信息(仅显示总用电、功率、电压)")
-@GetMapping("/room/electricity")
-public Result<RoomElectricity> getRoomElectricityData(
-        @Parameter(description = "房间id")
-        @RequestParam Long roomId) {
-    try {
-        // 查询当天该房间所有设备的数据
-        InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
-                .bucket(influxDBProperties.getBucket())
-                .today()
-                .measurement("device")
-                .fields("Total", "Voltage", "Current")
-                .pivot()
-                .fill()
-                .sort("_time", InfluxQueryBuilder.SORT_ASC);
-        builder.tag("roomId", String.valueOf(roomId));
+    @Operation(summary = "房间当天用电信息(仅显示总用电、功率、电压)")
+    @GetMapping("/room/electricity")
+    public Result<RoomElectricity> getRoomElectricityData(
+            @Parameter(description = "房间id")
+            @RequestParam Long roomId) {
+        try {
+            // 查询当天该房间所有设备的数据
+            InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
+                    .bucket(influxDBProperties.getBucket())
+                    .today()
+                    .measurement("device")
+                    .fields("Total", "Voltage", "Current")
+                    .pivot()
+                    .fill()
+                    .sort("_time", InfluxQueryBuilder.SORT_ASC);
+            builder.tag("roomId", String.valueOf(roomId));
 
-        String fluxQuery = builder.build();
-        log.info("房间当天用电数据InfluxDB查询语句: {}", fluxQuery);
+            String fluxQuery = builder.build();
+            log.info("房间当天用电数据InfluxDB查询语句: {}", fluxQuery);
 
-        List<InfluxMqttPlug> allDeviceData = influxDBClient.getQueryApi()
-                .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
+            List<InfluxMqttPlug> allDeviceData = influxDBClient.getQueryApi()
+                    .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
 
-        if (allDeviceData.isEmpty()) {
-            return Result.success();
-        }
+            if (allDeviceData.isEmpty()) {
+                return Result.success();
+            }
 
-        // 按设备分组数据
-        Map<String, List<InfluxMqttPlug>> deviceDataMap = allDeviceData.stream()
-                .filter(data -> data.getDeviceCode() != null)
-                .collect(Collectors.groupingBy(InfluxMqttPlug::getDeviceCode));
+            // 按设备分组数据
+            Map<String, List<InfluxMqttPlug>> deviceDataMap = allDeviceData.stream()
+                    .filter(data -> data.getDeviceCode() != null)
+                    .collect(Collectors.groupingBy(InfluxMqttPlug::getDeviceCode));
 
-        // 计算每个设备的用电量差值
-        double roomTotalElectricity = 0.0;
-        Double avgVoltage = null;
-        Double avgCurrent = null;
-        int voltageCurrentCount = 0;
+            // 计算每个设备的用电量差值
+            double roomTotalElectricity = 0.0;
+            Double avgVoltage = null;
+            Double avgCurrent = null;
+            int voltageCurrentCount = 0;
 
-        for (Map.Entry<String, List<InfluxMqttPlug>> entry : deviceDataMap.entrySet()) {
-            List<InfluxMqttPlug> deviceDataList = entry.getValue();
+            for (Map.Entry<String, List<InfluxMqttPlug>> entry : deviceDataMap.entrySet()) {
+                List<InfluxMqttPlug> deviceDataList = entry.getValue();
 
-            // 按时间排序
-            deviceDataList.sort(Comparator.comparing(InfluxMqttPlug::getTime));
+                // 按时间排序
+                deviceDataList.sort(Comparator.comparing(InfluxMqttPlug::getTime));
 
-            if (deviceDataList.size() >= 2) {
-                // 获取最早和最晚的数据点
-                InfluxMqttPlug earliestData = deviceDataList.get(0);
-                InfluxMqttPlug latestData = deviceDataList.get(deviceDataList.size() - 1);
+                if (deviceDataList.size() >= 2) {
+                    // 获取最早和最晚的数据点
+                    InfluxMqttPlug earliestData = deviceDataList.get(0);
+                    InfluxMqttPlug latestData = deviceDataList.get(deviceDataList.size() - 1);
 
-                // 计算单个设备的用电量差值
-                if (earliestData.getTotal() != null && latestData.getTotal() != null) {
-                    double deviceConsumption = latestData.getTotal() - earliestData.getTotal();
-                    roomTotalElectricity += Math.max(0, formatDouble(deviceConsumption));
-                }
-
-                // 累加电压和电流用于计算平均值
-                if (latestData.getVoltage() != null) {
-                    if (avgVoltage == null) {
-                        avgVoltage = 0.0;
+                    // 计算单个设备的用电量差值
+                    if (earliestData.getTotal() != null && latestData.getTotal() != null) {
+                        double deviceConsumption = latestData.getTotal() - earliestData.getTotal();
+                        roomTotalElectricity += Math.max(0, formatDouble(deviceConsumption));
                     }
-                    avgVoltage += latestData.getVoltage();
-                }
 
-                if (latestData.getCurrent() != null) {
-                    if (avgCurrent == null) {
-                        avgCurrent = 0.0;
+                    // 累加电压和电流用于计算平均值
+                    if (latestData.getVoltage() != null) {
+                        if (avgVoltage == null) {
+                            avgVoltage = 0.0;
+                        }
+                        avgVoltage += latestData.getVoltage();
                     }
-                    avgCurrent += latestData.getCurrent();
-                }
 
-                if (latestData.getVoltage() != null || latestData.getCurrent() != null) {
-                    voltageCurrentCount++;
-                }
-            } else if (deviceDataList.size() == 1) {
-                // 如果只有一个数据点，使用该点的数据（向后兼容）
-                InfluxMqttPlug data = deviceDataList.get(0);
-                if (data.getTotal() != null) {
-                    roomTotalElectricity += formatDouble(data.getTotal());
-                }
-
-                // 累加电压和电流用于计算平均值
-                if (data.getVoltage() != null) {
-                    if (avgVoltage == null) {
-                        avgVoltage = 0.0;
+                    if (latestData.getCurrent() != null) {
+                        if (avgCurrent == null) {
+                            avgCurrent = 0.0;
+                        }
+                        avgCurrent += latestData.getCurrent();
                     }
-                    avgVoltage += data.getVoltage();
-                }
 
-                if (data.getCurrent() != null) {
-                    if (avgCurrent == null) {
-                        avgCurrent = 0.0;
+                    if (latestData.getVoltage() != null || latestData.getCurrent() != null) {
+                        voltageCurrentCount++;
                     }
-                    avgCurrent += data.getCurrent();
-                }
+                } else if (deviceDataList.size() == 1) {
+                    // 如果只有一个数据点，使用该点的数据（向后兼容）
+                    InfluxMqttPlug data = deviceDataList.get(0);
+                    if (data.getTotal() != null) {
+                        roomTotalElectricity += formatDouble(data.getTotal());
+                    }
 
-                if (data.getVoltage() != null || data.getCurrent() != null) {
-                    voltageCurrentCount++;
+                    // 累加电压和电流用于计算平均值
+                    if (data.getVoltage() != null) {
+                        if (avgVoltage == null) {
+                            avgVoltage = 0.0;
+                        }
+                        avgVoltage += data.getVoltage();
+                    }
+
+                    if (data.getCurrent() != null) {
+                        if (avgCurrent == null) {
+                            avgCurrent = 0.0;
+                        }
+                        avgCurrent += data.getCurrent();
+                    }
+
+                    if (data.getVoltage() != null || data.getCurrent() != null) {
+                        voltageCurrentCount++;
+                    }
                 }
             }
-        }
 
-        RoomElectricity result = new RoomElectricity();
-        result.setTotal(formatDouble(roomTotalElectricity));
+            RoomElectricity result = new RoomElectricity();
+            result.setTotal(formatDouble(roomTotalElectricity));
 
-        // 计算平均电压和电流
-        if (voltageCurrentCount > 0) {
-            if (avgVoltage != null) {
-                result.setVoltage(formatDouble(avgVoltage / voltageCurrentCount));
+            // 计算平均电压和电流
+            if (voltageCurrentCount > 0) {
+                if (avgVoltage != null) {
+                    result.setVoltage(formatDouble(avgVoltage / voltageCurrentCount));
+                }
+                if (avgCurrent != null) {
+                    result.setCurrent(formatDouble(avgCurrent / voltageCurrentCount));
+                }
             }
-            if (avgCurrent != null) {
-                result.setCurrent(formatDouble(avgCurrent / voltageCurrentCount));
-            }
+
+            return Result.success(result);
+
+        } catch (InfluxException e) {
+            log.error("查询用电数据失败: {}", e.getMessage());
+            return Result.failed("查询用电数据失败");
+        } catch (Exception e) {
+            log.error("处理用电数据时发生错误: ", e);
+            return Result.failed("系统错误");
         }
-
-        return Result.success(result);
-
-    } catch (InfluxException e) {
-        log.error("查询用电数据失败: {}", e.getMessage());
-        return Result.failed("查询用电数据失败");
-    } catch (Exception e) {
-        log.error("处理用电数据时发生错误: ", e);
-        return Result.failed("系统错误");
     }
-}
 
 
     @Operation(summary = "查询传感器数据")
@@ -1173,6 +1173,7 @@ public Result<RoomElectricity> getRoomElectricityData(
             return null;
         }
     }
+
     /**
      * 安全获取数据点的Total值
      * @param dataList 数据列表
