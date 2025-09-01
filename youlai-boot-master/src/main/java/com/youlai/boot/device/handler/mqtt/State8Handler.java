@@ -53,6 +53,7 @@ public class State8Handler implements MsgHandler {
         if (device == null) {
             device = deviceService.getByCode(deviceCode);
         }
+        log.info("===================设备{},进入了STATUS8===================", device.getDeviceName());
         //计量插座
         if (device.getDeviceTypeId() == 4) {
             handlerPlug(jsonMsg, device);
