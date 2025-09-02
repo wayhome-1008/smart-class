@@ -55,7 +55,7 @@
             <if test="queryParams.id != null and queryParams.id != ''">
                 AND d.id = #{queryParams.id}
             </if>
-            <if test="queryParams.status != null and queryParams.status != ''">
+            <if test="queryParams.status != null">
                 AND d.status = #{queryParams.status}
             </if>
             <if test="queryParams.deviceName != null and queryParams.deviceName != ''">
