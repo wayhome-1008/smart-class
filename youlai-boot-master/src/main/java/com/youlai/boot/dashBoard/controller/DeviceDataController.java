@@ -1,6 +1,10 @@
 package com.youlai.boot.dashBoard.controller;
 
-import cn.idev.excel.EasyExcel;
+import cn.idev.excel.FastExcel;
+import cn.idev.excel.write.metadata.style.WriteCellStyle;
+import cn.idev.excel.write.metadata.style.WriteFont;
+import cn.idev.excel.write.style.HorizontalCellStyleStrategy;
+import cn.idev.excel.write.style.column.SimpleColumnWidthStyleStrategy;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -16,6 +20,7 @@ import com.youlai.boot.common.result.Result;
 import com.youlai.boot.common.util.InfluxQueryBuilder;
 import com.youlai.boot.common.util.MathUtils;
 import com.youlai.boot.config.property.InfluxDBProperties;
+import com.youlai.boot.dashBoard.excel.DepartmentElectricitySheetWriteHandler;
 import com.youlai.boot.dashBoard.model.vo.*;
 import com.youlai.boot.dashBoard.service.ElectricityCalculationService;
 import com.youlai.boot.device.model.entity.Device;
@@ -37,6 +42,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.IndexedColors;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -55,6 +62,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.youlai.boot.common.util.MathUtils.formatDouble;
+import static com.youlai.boot.dashBoard.excel.DepartmentElectricitySheetWriteHandler.head;
 
 /**
  * @Author: way
@@ -368,9 +376,9 @@ public class DeviceDataController {
                                       @Parameter(description = "自定义结束时间(yyyy-MM-dd格式)")
                                       @RequestParam(required = false) String endTime,
                                       HttpServletResponse response) throws IOException {
-        String fileName = "楼宇电量汇总.xlsx";
+        String firstRow = "楼宇电量汇总.xlsx";
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        response.setHeader("Content-Disposition", "attachment; filename=" + URLEncoder.encode(fileName, StandardCharsets.UTF_8));
+        response.setHeader("Content-Disposition", "attachment; filename=" + URLEncoder.encode(firstRow, StandardCharsets.UTF_8));
         PageResult<DepartmentCategoryElectricityInfoVO> departmentElectricityVOPageResult = getDepartmentCategoryElectricityInfoVOPageResult(pageNum, pageSize, range, startTime, endTime, null, roomIds);
         List<DepartmentCategoryElectricityInfoVO> list = departmentElectricityVOPageResult.getData().getList();
         List<RoomsElectricityVO> roomsElectricityVOList = new ArrayList<>();
@@ -382,8 +390,171 @@ public class DeviceDataController {
             roomsElectricityVO.setCategoryName(departmentCategoryElectricityInfoVO.getCategoryName());
             roomsElectricityVOList.add(roomsElectricityVO);
         }
-        EasyExcel.write(response.getOutputStream(), RoomsElectricityVO.class).sheet("楼宇电量汇总")
-                .doWrite(roomsElectricityVOList);
+// 获取所有唯一的分类名称
+        List<String> categoryNames = list.stream()
+                .map(DepartmentCategoryElectricityInfoVO::getCategoryName)
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+
+        // 获取所有唯一的分类名称并转换为字符串数组
+        String[] categoryNamesArr = list.stream()
+                .map(DepartmentCategoryElectricityInfoVO::getCategoryName)
+                .distinct()
+                .sorted()
+                .toArray(String[]::new);
+        // 添加时间行
+        String timeRow = "时间：" + startTime + " 至 " + endTime;
+        List<String> headerList = new ArrayList<>();
+        headerList.add("序号");
+        headerList.add("房间");
+        headerList.add("用电量（kWh）");
+        headerList.addAll(Arrays.asList(categoryNamesArr));
+        String[] topic = headerList.toArray(new String[0]);
+        // 添加实际数据
+        List<List<Object>> dataRows = convertRoomElectricityData(list, categoryNames);
+        // 标题样式
+        WriteCellStyle headWriteCellStyle = DepartmentElectricitySheetWriteHandler.getHeadStyle();
+        //内容
+        // 内容的策略
+        WriteCellStyle contentWriteCellStyle = new WriteCellStyle();
+        // 这里需要指定 FillPatternType 为FillPatternType.SOLID_FOREGROUND 不然无法显示背景颜色.头默认了 FillPatternType所以可以不指定
+        contentWriteCellStyle.setFillPatternType(FillPatternType.SOLID_FOREGROUND);
+        // 背景绿色
+        contentWriteCellStyle.setFillForegroundColor(IndexedColors.BLUE_GREY.getIndex());
+        WriteFont contentWriteFont = new WriteFont();
+        // 字体大小
+        contentWriteFont.setFontHeightInPoints((short) 12);
+        contentWriteCellStyle.setWriteFont(contentWriteFont);
+        contentWriteCellStyle.setWrapped(true);
+        HorizontalCellStyleStrategy horizontalCellStyleStrategy =
+                new HorizontalCellStyleStrategy(headWriteCellStyle, contentWriteCellStyle);
+
+        FastExcel.write(response.getOutputStream())
+                // 第一行大标题样式设置
+                .registerWriteHandler(new DepartmentElectricitySheetWriteHandler(firstRow, topic))
+                //设置默认样式及写入头信息开始的行数
+                .useDefaultStyle(true).relativeHeadRowIndex(0)
+                // 表头、内容样式设置
+                .registerWriteHandler(horizontalCellStyleStrategy)
+                // 统一列宽 20px
+                .registerWriteHandler(new SimpleColumnWidthStyleStrategy(20))
+                .sheet(firstRow)
+                // 这里放入动态头
+                .head(head(firstRow, timeRow, topic))
+                // 当然这里数据也可以用 List<List<String>> 去传入
+                .doWrite(dataRows);
+    }
+
+    private List<List<Object>> convertRoomElectricityData(List<DepartmentCategoryElectricityInfoVO> list, List<String> categoryNames) {
+        // 按房间分组数据
+        Map<Long, Map<String, Double>> roomDataMap = new HashMap<>();
+        Map<Long, String> roomNameMap = new HashMap<>();
+        Map<Long, Double> roomTotalMap = new HashMap<>();
+        List<Long> roomIds = new ArrayList<>(); // 保持房间顺序
+
+        for (DepartmentCategoryElectricityInfoVO item : list) {
+            Long roomId = item.getRoomId();
+            String categoryName = item.getCategoryName();
+            Double electricity = item.getTotalElectricity();
+
+            // 初始化部门数据
+            if (!roomDataMap.containsKey(roomId)) {
+                roomDataMap.put(roomId, new HashMap<>());
+                roomNameMap.put(roomId, item.getRoomName());
+                roomTotalMap.put(roomId, 0.0);
+                roomIds.add(roomId);
+            }
+
+            // 累加分类用电量
+            Map<String, Double> categoryMap = roomDataMap.get(roomId);
+            categoryMap.put(categoryName, categoryMap.getOrDefault(categoryName, 0.0) + electricity);
+
+            // 累加部门总用电量
+            roomTotalMap.put(roomId, roomTotalMap.get(roomId) + electricity);
+        }
+
+        // 转换为列表数据
+        List<List<Object>> result = new ArrayList<>();
+        int index = 1; // 序号从1开始
+
+        for (Long roomId : roomIds) {
+            Map<String, Double> categoryData = roomDataMap.get(roomId);
+
+            List<Object> rowData = new ArrayList<>();
+            rowData.add(index++); // 序号
+            rowData.add(roomNameMap.get(roomId)); // 部门名称
+            rowData.add(formatDouble(roomTotalMap.get(roomId))); // 部门总用电量
+
+            // 添加各分类用电量
+            for (String categoryName : categoryNames) {
+                Double value = categoryData.getOrDefault(categoryName, 0.0);
+                if (value == 0.0) {
+                    rowData.add("-"); // 无数据时显示"-"
+                } else {
+                    rowData.add(formatDouble(value));
+                }
+            }
+
+            result.add(new ArrayList<>(rowData)); // 确保每一行都是可变的
+        }
+
+        // 添加合计行
+        if (!result.isEmpty()) {
+            List<Object> totalRow = new ArrayList<>();
+            totalRow.add(""); // 序号列（空）
+            totalRow.add("合计"); // 部门列显示"合计"
+
+            // 计算部门总用电量合计
+            double roomTotal = result.stream()
+                    .mapToDouble(row -> {
+                        Object value = row.get(2); // 第3列是部门总用电量
+                        if (value instanceof Number) {
+                            return ((Number) value).doubleValue();
+                        } else if (value instanceof String) {
+                            try {
+                                return Double.parseDouble((String) value);
+                            } catch (NumberFormatException e) {
+                                return 0.0;
+                            }
+                        }
+                        return 0.0;
+                    })
+                    .sum();
+            totalRow.add(formatDouble(roomTotal)); // 部门总用电量合计
+
+            // 计算各分类的合计值
+            for (int i = 0; i < categoryNames.size(); i++) {
+                double categoryTotal = 0.0;
+                for (List<Object> row : result) {
+                    Object value = row.get(3 + i); // 从第4列开始是分类数据
+                    if (value instanceof Number) {
+                        categoryTotal += ((Number) value).doubleValue();
+                    } else if (value instanceof String && !"-".equals(value)) {
+                        try {
+                            categoryTotal += Double.parseDouble((String) value);
+                        } catch (NumberFormatException e) {
+                            // 忽略无法解析的值
+                        }
+                    }
+                }
+                if (categoryTotal == 0.0) {
+                    totalRow.add("-"); // 无数据时显示"-"
+                } else {
+                    totalRow.add(formatDouble(categoryTotal));
+                }
+            }
+
+            result.add(new ArrayList<>(totalRow)); // 确保合计行也是可变的
+        }
+
+        // 创建完全可变的副本
+        List<List<Object>> mutableResult = new ArrayList<>();
+        for (List<Object> row : result) {
+            mutableResult.add(new ArrayList<>(row));
+        }
+
+        return mutableResult;
     }
 
     @Operation(summary = "5.部门电量汇总导出")
@@ -407,25 +578,185 @@ public class DeviceDataController {
                                             @RequestParam(required = false) String deptIds,
 
                                             @Parameter(description = "房间IDs，多个用逗号分隔")
-                                            @RequestParam(required = false) String roomIds
-            , HttpServletResponse response) throws IOException {
-        String fileName = "部门电量汇总.xlsx";
+                                            @RequestParam(required = false) String roomIds,
+                                            HttpServletResponse response) throws IOException {
+        String firstRow = "部门电量汇总";
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        response.setHeader("Content-Disposition", "attachment; filename=" + URLEncoder.encode(fileName, StandardCharsets.UTF_8));
-        PageResult<DepartmentCategoryElectricityInfoVO> departmentElectricityVOPageResult = getDepartmentCategoryElectricityInfoVOPageResult(pageNum, pageSize, range, startTime, endTime, deptIds, roomIds);
+        response.setHeader("Content-disposition", "attachment;filename="+ URLEncoder.encode(firstRow, StandardCharsets.UTF_8));
+        PageResult<DepartmentCategoryElectricityInfoVO> departmentElectricityVOPageResult =
+                getDepartmentCategoryElectricityInfoVOPageResult(pageNum, pageSize, range, startTime, endTime, deptIds, roomIds);
+
         List<DepartmentCategoryElectricityInfoVO> list = departmentElectricityVOPageResult.getData().getList();
-        List<ExportDepartment> exportDepartmentList = new ArrayList<>();
-        for (DepartmentCategoryElectricityInfoVO departmentCategoryElectricityInfoVO : list) {
-            ExportDepartment exportDepartment = new ExportDepartment();
-            exportDepartment.setDepartmentId(departmentCategoryElectricityInfoVO.getDepartmentId());
-            exportDepartment.setDepartmentName(departmentCategoryElectricityInfoVO.getDepartmentName());
-            exportDepartment.setTotalElectricity(departmentCategoryElectricityInfoVO.getDepartmentTotalElectricity());
-            exportDepartment.setCategoryName(departmentCategoryElectricityInfoVO.getCategoryName());
-            exportDepartmentList.add(exportDepartment);
-        }
-        EasyExcel.write(response.getOutputStream(), ExportDepartment.class).sheet("部门电量汇总")
-                .doWrite(exportDepartmentList);
+        // 获取所有唯一的分类名称
+        List<String> categoryNames = list.stream()
+                .map(DepartmentCategoryElectricityInfoVO::getCategoryName)
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
+
+        // 获取所有唯一的分类名称并转换为字符串数组
+        String[] categoryNamesArr = list.stream()
+                .map(DepartmentCategoryElectricityInfoVO::getCategoryName)
+                .distinct()
+                .sorted()
+                .toArray(String[]::new);
+        // 添加时间行
+        String timeRow = "时间：" + startTime + " 至 " + endTime;
+        List<String> headerList = new ArrayList<>();
+        headerList.add("序号");
+        headerList.add("部门");
+        headerList.add("用电量（kWh）");
+        headerList.addAll(Arrays.asList(categoryNamesArr));
+        String[] topic = headerList.toArray(new String[0]);
+        // 添加实际数据
+        List<List<Object>> dataRows = convertDepartmentElectricityData(list, categoryNames);
+        // 标题样式
+        WriteCellStyle headWriteCellStyle = DepartmentElectricitySheetWriteHandler.getHeadStyle();
+        //内容
+        // 内容的策略
+        WriteCellStyle contentWriteCellStyle = new WriteCellStyle();
+        // 这里需要指定 FillPatternType 为FillPatternType.SOLID_FOREGROUND 不然无法显示背景颜色.头默认了 FillPatternType所以可以不指定
+        contentWriteCellStyle.setFillPatternType(FillPatternType.SOLID_FOREGROUND);
+        // 背景绿色
+        contentWriteCellStyle.setFillForegroundColor(IndexedColors.BLUE_GREY.getIndex());
+        WriteFont contentWriteFont = new WriteFont();
+        // 字体大小
+        contentWriteFont.setFontHeightInPoints((short) 12);
+        contentWriteCellStyle.setWriteFont(contentWriteFont);
+        contentWriteCellStyle.setWrapped(true);
+        HorizontalCellStyleStrategy horizontalCellStyleStrategy =
+                new HorizontalCellStyleStrategy(headWriteCellStyle, contentWriteCellStyle);
+
+        FastExcel.write(response.getOutputStream())
+                // 第一行大标题样式设置
+                .registerWriteHandler(new DepartmentElectricitySheetWriteHandler(firstRow, topic))
+                //设置默认样式及写入头信息开始的行数
+                .useDefaultStyle(true).relativeHeadRowIndex(0)
+                // 表头、内容样式设置
+                .registerWriteHandler(horizontalCellStyleStrategy)
+                // 统一列宽 20px
+                .registerWriteHandler(new SimpleColumnWidthStyleStrategy(20))
+                .sheet(firstRow)
+                // 这里放入动态头
+                .head(head(firstRow, timeRow, topic))
+                // 当然这里数据也可以用 List<List<String>> 去传入
+                .doWrite(dataRows);
     }
+
+    /**
+     * 转换部门电量数据
+     */
+    private List<List<Object>> convertDepartmentElectricityData(List<DepartmentCategoryElectricityInfoVO> list, List<String> categoryNames) {
+        // 按部门分组数据
+        Map<Long, Map<String, Double>> departmentDataMap = new HashMap<>();
+        Map<Long, String> departmentNameMap = new HashMap<>();
+        Map<Long, Double> departmentTotalMap = new HashMap<>();
+        List<Long> departmentIds = new ArrayList<>(); // 保持部门顺序
+
+        for (DepartmentCategoryElectricityInfoVO item : list) {
+            Long deptId = item.getDepartmentId();
+            String categoryName = item.getCategoryName();
+            Double electricity = item.getTotalElectricity();
+
+            // 初始化部门数据
+            if (!departmentDataMap.containsKey(deptId)) {
+                departmentDataMap.put(deptId, new HashMap<>());
+                departmentNameMap.put(deptId, item.getDepartmentName());
+                departmentTotalMap.put(deptId, 0.0);
+                departmentIds.add(deptId);
+            }
+
+            // 累加分类用电量
+            Map<String, Double> categoryMap = departmentDataMap.get(deptId);
+            categoryMap.put(categoryName, categoryMap.getOrDefault(categoryName, 0.0) + electricity);
+
+            // 累加部门总用电量
+            departmentTotalMap.put(deptId, departmentTotalMap.get(deptId) + electricity);
+        }
+
+        // 转换为列表数据
+        List<List<Object>> result = new ArrayList<>();
+        int index = 1; // 序号从1开始
+
+        for (Long deptId : departmentIds) {
+            Map<String, Double> categoryData = departmentDataMap.get(deptId);
+
+            List<Object> rowData = new ArrayList<>();
+            rowData.add(index++); // 序号
+            rowData.add(departmentNameMap.get(deptId)); // 部门名称
+            rowData.add(formatDouble(departmentTotalMap.get(deptId))); // 部门总用电量
+
+            // 添加各分类用电量
+            for (String categoryName : categoryNames) {
+                Double value = categoryData.getOrDefault(categoryName, 0.0);
+                if (value == 0.0) {
+                    rowData.add("-"); // 无数据时显示"-"
+                } else {
+                    rowData.add(formatDouble(value));
+                }
+            }
+
+            result.add(new ArrayList<>(rowData)); // 确保每一行都是可变的
+        }
+
+        // 添加合计行
+        if (!result.isEmpty()) {
+            List<Object> totalRow = new ArrayList<>();
+            totalRow.add(""); // 序号列（空）
+            totalRow.add("合计"); // 部门列显示"合计"
+
+            // 计算部门总用电量合计
+            double departmentsTotal = result.stream()
+                    .mapToDouble(row -> {
+                        Object value = row.get(2); // 第3列是部门总用电量
+                        if (value instanceof Number) {
+                            return ((Number) value).doubleValue();
+                        } else if (value instanceof String) {
+                            try {
+                                return Double.parseDouble((String) value);
+                            } catch (NumberFormatException e) {
+                                return 0.0;
+                            }
+                        }
+                        return 0.0;
+                    })
+                    .sum();
+            totalRow.add(formatDouble(departmentsTotal)); // 部门总用电量合计
+
+            // 计算各分类的合计值
+            for (int i = 0; i < categoryNames.size(); i++) {
+                double categoryTotal = 0.0;
+                for (List<Object> row : result) {
+                    Object value = row.get(3 + i); // 从第4列开始是分类数据
+                    if (value instanceof Number) {
+                        categoryTotal += ((Number) value).doubleValue();
+                    } else if (value instanceof String && !"-".equals(value)) {
+                        try {
+                            categoryTotal += Double.parseDouble((String) value);
+                        } catch (NumberFormatException e) {
+                            // 忽略无法解析的值
+                        }
+                    }
+                }
+                if (categoryTotal == 0.0) {
+                    totalRow.add("-"); // 无数据时显示"-"
+                } else {
+                    totalRow.add(formatDouble(categoryTotal));
+                }
+            }
+
+            result.add(new ArrayList<>(totalRow)); // 确保合计行也是可变的
+        }
+
+        // 创建完全可变的副本
+        List<List<Object>> mutableResult = new ArrayList<>();
+        for (List<Object> row : result) {
+            mutableResult.add(new ArrayList<>(row));
+        }
+
+        return mutableResult;
+    }
+
 
     /**
      * 查询设备的最早开启时间和最晚关闭时间
@@ -725,60 +1056,47 @@ public class DeviceDataController {
 
         // 用于计算房间总用电量
         Map<String, Double> roomTotalElectricityMap = new HashMap<>();
-
         for (Category category : validCategories) {
-            List<CategoryDeviceRelationship> relationships =
-                    categoryDeviceRelationshipService.listByCategoryId(category.getId());
+            List<Device> masterDevices = deviceService.listByCategoryId(category);
+            for (Device masterDevice : masterDevices) {
+                // 检查设备是否属于查询范围内的房间
+                if (roomMap.containsKey(masterDevice.getDeviceRoom())) {
+                    DeviceElectricityDataVO deviceData = getDeviceElectricityByRange(
+                            masterDevice.getDeviceCode(), range, startTime, endTime, roomIds);
 
-            if (!ObjectUtils.isEmpty(relationships)) {
-                List<Long> deviceIds = relationships.stream()
-                        .map(CategoryDeviceRelationship::getDeviceId)
-                        .collect(Collectors.toList());
+                    if (deviceData != null && deviceData.getTotalElectricity() != null) {
+                        // 获取设备所在房间
+                        Room room = roomMap.get(masterDevice.getDeviceRoom());
+                        if (room != null) {
+                            Long departmentId = room.getDepartmentId();
+                            Dept department = deptService.getById(departmentId);
+                            String departmentName = department != null ? department.getName() : "未知部门";
 
-                List<Device> masterDevices = deviceService.listByIds(deviceIds).stream()
-                        .filter(device -> device.getIsMaster() == 1)
-                        .toList();
+                            // 构造分组键：部门ID_分类ID_房间ID
+                            String groupKey = departmentId + "_" + category.getId() + "_" + room.getId();
 
-                for (Device masterDevice : masterDevices) {
-                    // 检查设备是否属于查询范围内的房间
-                    if (roomMap.containsKey(masterDevice.getDeviceRoom())) {
-                        DeviceElectricityDataVO deviceData = getDeviceElectricityByRange(
-                                masterDevice.getDeviceCode(), range, startTime, endTime, roomIds);
+                            // 构造房间分组键：房间ID_分类ID
+                            String roomGroupKey = room.getId() + "_" + category.getId();
 
-                        if (deviceData != null && deviceData.getTotalElectricity() != null) {
-                            // 获取设备所在房间
-                            Room room = roomMap.get(masterDevice.getDeviceRoom());
-                            if (room != null) {
-                                Long departmentId = room.getDepartmentId();
-                                Dept department = deptService.getById(departmentId);
-                                String departmentName = department != null ? department.getName() : "未知部门";
-
-                                // 构造分组键：部门ID_分类ID_房间ID
-                                String groupKey = departmentId + "_" + category.getId() + "_" + room.getId();
-
-                                // 构造房间分组键：房间ID_分类ID
-                                String roomGroupKey = room.getId() + "_" + category.getId();
-
-                                DepartmentCategoryElectricityInfoVO vo = departmentCategoryMap.get(groupKey);
-                                if (vo == null) {
-                                    vo = new DepartmentCategoryElectricityInfoVO();
-                                    vo.setDepartmentId(departmentId);
-                                    vo.setDepartmentName(departmentName);
-                                    vo.setCategoryId(category.getId());
-                                    vo.setCategoryName(category.getCategoryName());
-                                    vo.setTotalElectricity(0.0);
-                                    vo.setDeviceCount(0);
-                                    vo.setRoomName(room.getClassroomCode() != null ? room.getClassroomCode() : "未知房间");
-                                    vo.setRoomId(room.getId());
-                                    departmentCategoryMap.put(groupKey, vo);
-                                }
-                                // 累加用电量和设备数量
-                                vo.setTotalElectricity(MathUtils.formatDouble(vo.getTotalElectricity() + deviceData.getTotalElectricity()));
-                                vo.setDeviceCount(vo.getDeviceCount() + 1);
-                                // 累加房间总用电量
-                                roomTotalElectricityMap.put(roomGroupKey,
-                                        roomTotalElectricityMap.getOrDefault(roomGroupKey, 0.0) + deviceData.getTotalElectricity());
+                            DepartmentCategoryElectricityInfoVO vo = departmentCategoryMap.get(groupKey);
+                            if (vo == null) {
+                                vo = new DepartmentCategoryElectricityInfoVO();
+                                vo.setDepartmentId(departmentId);
+                                vo.setDepartmentName(departmentName);
+                                vo.setCategoryId(category.getId());
+                                vo.setCategoryName(category.getCategoryName());
+                                vo.setTotalElectricity(0.0);
+                                vo.setDeviceCount(0);
+                                vo.setRoomName(room.getClassroomCode() != null ? room.getClassroomCode() : "未知房间");
+                                vo.setRoomId(room.getId());
+                                departmentCategoryMap.put(groupKey, vo);
                             }
+                            // 累加用电量和设备数量
+                            vo.setTotalElectricity(MathUtils.formatDouble(vo.getTotalElectricity() + deviceData.getTotalElectricity()));
+                            vo.setDeviceCount(vo.getDeviceCount() + 1);
+                            // 累加房间总用电量
+                            roomTotalElectricityMap.put(roomGroupKey,
+                                    roomTotalElectricityMap.getOrDefault(roomGroupKey, 0.0) + deviceData.getTotalElectricity());
                         }
                     }
                 }
@@ -889,7 +1207,7 @@ public class DeviceDataController {
 //            exportRoomRank.setCategoryName(electricityVO.getCategoryName());
             exportRoomRanksList.add(exportRoomRank);
         }
-        EasyExcel.write(response.getOutputStream(), ExportRoomRank.class).sheet("楼宇排名")
+        FastExcel.write(response.getOutputStream(), ExportRoomRank.class).sheet("楼宇排名")
                 .doWrite(exportRoomRanksList);
 
     }
@@ -983,7 +1301,7 @@ public class DeviceDataController {
 //            exportDepartmentRank.setCategoryName(departmentElectricityVO.getCategoryName());
             exportDepartments.add(exportDepartmentRank);
         }
-        EasyExcel.write(response.getOutputStream(), ExportDepartmentRank.class).sheet("部门排名")
+        FastExcel.write(response.getOutputStream(), ExportDepartmentRank.class).sheet("部门排名")
                 .doWrite(exportDepartments);
     }
 

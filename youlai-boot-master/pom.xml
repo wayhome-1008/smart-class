@@ -45,6 +45,7 @@
         <caffeine.version>2.9.3</caffeine.version>
         <liteflow.version>2.13.2</liteflow.version>
         <commons.text.version>1.10.0</commons.text.version>
+<!--        <easyexcel.version>3.3.4</easyexcel.version>-->
     </properties>
 
     <dependencies>
@@ -170,6 +171,12 @@
             <artifactId>fastexcel</artifactId>
             <version>${fastexcel.version}</version>
         </dependency>
+
+<!--        <dependency>-->
+<!--            <groupId>com.alibaba</groupId>-->
+<!--            <artifactId>easyexcel</artifactId>-->
+<!--            <version>${easyexcel.version}</version>-->
+<!--        </dependency>-->
 
         <!-- MinIO 对象存储 -->
         <dependency>

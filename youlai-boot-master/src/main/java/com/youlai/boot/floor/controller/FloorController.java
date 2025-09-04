@@ -112,6 +112,12 @@ public class FloorController {
                                     .ifPresent(motion -> floor.setHuman(true));
                             break;
                     }
+                    switch (device.getDeviceTypeId().intValue()) {
+                        // 4->计量插座,7->开关,10->智能插座
+                        case 4, 8, 10:
+                            checkDeviceSwitchStatus(device, floor);
+                            break;
+                    }
                 }
             }
         }

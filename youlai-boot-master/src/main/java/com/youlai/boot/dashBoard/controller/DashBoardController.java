@@ -18,10 +18,7 @@ import com.youlai.boot.common.result.Result;
 import com.youlai.boot.common.util.InfluxQueryBuilder;
 import com.youlai.boot.common.util.MathUtils;
 import com.youlai.boot.config.property.InfluxDBProperties;
-import com.youlai.boot.dashBoard.model.vo.CategoryElectricityVO;
-import com.youlai.boot.dashBoard.model.vo.CountResult;
-import com.youlai.boot.dashBoard.model.vo.DashCount;
-import com.youlai.boot.dashBoard.model.vo.RoomElectricityRankingVO;
+import com.youlai.boot.dashBoard.model.vo.*;
 import com.youlai.boot.dashBoard.service.ElectricityCalculationService;
 import com.youlai.boot.device.Enum.CommunicationModeEnum;
 import com.youlai.boot.device.Enum.DeviceTypeEnum;
@@ -110,56 +107,46 @@ public class DashBoardController {
         }
         // 4. 处理每个分类
         for (Category category : categoriesAll) {
-            List<CategoryDeviceRelationship> relationships =
-                    categoryDeviceRelationshipService.listByCategoryId(category.getId());
-            if (!relationships.isEmpty()) {
-                List<Long> deviceIds = relationships.stream()
-                        .map(CategoryDeviceRelationship::getDeviceId)
-                        .collect(Collectors.toList());
+            //根据categoryId和isMaster查询设备
+            List<Device> masterDevices = deviceService.listByCategoryId(category);
+            if (!masterDevices.isEmpty()) {
+                CategoryElectricityVO.CategoryData data = new CategoryElectricityVO.CategoryData();
+                data.setCategoryName(category.getCategoryName());
 
-                List<Device> masterDevices = deviceService.listByIds(deviceIds).stream()
-                        .filter(device -> device.getIsMaster() == 1)
-                        .toList();
+                // 初始化总值列表，用于累加所有设备的数据
+                List<Double> totalValues = null;
 
-                if (!masterDevices.isEmpty()) {
-                    CategoryElectricityVO.CategoryData data = new CategoryElectricityVO.CategoryData();
-                    data.setCategoryName(category.getCategoryName());
+                // 遍历所有主设备，获取并累加数据
+                for (Device masterDevice : masterDevices) {
+                    List<InfluxMqttPlugVO> deviceDataList = querySingleDevice(masterDevice, 1L, "w", "1d");
 
-                    // 初始化总值列表，用于累加所有设备的数据
-                    List<Double> totalValues = null;
+                    if (!deviceDataList.isEmpty()) {
+                        InfluxMqttPlugVO deviceData = deviceDataList.get(0);
 
-                    // 遍历所有主设备，获取并累加数据
-                    for (Device masterDevice : masterDevices) {
-                        List<InfluxMqttPlugVO> deviceDataList = querySingleDevice(masterDevice.getDeviceCode(), 1L, "w", "1d", null, null);
-
-                        if (!deviceDataList.isEmpty()) {
-                            InfluxMqttPlugVO deviceData = deviceDataList.get(0);
-
-                            if (totalValues == null) {
-                                // 第一个设备的数据作为初始值
-                                totalValues = new ArrayList<>(deviceData.getValue());
-                                result.setTimes(deviceData.getTime());
-                            } else {
-                                // 确保两个列表长度相同后再累加
-                                List<Double> deviceValues = deviceData.getValue();
-                                int minSize = Math.min(totalValues.size(), deviceValues.size());
-                                for (int i = 0; i < minSize; i++) {
-                                    Double v1 = MathUtils.formatDouble(totalValues.get(i));
-                                    Double v2 = MathUtils.formatDouble(deviceValues.get(i));
-                                    // 处理null值
-                                    if (v1 == null) v1 = 0.0;
-                                    if (v2 == null) v2 = 0.0;
-                                    totalValues.set(i, v1 + v2);
-                                }
+                        if (totalValues == null) {
+                            // 第一个设备的数据作为初始值
+                            totalValues = new ArrayList<>(deviceData.getValue());
+                            result.setTimes(deviceData.getTime());
+                        } else {
+                            // 确保两个列表长度相同后再累加
+                            List<Double> deviceValues = deviceData.getValue();
+                            int minSize = Math.min(totalValues.size(), deviceValues.size());
+                            for (int i = 0; i < minSize; i++) {
+                                Double v1 = MathUtils.formatDouble(totalValues.get(i));
+                                Double v2 = MathUtils.formatDouble(deviceValues.get(i));
+                                // 处理null值
+                                if (v1 == null) v1 = 0.0;
+                                if (v2 == null) v2 = 0.0;
+                                totalValues.set(i, v1 + v2);
                             }
                         }
                     }
-
-                    data.setValues(totalValues);
-                    categoryDataList.add(data);
                 }
+                data.setValues(totalValues);
+                categoryDataList.add(data);
             }
         }
+//        }
         result.setData(categoryDataList);
         return Result.success(result);
     }
@@ -360,54 +347,6 @@ public class DashBoardController {
 
             return Result.success(result);
 
-        } catch (InfluxException e) {
-            log.error("查询用电数据失败: {}", e.getMessage());
-            return Result.failed("查询用电数据失败");
-        } catch (Exception e) {
-            log.error("处理用电数据时发生错误: ", e);
-            return Result.failed("系统错误");
-        }
-    }
-
-    @Operation(summary = "房间本周用电量")
-    @GetMapping("/room/total")
-    public Result<CategoryElectricityVO> getRoomElectricityWeeklyData(
-            @Parameter(description = "房间id")
-            @RequestParam Long roomId) {
-        try {
-            CategoryElectricityVO result = new CategoryElectricityVO();
-            // 获取房间内所有主设备
-            List<Device> roomDevices = deviceService.list(new QueryWrapper<Device>()
-                    .eq("device_room", roomId)
-                    .eq("is_master", 1));
-            List<Double> totalValues = null;
-            for (Device device : roomDevices) {
-                List<InfluxMqttPlugVO> deviceDataList = querySingleDevice(device.getDeviceCode(), 1L, "w", "1d", null, null);
-                if (!deviceDataList.isEmpty()) {
-                    CategoryElectricityVO.CategoryData data = new CategoryElectricityVO.CategoryData();
-                    InfluxMqttPlugVO deviceData = deviceDataList.get(0);
-
-                    if (totalValues == null) {
-                        // 第一个设备的数据作为初始值
-                        totalValues = new ArrayList<>(deviceData.getValue());
-                        result.setTimes(deviceData.getTime());
-                    } else {
-                        // 确保两个列表长度相同后再累加
-                        List<Double> deviceValues = deviceData.getValue();
-                        int minSize = Math.min(totalValues.size(), deviceValues.size());
-                        for (int i = 0; i < minSize; i++) {
-                            Double v1 = MathUtils.formatDouble(totalValues.get(i));
-                            Double v2 = MathUtils.formatDouble(deviceValues.get(i));
-                            // 处理null值
-                            if (v1 == null) v1 = 0.0;
-                            if (v2 == null) v2 = 0.0;
-                            totalValues.set(i, v1 + v2);
-                        }
-                    }
-                    data.setValues(totalValues);
-                }
-            }
-            return Result.success(result);
         } catch (InfluxException e) {
             log.error("查询用电数据失败: {}", e.getMessage());
             return Result.failed("查询用电数据失败");
@@ -648,54 +587,26 @@ public class DashBoardController {
 
     @Operation(summary = "查询各房间总用电量排名(升序)")
     @GetMapping("/electricity/ranking")
-    public Result<List<RoomElectricityRankingVO>> getRoomElectricityRankingAsc(
+    public Result<List<RoomsElectricityVO>> getRoomElectricityRankingAsc(
+            @Parameter(description = "自定义开始时间(yyyy-MM-dd格式)")
+            @RequestParam(required = false) String startTime,
+
+            @Parameter(description = "自定义结束时间(yyyy-MM-dd格式)")
+            @RequestParam(required = false) String endTime,
             @Parameter(description = "时间范围: today-今天", example = "today")
             @RequestParam(defaultValue = "today") String range) {
         try {
             // 1. 获取所有房间列表
             List<Room> rooms = roomService.list();
+            String roomIds = rooms.stream().map(Room::getId).map(String::valueOf).collect(Collectors.joining(","));
             // 2. 构建结果列表
-            List<RoomElectricityRankingVO> rankingList = new ArrayList<>();
             // 3. 只处理today情况
             if (!"today".equals(range)) {
                 return Result.failed("只支持today时间范围参数");
             }
-            // 4. 查询每个房间的日用电量差值
-            for (Room room : rooms) {
-                List<InfluxMqttPlug> dataList = calculateTodayElectricity(room.getId().toString());
-                if (ObjectUtils.isNotEmpty(dataList)) {
-                    RoomElectricityRankingVO vo = new RoomElectricityRankingVO();
-                    vo.setRoomId(room.getId());
-                    vo.setRoomCode(room.getClassroomCode());
-                    vo.setRoomName(room.getClassroomCode());
-                    if (dataList.size() >= 2) {
-                        // 用最后一个点减去倒数第二个点
-                        Double current = dataList.get(dataList.size() - 1).getTotal();
-                        Double start = dataList.get(dataList.size() - 2).getTotal();
-                        if (current != null && start != null) {
-                            vo.setTotalElectricity(formatDouble(Math.max(0, current - start)));
-                        }
-                    }
-                    if (vo.getTotalElectricity() != null) {
-                        if (vo.getTotalElectricity() != 0.0) {
-                            rankingList.add(vo);
-                        }
-                    }
-                }
-            }
-
-            // 5. 按用电量升序排序（从小到大）
-            rankingList.sort(Comparator.comparingDouble(
-                    vo -> Optional.ofNullable(vo.getTotalElectricity()).orElse(0.0)
-            ));
-
-            // 6. 添加排名序号
-            for (int i = 0; i < rankingList.size(); i++) {
-                rankingList.get(i).setRank(i + 1);
-            }
-
-            return Result.success(rankingList);
-
+            PageResult<RoomsElectricityVO> roomsElectricityVOPageResult = electricityCalculationService.getRoomsElectricityVOPageResult(1, 10, roomIds, startTime, endTime, range, "", false);
+            List<RoomsElectricityVO> list = roomsElectricityVOPageResult.getData().getList();
+            return Result.success(list);
         } catch (Exception e) {
             log.error("查询房间用电量排名失败: {}", e.getMessage(), e);
             return Result.failed("查询房间用电量排名失败");
@@ -800,8 +711,8 @@ public class DashBoardController {
             @Parameter(description = "房间id")
             @RequestParam(required = false) String roomId,
 
-            @Parameter(description = "设备类型id")
-            @RequestParam(required = false) String deviceTypeId
+            @Parameter(description = "设备类型ids")
+            @RequestParam(required = false) String deviceTypeIds
 
     ) {
         try {
@@ -811,7 +722,7 @@ public class DashBoardController {
             // 2. 根据传入的参数查询设备列表
             List<Device> deviceList;
             LambdaQueryWrapper<Device> queryWrapper = new LambdaQueryWrapper<>();
-
+            queryWrapper.in(Device::getDeviceTypeId, 4, 8);
             // 添加查询条件
             if (StringUtils.isNotBlank(deviceCode)) {
                 queryWrapper.eq(Device::getDeviceCode, deviceCode);
@@ -819,9 +730,9 @@ public class DashBoardController {
             if (StringUtils.isNotBlank(roomId)) {
                 queryWrapper.eq(Device::getDeviceRoom, roomId);
             }
-            if (StringUtils.isNotBlank(deviceTypeId)) {
-                queryWrapper.eq(Device::getDeviceTypeId, deviceTypeId);
-            }
+//            if (StringUtils.isNotBlank(deviceTypeId)) {
+//                queryWrapper.eq(Device::getDeviceTypeId, deviceTypeId);
+//            }
 
             deviceList = deviceService.list(queryWrapper);
 
@@ -832,12 +743,10 @@ public class DashBoardController {
             } else if (deviceList.size() == 1) {
                 // 单设备查询
                 result = querySingleDevice(
-                        deviceList.get(0).getDeviceCode(),
+                        deviceList.get(0),
                         timeAmount,
                         timeUnit,
-                        windowSize,
-                        roomId,
-                        deviceTypeId
+                        windowSize
                 );
             } else {
                 // 没有找到设备
@@ -858,14 +767,15 @@ public class DashBoardController {
     /**
      * 查询单个设备的数据
      */
-    private List<InfluxMqttPlugVO> querySingleDevice(String deviceCode, Long timeAmount, String timeUnit,
-                                                     String windowSize, String roomId, String deviceTypeId) {
+    private List<InfluxMqttPlugVO> querySingleDevice(Device device, Long timeAmount, String timeUnit,
+                                                     String windowSize) {
         try {
             String range = getRange(timeAmount, timeUnit);
             // 构建查询 - 查询所有需要的字段
             InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
                     .bucket(influxDBProperties.getBucket())
                     .range(range, true)
+                    .tag("categoryId", device.getCategoryId().toString())
                     .measurement("device")
                     .fields("Total", "Voltage", "Current")
                     .pivot()
@@ -873,14 +783,11 @@ public class DashBoardController {
                     .sort("_time", InfluxQueryBuilder.SORT_ASC);
 
             // 添加过滤条件
-            if (StringUtils.isNotBlank(deviceCode)) {
-                builder.tag("deviceCode", deviceCode);
+            if (StringUtils.isNotBlank(device.getDeviceCode())) {
+                builder.tag("deviceCode", device.getDeviceCode());
             }
-            if (StringUtils.isNotBlank(roomId)) {
-                builder.tag("roomId", roomId);
-            }
-            if (StringUtils.isNotBlank(deviceTypeId)) {
-                builder.tag("deviceType", deviceTypeId);
+            if (ObjectUtils.isNotEmpty(device.getDeviceRoom())) {
+                builder.tag("roomId", String.valueOf(device.getDeviceRoom()));
             }
             // 应用窗口聚合
             builder.window(windowSize, "last");
@@ -916,7 +823,7 @@ public class DashBoardController {
         // 遍历所有设备，获取并累加数据
         boolean hasData = false;
         for (Device device : deviceList) {
-            List<InfluxMqttPlugVO> deviceDataList = querySingleDevice(device.getDeviceCode(), timeAmount, timeUnit, windowSize, roomId, null);
+            List<InfluxMqttPlugVO> deviceDataList = querySingleDevice(device, timeAmount, timeUnit, windowSize);
 
             if (!deviceDataList.isEmpty() && deviceDataList.get(0) != null) {
                 InfluxMqttPlugVO deviceData = deviceDataList.get(0);

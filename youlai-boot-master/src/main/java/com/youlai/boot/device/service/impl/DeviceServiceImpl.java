@@ -441,6 +441,13 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     }
 
     @Override
+    public List<Device> listByCategoryId(Category category) {
+        return this.list(new LambdaQueryWrapper<Device>()
+                .in(Device::getCategoryId, category.getId())
+                .eq(Device::getIsMaster, 1));
+    }
+
+    @Override
     public List<Option<Long>> listDeviceOptions() {
         List<Device> list = this.list(new LambdaQueryWrapper<Device>().eq(Device::getStatus, 1));
         return deviceConverter.toOptions(list);

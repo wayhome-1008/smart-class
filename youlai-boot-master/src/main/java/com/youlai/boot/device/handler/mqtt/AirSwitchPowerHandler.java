@@ -52,61 +52,63 @@ public class AirSwitchPowerHandler implements MsgHandler {
         // 1. 转换消息为JSON
 
         String deviceCode = getCodeByTopic(topic);
-        // 2. 获取设备信息（缓存优先）
-        Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
-        if (ObjectUtils.isNotEmpty(device)) {
-            JsonNode deviceInfo = device.getDeviceInfo();
-            if (ObjectUtils.isNotEmpty(deviceInfo)) {
-                ObjectNode metrics = JsonNodeFactory.instance.objectNode();
-                metrics.put("voltage", deviceInfo.get("voltage").asInt());
-                metrics.put("current", deviceInfo.get("current").asInt());
-                metrics.put("power", deviceInfo.get("power").asInt());
-                metrics.put("total", deviceInfo.get("total").asDouble());
-                metrics.put("switch1", jsonMsg);
-                metrics.put("count", 1);
-                //场景
-                List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(device.getDeviceCode());
-                for (Scene scene : scenesByDeviceId) {
-                    sceneExecuteService.executeScene(scene, device, mqttClient, metrics);
-                }
-                //接受得数据与旧数据合并
-                JsonNode mergeJson = mergeJson(Optional.of(device).map(Device::getDeviceInfo).orElse(null), metrics);
-                device.setDeviceInfo(mergeJson);
-                //校验警报配置
-                AlertRule alertRule = alertRuleEngine.checkAlertConfig(device.getId(), metrics);
-                if (ObjectUtils.isNotEmpty(alertRule)) {
-                    boolean checkRule = alertRuleEngine.checkRule(alertRule, metrics.get(alertRule.getMetricKey()).asLong());
-                    //满足条件
-                    if (checkRule) {
-                        //创建AlertEvent
-                        alertRuleEngine.constructAlertEvent(device, alertRule, metrics);
+        if (deviceCode.contains("SmartLife")) {
+            // 2. 获取设备信息（缓存优先）
+            Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
+            if (ObjectUtils.isNotEmpty(device)) {
+                JsonNode deviceInfo = device.getDeviceInfo();
+                if (ObjectUtils.isNotEmpty(deviceInfo)) {
+                    ObjectNode metrics = JsonNodeFactory.instance.objectNode();
+                    metrics.put("voltage", deviceInfo.get("voltage").asInt());
+                    metrics.put("current", deviceInfo.get("current").asInt());
+                    metrics.put("power", deviceInfo.get("power").asInt());
+                    metrics.put("total", deviceInfo.get("total").asDouble());
+                    metrics.put("switch1", jsonMsg);
+                    metrics.put("count", 1);
+                    //场景
+                    List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(device.getDeviceCode());
+                    for (Scene scene : scenesByDeviceId) {
+                        sceneExecuteService.executeScene(scene, device, mqttClient, metrics);
+                    }
+                    //接受得数据与旧数据合并
+                    JsonNode mergeJson = mergeJson(Optional.of(device).map(Device::getDeviceInfo).orElse(null), metrics);
+                    device.setDeviceInfo(mergeJson);
+                    //校验警报配置
+                    AlertRule alertRule = alertRuleEngine.checkAlertConfig(device.getId(), metrics);
+                    if (ObjectUtils.isNotEmpty(alertRule)) {
+                        boolean checkRule = alertRuleEngine.checkRule(alertRule, metrics.get(alertRule.getMetricKey()).asLong());
+                        //满足条件
+                        if (checkRule) {
+                            //创建AlertEvent
+                            alertRuleEngine.constructAlertEvent(device, alertRule, metrics);
+                        }
+                    }
+                    //创建influx数据
+                    InfluxMqttPlug influxPlug = new InfluxMqttPlug();
+                    influxPlug.setCategoryId(device.getCategoryId().toString());
+                    //tag为设备编号
+                    influxPlug.setDeviceCode(device.getDeviceCode());
+                    influxPlug.setSwitchState(metrics.get("switch1").asText());
+                    //tag为房间id
+                    influxPlug.setRoomId(device.getDeviceRoom().toString());
+                    influxPlug.setDeviceType(String.valueOf(device.getDeviceTypeId()));
+                    //处理插座数据
+                    //电压
+                    influxPlug.setVoltage(metrics.get("voltage").asDouble());
+                    //电流
+                    influxPlug.setCurrent(metrics.get("current").asDouble());
+                    //功率
+                    influxPlug.setPower((int) metrics.get("power").asDouble());
+                    //总用电量
+                    influxPlug.setTotal(metrics.get("total").asDouble());
+                    log.info("插座数据:{}", influxPlug);
+                    if (device.getIsMaster() == 1) {
+                        influxDBClient.getWriteApiBlocking().writeMeasurement(influxProperties.getBucket(), influxProperties.getOrg(), WritePrecision.MS, influxPlug);
                     }
                 }
-                //创建influx数据
-                InfluxMqttPlug influxPlug = new InfluxMqttPlug();
-                influxPlug.setCategoryId(device.getCategoryId().toString());
-                //tag为设备编号
-                influxPlug.setDeviceCode(device.getDeviceCode());
-                influxPlug.setSwitchState(metrics.get("switch1").asText());
-                //tag为房间id
-                influxPlug.setRoomId(device.getDeviceRoom().toString());
-                influxPlug.setDeviceType(String.valueOf(device.getDeviceTypeId()));
-                //处理插座数据
-                //电压
-                influxPlug.setVoltage(metrics.get("voltage").asDouble());
-                //电流
-                influxPlug.setCurrent(metrics.get("current").asDouble());
-                //功率
-                influxPlug.setPower((int) metrics.get("power").asDouble());
-                //总用电量
-                influxPlug.setTotal(metrics.get("total").asDouble());
-                log.info("插座数据:{}", influxPlug);
-                if (device.getIsMaster() == 1) {
-                    influxDBClient.getWriteApiBlocking().writeMeasurement(influxProperties.getBucket(), influxProperties.getOrg(), WritePrecision.MS, influxPlug);
-                }
+                // 更新设备信息到缓存
+                redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
             }
-            // 更新设备信息到缓存
-            redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
         }
     }
 

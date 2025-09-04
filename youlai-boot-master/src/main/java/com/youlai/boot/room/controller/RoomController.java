@@ -108,15 +108,17 @@ public class RoomController {
                         case 1: // 8->灯光
                             checkDeviceLightStatus(device, roomVO);
                             break;
-                        case 4,8:
-//                    case 10: // 4->计量插座,7->开关,10->智能插座
-                            checkDeviceSwitchStatus(device, roomVO);
-                            break;
 
                         case 3: // 5->人体感应雷达
                             DeviceInfo.getValueByName(device.getDeviceInfo(), "motion", Integer.class)
                                     .filter(motion -> motion == 1)
                                     .ifPresent(motion -> roomVO.setHuman(true));
+                            break;
+                    }
+                    switch (device.getDeviceTypeId().intValue()) {
+                        // 4->计量插座,7->开关,10->智能插座
+                        case 4, 8, 10:
+                            checkDeviceSwitchStatus(device, roomVO);
                             break;
                     }
                 }

@@ -3,6 +3,7 @@ package com.youlai.boot.device.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.youlai.boot.category.model.entity.Category;
 import com.youlai.boot.common.model.Option;
 import com.youlai.boot.device.model.dto.event.DeviceEventParams;
 import com.youlai.boot.device.model.entity.Device;
@@ -105,4 +106,6 @@ public interface DeviceService extends IService<Device> {
     List<Option<String>> listDeviceCodeOptions();
 
     List<Option<String>> listMetricByCode(String code);
+
+    List<Device> listByCategoryId(Category category);
 }

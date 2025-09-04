@@ -118,31 +118,6 @@ public class ElectricityCalculationService {
         }
     }
 
-//    /**
-//     * 计算部门用电量
-//     */
-//    public Double calculateDepartmentElectricity(Long departmentId, String range, String startTime, String endTime) {
-//        try {
-//            // 查询该部门下所有房间
-//            List<Room> rooms = roomService.list(new QueryWrapper<Room>()
-//                    .eq("department_id", departmentId));
-//
-//            double departmentTotalElectricity = 0.0;
-//            for (Room room : rooms) {
-//                Double roomElectricity = calculateRoomElectricity(
-//                        room.getId(), range, startTime, endTime);
-//                if (roomElectricity != null) {
-//                    departmentTotalElectricity += roomElectricity;
-//                }
-//            }
-//
-//            return departmentTotalElectricity;
-//        } catch (Exception e) {
-//            log.error("计算部门用电量失败 - departmentId: {}, range: {}", departmentId, range, e);
-//            return 0.0;
-//        }
-//    }
-
     /**
      * 计算今日用电量
      */
@@ -695,22 +670,6 @@ public class ElectricityCalculationService {
             log.error("分页查询房间用电量失败 - roomIds: {}", roomIds, e);
             return PageResult.success(null);
         }
-    }
-
-
-    /**
-     * 确定时间范围类型
-     */
-    private String determineRangeType(String startTime, String endTime) {
-        if (StringUtils.isBlank(startTime) && StringUtils.isBlank(endTime)) {
-            return "today"; // 默认今天
-        }
-
-        if (StringUtils.isNotBlank(startTime) && StringUtils.isNotBlank(endTime)) {
-            return "custom";
-        }
-
-        return "custom";
     }
 
     /**
