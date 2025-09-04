@@ -447,7 +447,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     @Override
     public List<Device> listDevicesByCategoryAndRoomId(Long categoryId, Long roomId) {
         return this.list(new LambdaQueryWrapper<Device>()
-                .in(Device::getCategoryId, categoryId)
+                .in(ObjectUtils.isNotEmpty(categoryId),Device::getCategoryId, categoryId)
                 .eq(Device::getDeviceRoom, roomId)
                 .eq(Device::getIsMaster, 1));
     }
