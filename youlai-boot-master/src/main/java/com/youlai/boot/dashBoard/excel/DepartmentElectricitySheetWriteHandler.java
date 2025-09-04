@@ -37,11 +37,10 @@ public class DepartmentElectricitySheetWriteHandler implements SheetWriteHandler
     /**
      * 动态生成表头数据结构
      * @param header 列头数组
-     * @param
      * @return 包含表头信息的二维列表，每个子列表包含大标题和具体列头
      */
     public static List<List<String>> head(String firstTitle, String time, String[] header) {
-        List<List<String>> list = new ArrayList<List<String>>();
+        List<List<String>> list = new ArrayList<>();
         for (String head : header) {
             List<String> category = new ArrayList<>();
             category.add(firstTitle);

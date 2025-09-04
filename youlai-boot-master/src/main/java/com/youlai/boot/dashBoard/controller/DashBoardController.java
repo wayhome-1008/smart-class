@@ -2,7 +2,6 @@ package com.youlai.boot.dashBoard.controller;
 
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -10,15 +9,16 @@ import com.influxdb.client.InfluxDBClient;
 import com.influxdb.exceptions.InfluxException;
 import com.youlai.boot.category.model.entity.Category;
 import com.youlai.boot.category.service.CategoryService;
-import com.youlai.boot.categoryDeviceRelationship.model.CategoryDeviceRelationship;
-import com.youlai.boot.categoryDeviceRelationship.service.CategoryDeviceRelationshipService;
 import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.common.result.PageResult;
 import com.youlai.boot.common.result.Result;
 import com.youlai.boot.common.util.InfluxQueryBuilder;
 import com.youlai.boot.common.util.MathUtils;
 import com.youlai.boot.config.property.InfluxDBProperties;
-import com.youlai.boot.dashBoard.model.vo.*;
+import com.youlai.boot.dashBoard.model.vo.CategoryElectricityVO;
+import com.youlai.boot.dashBoard.model.vo.CountResult;
+import com.youlai.boot.dashBoard.model.vo.DashCount;
+import com.youlai.boot.dashBoard.model.vo.RoomsElectricityVO;
 import com.youlai.boot.dashBoard.service.ElectricityCalculationService;
 import com.youlai.boot.device.Enum.CommunicationModeEnum;
 import com.youlai.boot.device.Enum.DeviceTypeEnum;
@@ -78,7 +78,6 @@ public class DashBoardController {
     private final InfluxDBClient influxDBClient;
     private final ConfigService configService;
     private final CategoryService categoryService;
-    private final CategoryDeviceRelationshipService categoryDeviceRelationshipService;
     private final RedisTemplate<String, Object> redisTemplate;
     private final ElectricityCalculationService electricityCalculationService;
 
@@ -924,8 +923,6 @@ public class DashBoardController {
                 }
                 // 处理值数据：计算相邻数据点的差值
                 for (int i = 0; i < dataList.size() - 2; i++) {
-                    InfluxMqttPlug currentData = dataList.get(i);
-                    InfluxMqttPlug nextData = dataList.get(i + 1);
                     if (i == 62) {
                         Double lastTotal = formatDouble(getTotalFromData(dataList, dataList.size() - 1));
                         Double secondLastTotal = formatDouble(getTotalFromData(dataList, dataList.size() - 2));
@@ -944,8 +941,6 @@ public class DashBoardController {
                 }
                 // 处理值数据：计算相邻数据点的差值
                 for (int i = 0; i < dataList.size() - 2; i++) {
-                    InfluxMqttPlug currentData = dataList.get(i);
-                    InfluxMqttPlug nextData = dataList.get(i + 1);
                     if (i == 23) {
                         Double lastTotal = formatDouble(getTotalFromData(dataList, dataList.size() - 1));
                         Double secondLastTotal = formatDouble(getTotalFromData(dataList, dataList.size() - 2));
