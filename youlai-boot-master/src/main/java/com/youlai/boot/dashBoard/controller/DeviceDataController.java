@@ -381,15 +381,15 @@ public class DeviceDataController {
         response.setHeader("Content-Disposition", "attachment; filename=" + URLEncoder.encode(firstRow, StandardCharsets.UTF_8));
         PageResult<DepartmentCategoryElectricityInfoVO> departmentElectricityVOPageResult = getDepartmentCategoryElectricityInfoVOPageResult(pageNum, pageSize, range, startTime, endTime, null, roomIds);
         List<DepartmentCategoryElectricityInfoVO> list = departmentElectricityVOPageResult.getData().getList();
-        List<RoomsElectricityVO> roomsElectricityVOList = new ArrayList<>();
-        for (DepartmentCategoryElectricityInfoVO departmentCategoryElectricityInfoVO : list) {
-            RoomsElectricityVO roomsElectricityVO = new RoomsElectricityVO();
-            roomsElectricityVO.setRoomId(departmentCategoryElectricityInfoVO.getRoomId());
-            roomsElectricityVO.setRoomName(departmentCategoryElectricityInfoVO.getRoomName());
-            roomsElectricityVO.setTotalElectricity(departmentCategoryElectricityInfoVO.getRoomTotalElectricity());
-            roomsElectricityVO.setCategoryName(departmentCategoryElectricityInfoVO.getCategoryName());
-            roomsElectricityVOList.add(roomsElectricityVO);
-        }
+//        List<RoomsElectricityVO> roomsElectricityVOList = new ArrayList<>();
+//        for (DepartmentCategoryElectricityInfoVO departmentCategoryElectricityInfoVO : list) {
+//            RoomsElectricityVO roomsElectricityVO = new RoomsElectricityVO();
+//            roomsElectricityVO.setRoomId(departmentCategoryElectricityInfoVO.getRoomId());
+//            roomsElectricityVO.setRoomName(departmentCategoryElectricityInfoVO.getRoomName());
+//            roomsElectricityVO.setTotalElectricity(departmentCategoryElectricityInfoVO.getRoomTotalElectricity());
+//            roomsElectricityVO.setCategoryName(departmentCategoryElectricityInfoVO.getCategoryName());
+//            roomsElectricityVOList.add(roomsElectricityVO);
+//        }
 // 获取所有唯一的分类名称
         List<String> categoryNames = list.stream()
                 .map(DepartmentCategoryElectricityInfoVO::getCategoryName)
@@ -582,7 +582,7 @@ public class DeviceDataController {
                                             HttpServletResponse response) throws IOException {
         String firstRow = "部门电量汇总";
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        response.setHeader("Content-disposition", "attachment;filename="+ URLEncoder.encode(firstRow, StandardCharsets.UTF_8));
+        response.setHeader("Content-disposition", "attachment;filename=" + URLEncoder.encode(firstRow, StandardCharsets.UTF_8));
         PageResult<DepartmentCategoryElectricityInfoVO> departmentElectricityVOPageResult =
                 getDepartmentCategoryElectricityInfoVOPageResult(pageNum, pageSize, range, startTime, endTime, deptIds, roomIds);
 
@@ -1194,22 +1194,121 @@ public class DeviceDataController {
             @RequestParam(required = false) String endTime,
             HttpServletResponse response
     ) throws IOException {
-        String fileName = "楼宇排名.xlsx";
+        String fileName = "楼宇排名";
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setHeader("Content-Disposition", "attachment; filename=" + URLEncoder.encode(fileName, StandardCharsets.UTF_8));
         PageResult<RoomsElectricityVO> roomsElectricityVOPageResult = electricityCalculationService.getRoomsElectricityVOPageResult(pageNum, pageSize, roomIds, startTime, endTime, range, categoryName, true); // true表示导出
         List<RoomsElectricityVO> list = roomsElectricityVOPageResult.getData().getList();
-        List<ExportRoomRank> exportRoomRanksList = new ArrayList<>();
-        for (RoomsElectricityVO electricityVO : list) {
-            ExportRoomRank exportRoomRank = new ExportRoomRank();
-            exportRoomRank.setRoomName(electricityVO.getRoomName());
-            exportRoomRank.setTotalElectricity(electricityVO.getTotalElectricity());
-//            exportRoomRank.setCategoryName(electricityVO.getCategoryName());
-            exportRoomRanksList.add(exportRoomRank);
-        }
-        FastExcel.write(response.getOutputStream(), ExportRoomRank.class).sheet("楼宇排名")
-                .doWrite(exportRoomRanksList);
+        // 添加时间行
+        String timeRow = "时间：" + startTime + " 至 " + endTime;
+        List<String> headerList = new ArrayList<>();
+        headerList.add("序号");
+        headerList.add("房间");
+        headerList.add("用电量（kWh）");
+        String[] topic = headerList.toArray(new String[0]);
+        // 添加实际数据
+        List<List<Object>> dataRows = convertRoomRankData(list);
+        // 标题样式
+        WriteCellStyle headWriteCellStyle = DepartmentElectricitySheetWriteHandler.getHeadStyle();
+        //内容
+        // 内容的策略
+        WriteCellStyle contentWriteCellStyle = new WriteCellStyle();
+        // 这里需要指定 FillPatternType 为FillPatternType.SOLID_FOREGROUND 不然无法显示背景颜色.头默认了 FillPatternType所以可以不指定
+        contentWriteCellStyle.setFillPatternType(FillPatternType.SOLID_FOREGROUND);
+        // 背景绿色
+        contentWriteCellStyle.setFillForegroundColor(IndexedColors.BLUE_GREY.getIndex());
+        WriteFont contentWriteFont = new WriteFont();
+        // 字体大小
+        contentWriteFont.setFontHeightInPoints((short) 12);
+        contentWriteCellStyle.setWriteFont(contentWriteFont);
+        contentWriteCellStyle.setWrapped(true);
+        HorizontalCellStyleStrategy horizontalCellStyleStrategy =
+                new HorizontalCellStyleStrategy(headWriteCellStyle, contentWriteCellStyle);
 
+        FastExcel.write(response.getOutputStream())
+                // 第一行大标题样式设置
+                .registerWriteHandler(new DepartmentElectricitySheetWriteHandler(fileName, topic))
+                //设置默认样式及写入头信息开始的行数
+                .useDefaultStyle(true).relativeHeadRowIndex(0)
+                // 表头、内容样式设置
+                .registerWriteHandler(horizontalCellStyleStrategy)
+                // 统一列宽 20px
+                .registerWriteHandler(new SimpleColumnWidthStyleStrategy(20))
+                .sheet(fileName)
+                // 这里放入动态头
+                .head(head(fileName, timeRow, topic))
+                // 当然这里数据也可以用 List<List<String>> 去传入
+                .doWrite(dataRows);
+    }
+
+    private List<List<Object>> convertRoomRankData(List<RoomsElectricityVO> list) {
+        // 按房间分组数据
+        Map<Long, Map<String, Double>> roomDataMap = new HashMap<>();
+        Map<Long, String> roomNameMap = new HashMap<>();
+        Map<Long, Double> roomTotalMap = new HashMap<>();
+        List<Long> roomIds = new ArrayList<>(); // 保持房间顺序
+
+        for (RoomsElectricityVO item : list) {
+            Long roomId = item.getRoomId();
+            Double electricity = item.getTotalElectricity();
+
+            // 初始化部门数据
+            if (!roomDataMap.containsKey(roomId)) {
+                roomDataMap.put(roomId, new HashMap<>());
+                roomNameMap.put(roomId, item.getRoomName());
+                roomTotalMap.put(roomId, 0.0);
+                roomIds.add(roomId);
+            }
+            // 累加部门总用电量
+            roomTotalMap.put(roomId, roomTotalMap.get(roomId) + electricity);
+        }
+
+        // 转换为列表数据
+        List<List<Object>> result = new ArrayList<>();
+        int index = 1; // 序号从1开始
+
+        for (Long roomId : roomIds) {
+            List<Object> rowData = new ArrayList<>();
+            rowData.add(index++); // 序号
+            rowData.add(roomNameMap.get(roomId)); // 部门名称
+            rowData.add(formatDouble(roomTotalMap.get(roomId))); // 部门总用电量
+
+            result.add(new ArrayList<>(rowData)); // 确保每一行都是可变的
+        }
+
+        // 添加合计行
+        if (!result.isEmpty()) {
+            List<Object> totalRow = new ArrayList<>();
+            totalRow.add(""); // 序号列（空）
+            totalRow.add("合计"); // 部门列显示"合计"
+
+            // 计算部门总用电量合计
+            double roomTotal = result.stream()
+                    .mapToDouble(row -> {
+                        Object value = row.get(2); // 第3列是部门总用电量
+                        if (value instanceof Number) {
+                            return ((Number) value).doubleValue();
+                        } else if (value instanceof String) {
+                            try {
+                                return Double.parseDouble((String) value);
+                            } catch (NumberFormatException e) {
+                                return 0.0;
+                            }
+                        }
+                        return 0.0;
+                    })
+                    .sum();
+            totalRow.add(formatDouble(roomTotal)); // 部门总用电量合计
+            result.add(new ArrayList<>(totalRow)); // 确保合计行也是可变的
+        }
+
+        // 创建完全可变的副本
+        List<List<Object>> mutableResult = new ArrayList<>();
+        for (List<Object> row : result) {
+            mutableResult.add(new ArrayList<>(row));
+        }
+
+        return mutableResult;
     }
 
     @Operation(summary = "7.楼宇排名")
@@ -1288,21 +1387,125 @@ public class DeviceDataController {
             @RequestParam(required = false) String endTime,
             HttpServletResponse response
     ) throws IOException {
-        String fileName = "部门排名.xlsx";
+        String fileName = "部门排名";
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setHeader("Content-Disposition", "attachment; filename=" + URLEncoder.encode(fileName, StandardCharsets.UTF_8));
         PageResult<DepartmentElectricityVO> departmentElectricityVOPageResult = getDepartmentElectricityVOPageResult(pageNum, pageSize, roomIds, startTime, endTime, range, categoryName, true); // true表示导出
         List<DepartmentElectricityVO> list = departmentElectricityVOPageResult.getData().getList();
-        List<ExportDepartmentRank> exportDepartments = new ArrayList<>();
-        for (DepartmentElectricityVO departmentElectricityVO : list) {
-            ExportDepartmentRank exportDepartmentRank = new ExportDepartmentRank();
-            exportDepartmentRank.setDepartmentName(departmentElectricityVO.getDepartmentName());
-            exportDepartmentRank.setTotalElectricity(departmentElectricityVO.getTotalElectricity());
-//            exportDepartmentRank.setCategoryName(departmentElectricityVO.getCategoryName());
-            exportDepartments.add(exportDepartmentRank);
+        // 添加时间行
+        String timeRow = "时间：" + startTime + " 至 " + endTime;
+        List<String> headerList = new ArrayList<>();
+        headerList.add("序号");
+        headerList.add("房间");
+        headerList.add("用电量（kWh）");
+        String[] topic = headerList.toArray(new String[0]);
+        // 添加实际数据
+        List<List<Object>> dataRows = convertDepartmentRankData(list);
+        // 标题样式
+        WriteCellStyle headWriteCellStyle = DepartmentElectricitySheetWriteHandler.getHeadStyle();
+        //内容
+        // 内容的策略
+        WriteCellStyle contentWriteCellStyle = new WriteCellStyle();
+        // 这里需要指定 FillPatternType 为FillPatternType.SOLID_FOREGROUND 不然无法显示背景颜色.头默认了 FillPatternType所以可以不指定
+        contentWriteCellStyle.setFillPatternType(FillPatternType.SOLID_FOREGROUND);
+        // 背景绿色
+        contentWriteCellStyle.setFillForegroundColor(IndexedColors.BLUE_GREY.getIndex());
+        WriteFont contentWriteFont = new WriteFont();
+        // 字体大小
+        contentWriteFont.setFontHeightInPoints((short) 12);
+        contentWriteCellStyle.setWriteFont(contentWriteFont);
+        contentWriteCellStyle.setWrapped(true);
+        HorizontalCellStyleStrategy horizontalCellStyleStrategy =
+                new HorizontalCellStyleStrategy(headWriteCellStyle, contentWriteCellStyle);
+
+        FastExcel.write(response.getOutputStream())
+                // 第一行大标题样式设置
+                .registerWriteHandler(new DepartmentElectricitySheetWriteHandler(fileName, topic))
+                //设置默认样式及写入头信息开始的行数
+                .useDefaultStyle(true).relativeHeadRowIndex(0)
+                // 表头、内容样式设置
+                .registerWriteHandler(horizontalCellStyleStrategy)
+                // 统一列宽 20px
+                .registerWriteHandler(new SimpleColumnWidthStyleStrategy(20))
+                .sheet(fileName)
+                // 这里放入动态头
+                .head(head(fileName, timeRow, topic))
+                // 当然这里数据也可以用 List<List<String>> 去传入
+                .doWrite(dataRows);
+
+    }
+
+    private List<List<Object>> convertDepartmentRankData(List<DepartmentElectricityVO> list) {
+        // 按部门分组数据
+        Map<Long, Map<String, Double>> departmentDataMap = new HashMap<>();
+        Map<Long, String> departmentNameMap = new HashMap<>();
+        Map<Long, Double> departmentTotalMap = new HashMap<>();
+        List<Long> departmentIds = new ArrayList<>(); // 保持部门顺序
+
+        for (DepartmentElectricityVO item : list) {
+            Long deptId = item.getDepartmentId();
+            Double electricity = item.getTotalElectricity();
+
+            // 初始化部门数据
+            if (!departmentDataMap.containsKey(deptId)) {
+                departmentDataMap.put(deptId, new HashMap<>());
+                departmentNameMap.put(deptId, item.getDepartmentName());
+                departmentTotalMap.put(deptId, 0.0);
+                departmentIds.add(deptId);
+            }
+
+            // 累加部门总用电量
+            departmentTotalMap.put(deptId, departmentTotalMap.get(deptId) + electricity);
         }
-        FastExcel.write(response.getOutputStream(), ExportDepartmentRank.class).sheet("部门排名")
-                .doWrite(exportDepartments);
+
+        // 转换为列表数据
+        List<List<Object>> result = new ArrayList<>();
+        int index = 1; // 序号从1开始
+
+        for (Long deptId : departmentIds) {
+            Map<String, Double> categoryData = departmentDataMap.get(deptId);
+
+            List<Object> rowData = new ArrayList<>();
+            rowData.add(index++); // 序号
+            rowData.add(departmentNameMap.get(deptId)); // 部门名称
+            rowData.add(formatDouble(departmentTotalMap.get(deptId))); // 部门总用电量
+
+            result.add(new ArrayList<>(rowData)); // 确保每一行都是可变的
+        }
+
+        // 添加合计行
+        if (!result.isEmpty()) {
+            List<Object> totalRow = new ArrayList<>();
+            totalRow.add(""); // 序号列（空）
+            totalRow.add("合计"); // 部门列显示"合计"
+
+            // 计算部门总用电量合计
+            double departmentsTotal = result.stream()
+                    .mapToDouble(row -> {
+                        Object value = row.get(2); // 第3列是部门总用电量
+                        if (value instanceof Number) {
+                            return ((Number) value).doubleValue();
+                        } else if (value instanceof String) {
+                            try {
+                                return Double.parseDouble((String) value);
+                            } catch (NumberFormatException e) {
+                                return 0.0;
+                            }
+                        }
+                        return 0.0;
+                    })
+                    .sum();
+            totalRow.add(formatDouble(departmentsTotal)); // 部门总用电量合计
+            result.add(new ArrayList<>(totalRow)); // 确保合计行也是可变的
+        }
+
+        // 创建完全可变的副本
+        List<List<Object>> mutableResult = new ArrayList<>();
+        for (List<Object> row : result) {
+            mutableResult.add(new ArrayList<>(row));
+        }
+
+        return mutableResult;
     }
 
     @NotNull
