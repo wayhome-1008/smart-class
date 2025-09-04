@@ -41,11 +41,11 @@ public class ApiMonitorService {
         List<Device> devicesList = deviceService.getGateway();
         for (Device device : devicesList) {
             device.setDeviceLastDate(new Date());
+            device.setStatus(0);
             deviceRequestTimeMap.put(device.getDeviceCode(), device);
         }
         List<Device> mqttDevicesList = deviceService.listMqttDevices();
         for (Device device : mqttDevicesList) {
-//            device.setStatus(0);
             deviceMqttRequestTimeMap.put(device.getDeviceCode(), device);
         }
     }

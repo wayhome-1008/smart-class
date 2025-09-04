@@ -51,10 +51,18 @@ public class ReportSubDeviceHandler implements MsgHandler {
             if (gateway != null) {
                 gateway.setStatus(1);
                 redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, gateway);
-//                deviceService.updateById(gateway);
                 gateway.setDeviceLastDate(new java.util.Date());
                 deviceRequestTimeMap.put(deviceCode, gateway);
+                //还要根据网关查询出来该网关在子设备先全部离线后续再修改
+                List<Device> devices = deviceService.listGatewaySubDevices(gateway.getId());
+                for (Device device : devices) {
+                    if (device.getStatus() == 1) {
+                        device.setStatus(0);
+                        redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
+                    }
+                }
             }
+
             //对网关报道的设备设置在线 其余离线
             for (SubDevice subDevice : reportSubDevices) {
                 String originalMac = subDevice.getDeviceId();

@@ -109,7 +109,6 @@
         cmi.label AS communicationModeItemName,
         cmi.value AS communicationModeItemId,
         r.classroom_code AS roomName,
-        cdr.category_id,
         c.category_name AS categoryName
         FROM
         device d
