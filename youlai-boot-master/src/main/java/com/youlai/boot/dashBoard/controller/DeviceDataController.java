@@ -1173,6 +1173,9 @@ public class DeviceDataController {
         response.setHeader("Content-Disposition", "attachment; filename=" + URLEncoder.encode(fileName, StandardCharsets.UTF_8));
         PageResult<RoomsElectricityVO> roomsElectricityVOPageResult = electricityCalculationService.getRoomsElectricityVOPageResult(pageNum, pageSize, roomIds, startTime, endTime, range, categoryName, true); // true表示导出
         List<RoomsElectricityVO> list = roomsElectricityVOPageResult.getData().getList();
+        if (ObjectUtils.isNotEmpty(categoryName)) {
+            fileName = fileName + "(" + categoryName + ")";
+        }
         // 添加时间行
         String timeRow = "时间：" + startTime + " 至 " + endTime;
         List<String> headerList = new ArrayList<>();
@@ -1366,6 +1369,9 @@ public class DeviceDataController {
         response.setHeader("Content-Disposition", "attachment; filename=" + URLEncoder.encode(fileName, StandardCharsets.UTF_8));
         PageResult<DepartmentElectricityVO> departmentElectricityVOPageResult = getDepartmentElectricityVOPageResult(pageNum, pageSize, roomIds, startTime, endTime, range, categoryName, true); // true表示导出
         List<DepartmentElectricityVO> list = departmentElectricityVOPageResult.getData().getList();
+        if (ObjectUtils.isNotEmpty(categoryName)) {
+            fileName = fileName + "(" + categoryName + ")";
+        }
         // 添加时间行
         String timeRow = "时间：" + startTime + " 至 " + endTime;
         List<String> headerList = new ArrayList<>();

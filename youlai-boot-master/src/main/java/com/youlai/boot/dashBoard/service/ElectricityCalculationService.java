@@ -79,29 +79,12 @@ public class ElectricityCalculationService {
             List<Device> roomDevices = deviceService.listDevicesByCategoryAndRoomId(categoryId, roomId);
             double roomTotalElectricity = 0.0;
             for (Device device : roomDevices) {
-//                if (ObjectUtils.isNotEmpty(categoryDeviceRelationships)) {
-//                    // 检查当前设备是否在分类设备关系列表中
-//                    boolean deviceInCategory = categoryDeviceRelationships.stream()
-//                            .anyMatch(relation -> relation.getDeviceId().equals(device.getId()));
-//
-//                    // 如果设备不属于指定分类，则跳过
-//                    if (!deviceInCategory) {
-//                        continue;
-//                    }
-//                    Double deviceElectricity = calculateDeviceElectricity(
-//                            device.getDeviceCode(), range, startTime, endTime, roomId.toString());
-//                    if (deviceElectricity != null) {
-//                        roomTotalElectricity += deviceElectricity;
-//                    }
-//                } else {
                 Double deviceElectricity = calculateDeviceElectricity(
                         device.getDeviceCode(), range, startTime, endTime, roomId.toString());
                 if (deviceElectricity != null) {
                     roomTotalElectricity += deviceElectricity;
                 }
-//                }
             }
-
             return MathUtils.formatDouble(roomTotalElectricity);
         } catch (Exception e) {
             log.error("计算房间用电量失败 - roomId: {}, range: {}", roomId, range, e);
