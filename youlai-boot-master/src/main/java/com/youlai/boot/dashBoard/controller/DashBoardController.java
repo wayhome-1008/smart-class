@@ -895,7 +895,7 @@ public class DashBoardController {
         if (dataList == null || dataList.isEmpty()) {
             resultVO.setTime(times);
             resultVO.setValue(values);
-            return Arrays.asList(resultVO);
+            return List.of(resultVO);
         }
 
         // 按时间排序
@@ -906,7 +906,7 @@ public class DashBoardController {
             // 即使只有一条数据，也返回空的时间和值列表，而不是null
             resultVO.setTime(times);
             resultVO.setValue(values);
-            return Arrays.asList(resultVO);
+            return List.of(resultVO);
         }
 
         switch (timeUnit) {
