@@ -120,16 +120,13 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
             }
         }
         DeviceForm form = deviceConverter.toForm(entity);
-        //查询分类
-//        CategoryDeviceRelationship relationship = categoryDeviceRelationshipService.getByDeviceId(id);
-//        if (ObjectUtils.isNotEmpty(relationship)) {
-//            form.setCategoryId(relationship.getCategoryId());
         //查询分类名称
-        Category category = categoryService.getById(form.getCategoryId());
-        if (ObjectUtils.isNotEmpty(category)) {
-            form.setCategoryName(category.getCategoryName());
+        if (ObjectUtils.isNotEmpty(form.getCategoryId())) {
+            Category category = categoryService.getById(form.getCategoryId());
+            if (ObjectUtils.isNotEmpty(category)) {
+                form.setCategoryName(category.getCategoryName());
+            }
         }
-//        }
         return form;
     }
 
@@ -444,6 +441,14 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     public List<Device> listByCategoryId(Category category) {
         return this.list(new LambdaQueryWrapper<Device>()
                 .in(Device::getCategoryId, category.getId())
+                .eq(Device::getIsMaster, 1));
+    }
+
+    @Override
+    public List<Device> listDevicesByCategoryAndRoomId(Long categoryId, Long roomId) {
+        return this.list(new LambdaQueryWrapper<Device>()
+                .in(Device::getCategoryId, categoryId)
+                .eq(Device::getDeviceRoom, roomId)
                 .eq(Device::getIsMaster, 1));
     }
 

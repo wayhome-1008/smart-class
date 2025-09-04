@@ -14,10 +14,11 @@ import com.youlai.boot.category.model.form.CategoryForm;
 import com.youlai.boot.category.model.query.CategoryQuery;
 import com.youlai.boot.category.model.vo.CategoryVO;
 import com.youlai.boot.category.service.CategoryService;
-import com.youlai.boot.categoryDeviceRelationship.model.CategoryDeviceRelationship;
-import com.youlai.boot.categoryDeviceRelationship.service.CategoryDeviceRelationshipService;
 import com.youlai.boot.common.model.Option;
+import com.youlai.boot.device.mapper.DeviceMapper;
+import com.youlai.boot.device.model.entity.Device;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -35,7 +36,7 @@ import java.util.List;
 public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> implements CategoryService {
 
     private final CategoryConverter categoryConverter;
-    private final CategoryDeviceRelationshipService categoryDeviceRelationshipService;
+    private final DeviceMapper deviceMapper;
 
     /**
      * 获取分类管理分页列表
@@ -122,50 +123,14 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         List<Long> deviceIds = Arrays.stream(formData.getDeviceIds().split(","))
                 .map(Long::parseLong)
                 .toList();
-
-        // 3. 查询已存在的绑定关系
-        List<CategoryDeviceRelationship> existingBindings = categoryDeviceRelationshipService.list(
-                new LambdaQueryWrapper<CategoryDeviceRelationship>()
-                        .in(CategoryDeviceRelationship::getDeviceId, deviceIds)
-        );
-
-        // 4. 构建需要新增或更新的绑定关系
-        List<CategoryDeviceRelationship> relationshipsToSave = new ArrayList<>();
-        List<Long> existingDeviceIds = existingBindings.stream()
-                .map(CategoryDeviceRelationship::getDeviceId)
-                .toList();
-
-        // 5. 处理每个设备ID
-        for (Long deviceId : deviceIds) {
-            // 5.1 如果设备已绑定分类
-            if (existingDeviceIds.contains(deviceId)) {
-                // 找到对应的绑定关系
-                CategoryDeviceRelationship existingRelationship = existingBindings.stream()
-                        .filter(r -> r.getDeviceId().equals(deviceId))
-                        .findFirst()
-                        .orElse(null);
-
-                // 如果分类ID不同，则更新
-                if (existingRelationship != null &&
-                        !existingRelationship.getCategoryId().equals(formData.getCategoryId())) {
-                    existingRelationship.setCategoryId(formData.getCategoryId());
-                    relationshipsToSave.add(existingRelationship);
-                }
-            }
-            // 5.2 如果设备未绑定分类，则新增
-            else {
-                CategoryDeviceRelationship newRelationship = new CategoryDeviceRelationship();
-                newRelationship.setCategoryId(formData.getCategoryId());
-                newRelationship.setDeviceId(deviceId);
-                relationshipsToSave.add(newRelationship);
-            }
+        //3.查询所有设备
+        List<Device> devices = deviceMapper.selectBatchIds(deviceIds);
+        if (ObjectUtils.isNotEmpty(devices)) {
+            devices.forEach(device -> {
+                device.setCategoryId(formData.getCategoryId());
+                deviceMapper.updateById(device);
+            });
         }
-
-        // 6. 批量保存或更新绑定关系
-        if (!relationshipsToSave.isEmpty()) {
-            return categoryDeviceRelationshipService.saveOrUpdateBatch(relationshipsToSave);
-        }
-
         return true; // 没有需要更新的关系时也返回成功
     }
 

@@ -87,7 +87,6 @@ public class DashBoardController {
         // 1. 初始化结果对象
         CategoryElectricityVO result = new CategoryElectricityVO();
         List<CategoryElectricityVO.CategoryData> categoryDataList = new ArrayList<>();
-
         // 2. 获取所有分类
         List<Category> categories = categoryService.list();
         List<Category> categoriesAll = new ArrayList<>();
@@ -111,10 +110,8 @@ public class DashBoardController {
             if (!masterDevices.isEmpty()) {
                 CategoryElectricityVO.CategoryData data = new CategoryElectricityVO.CategoryData();
                 data.setCategoryName(category.getCategoryName());
-
                 // 初始化总值列表，用于累加所有设备的数据
                 List<Double> totalValues = null;
-
                 // 遍历所有主设备，获取并累加数据
                 for (Device masterDevice : masterDevices) {
                     List<InfluxMqttPlugVO> deviceDataList = querySingleDevice(masterDevice, 1L, "w", "1d");
@@ -145,7 +142,6 @@ public class DashBoardController {
                 categoryDataList.add(data);
             }
         }
-//        }
         result.setData(categoryDataList);
         return Result.success(result);
     }
@@ -751,7 +747,6 @@ public class DashBoardController {
                 // 没有找到设备
                 return Result.success(new ArrayList<>());
             }
-
             return Result.success(result);
 
         } catch (InfluxException e) {
@@ -780,7 +775,6 @@ public class DashBoardController {
                     .pivot()
                     .fill()
                     .sort("_time", InfluxQueryBuilder.SORT_ASC);
-
             // 添加过滤条件
             if (StringUtils.isNotBlank(device.getDeviceCode())) {
                 builder.tag("deviceCode", device.getDeviceCode());
@@ -790,16 +784,13 @@ public class DashBoardController {
             }
             // 应用窗口聚合
             builder.window(windowSize, "last");
-
             String fluxQuery = builder.build();
             log.info("单设备数据查询语句: {}", fluxQuery);
-
             // 查询原始数据
             List<InfluxMqttPlug> dataList = influxDBClient.getQueryApi()
                     .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
             // 转换为VO对象
             return convertToVOWithDifferences(dataList, timeUnit);
-
         } catch (Exception e) {
             log.error("查询单设备数据失败", e);
             // 发生异常时返回空的结果而不是null
@@ -852,13 +843,15 @@ public class DashBoardController {
                 }
             }
         }
-
         // 创建结果对象
         InfluxMqttPlugVO result = new InfluxMqttPlugVO();
+        List<Double> formatTotalValues = new ArrayList<>();
         result.setTime(times);
-        result.setValue(totalValues);
-
-        return Arrays.asList(result);
+        for (Double totalValue : totalValues) {
+            formatTotalValues.add(formatDouble(totalValue));
+        }
+        result.setValue(formatTotalValues);
+        return List.of(result);
     }
 
 
@@ -926,11 +919,11 @@ public class DashBoardController {
                     if (i == 62) {
                         Double lastTotal = formatDouble(getTotalFromData(dataList, dataList.size() - 1));
                         Double secondLastTotal = formatDouble(getTotalFromData(dataList, dataList.size() - 2));
-                        values.add(electricityCalculationService.calculateDifference(lastTotal, secondLastTotal));
+                        values.add(formatDouble(electricityCalculationService.calculateDifference(lastTotal, secondLastTotal)));
                     } else {
                         Double currentTotal = formatDouble(getTotalFromData(dataList, i));
                         Double nextTotal = formatDouble(getTotalFromData(dataList, i + 1));
-                        values.add(electricityCalculationService.calculateDifference(nextTotal, currentTotal));
+                        values.add(formatDouble(electricityCalculationService.calculateDifference(nextTotal, currentTotal)));
                     }
                 }
                 break;
@@ -944,11 +937,11 @@ public class DashBoardController {
                     if (i == 23) {
                         Double lastTotal = formatDouble(getTotalFromData(dataList, dataList.size() - 1));
                         Double secondLastTotal = formatDouble(getTotalFromData(dataList, dataList.size() - 2));
-                        values.add(electricityCalculationService.calculateDifference(lastTotal, secondLastTotal));
+                        values.add(formatDouble(electricityCalculationService.calculateDifference(lastTotal, secondLastTotal)));
                     } else {
                         Double currentTotal = formatDouble(getTotalFromData(dataList, i));
                         Double nextTotal = formatDouble(getTotalFromData(dataList, i + 1));
-                        values.add(electricityCalculationService.calculateDifference(nextTotal, currentTotal));
+                        values.add(formatDouble(electricityCalculationService.calculateDifference(nextTotal, currentTotal)));
                     }
                 }
                 break;
@@ -964,11 +957,11 @@ public class DashBoardController {
                     if (i == 6) {
                         Double lastTotal = formatDouble(getTotalFromData(dataList, dataList.size() - 1));
                         Double secondLastTotal = formatDouble(getTotalFromData(dataList, dataList.size() - 2));
-                        values.add(electricityCalculationService.calculateDifference(lastTotal, secondLastTotal));
+                        values.add(formatDouble(electricityCalculationService.calculateDifference(lastTotal, secondLastTotal)));
                     } else {
                         Double currentTotal = formatDouble(getTotalFromData(dataList, i));
                         Double nextTotal = formatDouble(getTotalFromData(dataList, i + 1));
-                        values.add(electricityCalculationService.calculateDifference(nextTotal, currentTotal));
+                        values.add(formatDouble(electricityCalculationService.calculateDifference(nextTotal, currentTotal)));
                     }
                 }
                 break;
@@ -982,11 +975,11 @@ public class DashBoardController {
                     if (i == 29) {
                         Double lastTotal = formatDouble(getTotalFromData(dataList, dataList.size() - 1));
                         Double secondLastTotal = formatDouble(getTotalFromData(dataList, dataList.size() - 2));
-                        values.add(electricityCalculationService.calculateDifference(lastTotal, secondLastTotal));
+                        values.add(formatDouble(electricityCalculationService.calculateDifference(lastTotal, secondLastTotal)));
                     } else {
                         Double currentTotal = formatDouble(getTotalFromData(dataList, i));
                         Double nextTotal = formatDouble(getTotalFromData(dataList, i + 1));
-                        values.add(electricityCalculationService.calculateDifference(nextTotal, currentTotal));
+                        values.add(formatDouble(electricityCalculationService.calculateDifference(nextTotal, currentTotal)));
                     }
                 }
                 break;
@@ -1005,11 +998,11 @@ public class DashBoardController {
                     if (i == 11) {
                         Double last = formatDouble(getTotalFromData(dataList, dataList.size() - 1));
                         Double pre = formatDouble(getTotalFromData(dataList, dataList.size() - 3));
-                        values.add(electricityCalculationService.calculateDifference(last, pre));
+                        values.add(formatDouble(electricityCalculationService.calculateDifference(last, pre)));
                     } else {
                         Double currentTotal = formatDouble(getTotalFromData(dataList, i));
                         Double nextTotal = formatDouble(getTotalFromData(dataList, i + 1));
-                        values.add(electricityCalculationService.calculateDifference(nextTotal, currentTotal));
+                        values.add(formatDouble(electricityCalculationService.calculateDifference(nextTotal, currentTotal)));
                     }
                 }
                 break;
@@ -1021,7 +1014,7 @@ public class DashBoardController {
         resultVO.setTime(times);
         resultVO.setValue(values);
 
-        return Arrays.asList(resultVO);
+        return List.of(resultVO);
     }
 
     /**

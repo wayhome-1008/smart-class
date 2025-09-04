@@ -108,4 +108,6 @@ public interface DeviceService extends IService<Device> {
     List<Option<String>> listMetricByCode(String code);
 
     List<Device> listByCategoryId(Category category);
+
+    List<Device> listDevicesByCategoryAndRoomId(Long categoryId, Long roomId);
 }

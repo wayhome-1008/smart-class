@@ -103,6 +103,7 @@
         d.icon,
         d.remark,
         d.device_no,
+        d.category_id,
         d.device_type_id AS deviceTypeId,
         dt.device_type,
         cmi.label AS communicationModeItemName,
@@ -116,8 +117,7 @@
         LEFT JOIN sys_dict_item cmi ON d.communication_mode_item_id = cmi.value
         AND cmi.dict_code = 'communication_mode'
         LEFT JOIN room r ON d.device_room = r.id
-        LEFT JOIN category_device_relationship cdr ON d.id = cdr.device_id
-        LEFT JOIN category c ON cdr.category_id = c.id
+        LEFT JOIN category c ON d.category_id = c.id
         <where>
             AND d.is_deleted = 0
             <if test="queryParams.id != null and queryParams.id != ''">

@@ -2,13 +2,10 @@ package com.youlai.boot.device.controller;
 
 import cn.hutool.core.util.RandomUtil;
 import com.alibaba.fastjson.JSON;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.youlai.boot.category.model.entity.Category;
 import com.youlai.boot.category.service.CategoryService;
-import com.youlai.boot.categoryDeviceRelationship.model.CategoryDeviceRelationship;
-import com.youlai.boot.categoryDeviceRelationship.service.CategoryDeviceRelationshipService;
 import com.youlai.boot.common.annotation.Log;
 import com.youlai.boot.common.base.BasePageQuery;
 import com.youlai.boot.common.constant.RedisConstants;
@@ -75,7 +72,6 @@ public class DeviceController {
     private final MqttProducer mqttProducer;
     private final MqttCallback mqttCallback;
     private final DeviceConverter deviceConverter;
-    private final CategoryDeviceRelationshipService categoryDeviceRelationshipService;
     private final CategoryService categoryService;
     private final RoomService roomService;
 
@@ -166,7 +162,7 @@ public class DeviceController {
         if (ObjectUtils.isEmpty(masterPage.getRecords())) {
             return PageResult.success(new Page<>());
         }
-// 2. 获取房间ID列表（优先使用传入的roomIds过滤）
+        // 2. 获取房间ID列表（优先使用传入的roomIds过滤）
         List<Long> roomIds;
         if (StringUtils.isNotEmpty(queryParams.getRoomIds())) {
             // 如果传入了roomIds参数，只处理这些房间
@@ -181,10 +177,7 @@ public class DeviceController {
                     .distinct()
                     .collect(Collectors.toList());
         }
-        // 3. 查询房间的信息
-        Map<Long, Room> roomMap = roomService.listByIds(roomIds).stream()
-                .collect(Collectors.toMap(Room::getId, room -> room));
-        // 4. 过滤设备 - 只保留指定房间的设备
+        // 3. 过滤设备 - 只保留指定房间的设备
         List<Device> filteredDevices = masterPage.getRecords().stream()
                 .filter(device -> roomIds.contains(device.getDeviceRoom()))
                 .toList();
@@ -192,40 +185,35 @@ public class DeviceController {
         if (filteredDevices.isEmpty()) {
             return PageResult.success(new Page<>());
         }
-        // 3. 获取设备ID列表
-        List<Long> deviceIds = filteredDevices.stream()
-                .map(Device::getId)
-                .collect(Collectors.toList());
-
-        // 4. 查询设备分类关系并过滤掉分类ID为null的记录
-        List<CategoryDeviceRelationship> relationships = categoryDeviceRelationshipService.listByDeviceIds(deviceIds)
-                .stream()
-                .filter(r -> r.getCategoryId() != null)
-                .toList();
-        // 5. 构建设备到分类关系的映射
-        Map<Long, Long> deviceToCategoryMap = relationships.stream()
-                .collect(Collectors.toMap(
-                        CategoryDeviceRelationship::getDeviceId,
-                        CategoryDeviceRelationship::getCategoryId,
-                        (existing, replacement) -> existing
-                ));
-        // 6. 获取所有分类ID并查询分类信息
-        List<Long> categoryIds = relationships.stream()
-                .map(CategoryDeviceRelationship::getCategoryId)
+        // 4. 获取所有分类ID并查询分类信息
+        List<Long> categoryIds = filteredDevices.stream()
+                .map(Device::getCategoryId)  // 直接从Device实体获取categoryId
+                .filter(Objects::nonNull)     // 过滤掉null值
                 .distinct()
                 .collect(Collectors.toList());
-        if (categoryIds.isEmpty()) {
-            return PageResult.success(new Page<>());
+        Map<Long, Category> categoryMap = new HashMap<>();
+        if (!categoryIds.isEmpty()) {
+            categoryMap.putAll(categoryService.listByIds(categoryIds).stream()
+                    .collect(Collectors.toMap(Category::getId, category -> category)));
         }
-        Map<Long, Category> categoryMap = categoryService.listByIds(categoryIds).stream()
-                .collect(Collectors.toMap(Category::getId, category -> category));
-        // 7. 构建返回结果
+        // 5. 查询房间信息
+        List<Long> finalRoomIds = filteredDevices.stream()
+                .map(Device::getDeviceRoom)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Long, Room> roomMap = new HashMap<>();
+        if (!finalRoomIds.isEmpty()) {
+            roomMap.putAll(roomService.listByIds(finalRoomIds).stream()
+                    .collect(Collectors.toMap(Room::getId, room -> room)));
+        }
+        // 6. 构建返回结果
         List<DeviceMasterVO> deviceMasterVOList = filteredDevices.stream().map(masterDevice -> {
             DeviceMasterVO vo = new DeviceMasterVO();
             vo.setDeviceName(masterDevice.getDeviceName());
             vo.setDeviceId(masterDevice.getId());
             vo.setDeviceCode(masterDevice.getDeviceCode());
-            // 设置房间内信息
+            // 设置房间信息
             if (masterDevice.getDeviceRoom() != null) {
                 Room room = roomMap.get(masterDevice.getDeviceRoom());
                 if (room != null) {
@@ -233,17 +221,15 @@ public class DeviceController {
                     vo.setId(room.getId());
                 }
             }
-            // 设置分类信息
-            Long categoryId = deviceToCategoryMap.get(masterDevice.getId());
-            if (categoryId != null) {
-                Category category = categoryMap.get(categoryId);
+            // 设置分类信息（直接从Device实体获取）
+            if (masterDevice.getCategoryId() != null) {
+                Category category = categoryMap.get(masterDevice.getCategoryId());
                 if (category != null) {
                     vo.setCategoryName(category.getCategoryName());
                 } else {
                     vo.setCategoryName("未分类");
                 }
             } else {
-                // 没有分类关系，设置默认值
                 vo.setCategoryName("未分类");
             }
             return vo;
@@ -335,13 +321,6 @@ public class DeviceController {
         }
         if (result) {
             redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, formData.getDeviceCode(), deviceService.getById(formData.getId()));
-            //处理category
-            if (formData.getCategoryId() != null) {
-                CategoryDeviceRelationship categoryDeviceRelationship = new CategoryDeviceRelationship();
-                categoryDeviceRelationship.setCategoryId(formData.getCategoryId());
-                categoryDeviceRelationship.setDeviceId(formData.getId());
-                categoryDeviceRelationshipService.save(categoryDeviceRelationship);
-            }
         }
         return Result.judge(result);
     }
@@ -367,44 +346,6 @@ public class DeviceController {
         boolean result = deviceService.updateDevice(id, formData);
         //更新缓存
         redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, formData.getDeviceCode(), deviceService.getById(id));
-        // 处理设备分类关系
-        if (formData.getCategoryId() != null) {
-            // 1. 查询设备当前的分类关系
-            CategoryDeviceRelationship relationship = categoryDeviceRelationshipService.getOne(
-                    new LambdaQueryWrapper<CategoryDeviceRelationship>()
-                            .eq(CategoryDeviceRelationship::getDeviceId, id)
-            );
-
-            // 2. 如果已存在分类关系
-            if (ObjectUtils.isNotEmpty(relationship)) {
-                // 2.1 分类ID不同则更新
-                if (!relationship.getCategoryId().equals(formData.getCategoryId())) {
-                    categoryDeviceRelationshipService.removeById(relationship);
-                    CategoryDeviceRelationship newRelationship = new CategoryDeviceRelationship();
-                    newRelationship.setCategoryId(formData.getCategoryId());
-                    newRelationship.setDeviceId(id);
-                    categoryDeviceRelationshipService.save(newRelationship);
-                }
-                // 2.2 分类ID相同则不做处理
-            }
-            // 3. 不存在分类关系则新增
-            else {
-                CategoryDeviceRelationship newRelationship = new CategoryDeviceRelationship();
-                newRelationship.setCategoryId(formData.getCategoryId());
-                newRelationship.setDeviceId(id);
-                categoryDeviceRelationshipService.save(newRelationship);
-            }
-        }
-// 4. 取消绑定分类(分类ID为null)
-        else {
-            CategoryDeviceRelationship relationship = categoryDeviceRelationshipService.getOne(
-                    new LambdaQueryWrapper<CategoryDeviceRelationship>()
-                            .eq(CategoryDeviceRelationship::getDeviceId, id)
-            );
-            if (ObjectUtils.isNotEmpty(relationship)) {
-                categoryDeviceRelationshipService.removeById(relationship);
-            }
-        }
         return Result.judge(result);
     }
 
@@ -465,8 +406,6 @@ public class DeviceController {
             if (result) {
                 //删除的同时清缓存
                 redisTemplate.opsForHash().delete(RedisConstants.Device.DEVICE, device.getDeviceCode());
-                //删除关系表
-                categoryDeviceRelationshipService.remove(new LambdaQueryWrapper<CategoryDeviceRelationship>().eq(CategoryDeviceRelationship::getDeviceId, device.getId()));
             }
         }
         return Result.judge(result);

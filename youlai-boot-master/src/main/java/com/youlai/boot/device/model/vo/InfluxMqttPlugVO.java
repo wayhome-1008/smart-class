@@ -12,5 +12,6 @@ import java.util.List;
 @Data
 public class InfluxMqttPlugVO {
     private List<String> time;  // 时间戳
+
     private List<Double> value; // 指标值
 }

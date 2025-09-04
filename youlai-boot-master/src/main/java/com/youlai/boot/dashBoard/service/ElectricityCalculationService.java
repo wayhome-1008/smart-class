@@ -5,8 +5,6 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.youlai.boot.category.model.entity.Category;
 import com.youlai.boot.category.service.CategoryService;
-import com.youlai.boot.categoryDeviceRelationship.model.CategoryDeviceRelationship;
-import com.youlai.boot.categoryDeviceRelationship.service.CategoryDeviceRelationshipService;
 import com.youlai.boot.common.result.PageResult;
 import com.youlai.boot.common.util.InfluxQueryBuilder;
 import com.youlai.boot.common.util.MathUtils;
@@ -48,7 +46,6 @@ public class ElectricityCalculationService {
     private final DeviceService deviceService;
     private final RoomService roomService;
     private final CategoryService categoryService;
-    private final CategoryDeviceRelationshipService categoryDeviceRelationshipService;
 
     /**
      * 计算设备用电量
@@ -79,36 +76,30 @@ public class ElectricityCalculationService {
     public Double calculateRoomElectricity(Long roomId, String range, String startTime, String endTime, Long categoryId) {
         try {
             // 获取房间内所有主设备
-            List<Device> roomDevices = deviceService.list(new QueryWrapper<Device>()
-                    .eq("device_room", roomId)
-                    .eq("is_master", 1));
-            List<CategoryDeviceRelationship> categoryDeviceRelationships = new ArrayList<>();
-            if (ObjectUtils.isNotEmpty(categoryId)) {
-                categoryDeviceRelationships = categoryDeviceRelationshipService.listByCategoryId(categoryId);
-            }
+            List<Device> roomDevices = deviceService.listDevicesByCategoryAndRoomId(categoryId, roomId);
             double roomTotalElectricity = 0.0;
             for (Device device : roomDevices) {
-                if (ObjectUtils.isNotEmpty(categoryDeviceRelationships)) {
-                    // 检查当前设备是否在分类设备关系列表中
-                    boolean deviceInCategory = categoryDeviceRelationships.stream()
-                            .anyMatch(relation -> relation.getDeviceId().equals(device.getId()));
-
-                    // 如果设备不属于指定分类，则跳过
-                    if (!deviceInCategory) {
-                        continue;
-                    }
-                    Double deviceElectricity = calculateDeviceElectricity(
-                            device.getDeviceCode(), range, startTime, endTime, roomId.toString());
-                    if (deviceElectricity != null) {
-                        roomTotalElectricity += deviceElectricity;
-                    }
-                } else {
-                    Double deviceElectricity = calculateDeviceElectricity(
-                            device.getDeviceCode(), range, startTime, endTime, roomId.toString());
-                    if (deviceElectricity != null) {
-                        roomTotalElectricity += deviceElectricity;
-                    }
+//                if (ObjectUtils.isNotEmpty(categoryDeviceRelationships)) {
+//                    // 检查当前设备是否在分类设备关系列表中
+//                    boolean deviceInCategory = categoryDeviceRelationships.stream()
+//                            .anyMatch(relation -> relation.getDeviceId().equals(device.getId()));
+//
+//                    // 如果设备不属于指定分类，则跳过
+//                    if (!deviceInCategory) {
+//                        continue;
+//                    }
+//                    Double deviceElectricity = calculateDeviceElectricity(
+//                            device.getDeviceCode(), range, startTime, endTime, roomId.toString());
+//                    if (deviceElectricity != null) {
+//                        roomTotalElectricity += deviceElectricity;
+//                    }
+//                } else {
+                Double deviceElectricity = calculateDeviceElectricity(
+                        device.getDeviceCode(), range, startTime, endTime, roomId.toString());
+                if (deviceElectricity != null) {
+                    roomTotalElectricity += deviceElectricity;
                 }
+//                }
             }
 
             return MathUtils.formatDouble(roomTotalElectricity);
@@ -757,6 +748,7 @@ public class ElectricityCalculationService {
             return new ArrayList<>();
         }
     }
+
     // 辅助方法
     public double calculateDifference(Double next, Double current) {
         if (next == null || current == null) {

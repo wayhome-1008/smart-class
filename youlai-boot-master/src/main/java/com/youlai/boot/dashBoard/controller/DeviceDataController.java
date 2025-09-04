@@ -12,8 +12,6 @@ import com.youlai.boot.building.model.entity.Building;
 import com.youlai.boot.building.service.BuildingService;
 import com.youlai.boot.category.model.entity.Category;
 import com.youlai.boot.category.service.CategoryService;
-import com.youlai.boot.categoryDeviceRelationship.model.CategoryDeviceRelationship;
-import com.youlai.boot.categoryDeviceRelationship.service.CategoryDeviceRelationshipService;
 import com.youlai.boot.common.model.Option;
 import com.youlai.boot.common.result.PageResult;
 import com.youlai.boot.common.result.Result;
@@ -78,7 +76,6 @@ import static com.youlai.boot.dashBoard.excel.DepartmentElectricitySheetWriteHan
 public class DeviceDataController {
     private final CategoryService categoryService;
     private final ConfigService configService;
-    private final CategoryDeviceRelationshipService categoryDeviceRelationshipService;
     private final DeviceService deviceService;
     private final InfluxDBProperties influxDBProperties;
     private final com.influxdb.client.InfluxDBClient influxDBClient;
@@ -381,15 +378,6 @@ public class DeviceDataController {
         response.setHeader("Content-Disposition", "attachment; filename=" + URLEncoder.encode(firstRow, StandardCharsets.UTF_8));
         PageResult<DepartmentCategoryElectricityInfoVO> departmentElectricityVOPageResult = getDepartmentCategoryElectricityInfoVOPageResult(pageNum, pageSize, range, startTime, endTime, null, roomIds);
         List<DepartmentCategoryElectricityInfoVO> list = departmentElectricityVOPageResult.getData().getList();
-//        List<RoomsElectricityVO> roomsElectricityVOList = new ArrayList<>();
-//        for (DepartmentCategoryElectricityInfoVO departmentCategoryElectricityInfoVO : list) {
-//            RoomsElectricityVO roomsElectricityVO = new RoomsElectricityVO();
-//            roomsElectricityVO.setRoomId(departmentCategoryElectricityInfoVO.getRoomId());
-//            roomsElectricityVO.setRoomName(departmentCategoryElectricityInfoVO.getRoomName());
-//            roomsElectricityVO.setTotalElectricity(departmentCategoryElectricityInfoVO.getRoomTotalElectricity());
-//            roomsElectricityVO.setCategoryName(departmentCategoryElectricityInfoVO.getCategoryName());
-//            roomsElectricityVOList.add(roomsElectricityVO);
-//        }
 // 获取所有唯一的分类名称
         List<String> categoryNames = list.stream()
                 .map(DepartmentCategoryElectricityInfoVO::getCategoryName)
@@ -878,100 +866,86 @@ public class DeviceDataController {
 
             // 3. 查询各分类用电量
             for (Category category : validCategories) {
-                // 获取分类下的设备关系
-                List<CategoryDeviceRelationship> relationships =
-                        categoryDeviceRelationshipService.listByCategoryId(category.getId());
+                //根据categoryId、roomId查询设备
+                List<Device> roomDevices = deviceService.listDevicesByCategoryAndRoomId(category.getId(), roomId);
+                if (!roomDevices.isEmpty()) {
+                    // 计算该分类下该房间设备的总用电量
+                    double categoryTotalElectricity = 0.0;
+                    Instant categoryEarliestOnTime = null;
+                    Instant categoryLatestOffTime = null;
 
-                if (!ObjectUtils.isEmpty(relationships)) {
-                    List<Long> deviceIds = relationships.stream()
-                            .map(CategoryDeviceRelationship::getDeviceId)
-                            .collect(Collectors.toList());
+                    // 为昨天或今天查询时，收集开关时间信息
+                    if ("today".equals(range) || "yesterday".equals(range)) {
+                        List<Instant> onTimes = new ArrayList<>();
+                        List<Instant> offTimes = new ArrayList<>();
 
-                    // 筛选出该房间下的设备
-                    List<Device> roomDevices = deviceService.listByIds(deviceIds).stream()
-                            .filter(device -> device.getIsMaster() == 1 &&
-                                    device.getDeviceRoom() != null &&
-                                    device.getDeviceRoom().equals(roomId))
-                            .toList();
+                        for (Device device : roomDevices) {
+                            SwitchTimeInfo switchTimeInfo = queryDeviceSwitchTimes(
+                                    device.getDeviceCode(), range);
 
-                    if (!roomDevices.isEmpty()) {
-                        // 计算该分类下该房间设备的总用电量
-                        double categoryTotalElectricity = 0.0;
-                        Instant categoryEarliestOnTime = null;
-                        Instant categoryLatestOffTime = null;
-
-                        // 为昨天或今天查询时，收集开关时间信息
-                        if ("today".equals(range) || "yesterday".equals(range)) {
-                            List<Instant> onTimes = new ArrayList<>();
-                            List<Instant> offTimes = new ArrayList<>();
-
-                            for (Device device : roomDevices) {
-                                SwitchTimeInfo switchTimeInfo = queryDeviceSwitchTimes(
-                                        device.getDeviceCode(), range);
-
-                                if (switchTimeInfo.getEarliestOnTime() != null) {
-                                    onTimes.add(switchTimeInfo.getEarliestOnTime());
-                                }
-
-                                if (switchTimeInfo.getLatestOffTime() != null) {
-                                    offTimes.add(switchTimeInfo.getLatestOffTime());
-                                }
-
-                                DeviceElectricityDataVO deviceData = getDeviceElectricityByRange(
-                                        device.getDeviceCode(), range, startTime, endTime, roomId.toString());
-                                if (deviceData != null && deviceData.getTotalElectricity() != null) {
-                                    categoryTotalElectricity += deviceData.getTotalElectricity();
-                                }
+                            if (switchTimeInfo.getEarliestOnTime() != null) {
+                                onTimes.add(switchTimeInfo.getEarliestOnTime());
                             }
 
-                            // 从所有设备中选择最早的开启时间和最晚的关闭时间
-                            if (!onTimes.isEmpty()) {
-                                categoryEarliestOnTime = onTimes.stream()
-                                        .min(Instant::compareTo)
-                                        .orElse(null);
+                            if (switchTimeInfo.getLatestOffTime() != null) {
+                                offTimes.add(switchTimeInfo.getLatestOffTime());
                             }
 
-                            if (!offTimes.isEmpty()) {
-                                categoryLatestOffTime = offTimes.stream()
-                                        .max(Instant::compareTo)
-                                        .orElse(null);
-                            }
-                        } else {
-                            // 非今天或昨天的查询，只计算用电量
-                            for (Device device : roomDevices) {
-                                DeviceElectricityDataVO deviceData = getDeviceElectricityByRange(
-                                        device.getDeviceCode(), range, startTime, endTime, roomId.toString());
-                                if (deviceData != null && deviceData.getTotalElectricity() != null) {
-                                    categoryTotalElectricity += deviceData.getTotalElectricity();
-                                }
+                            DeviceElectricityDataVO deviceData = getDeviceElectricityByRange(
+                                    device.getDeviceCode(), range, startTime, endTime, roomId.toString());
+                            if (deviceData != null && deviceData.getTotalElectricity() != null) {
+                                categoryTotalElectricity += deviceData.getTotalElectricity();
                             }
                         }
 
-                        if (categoryTotalElectricity > 0 || categoryEarliestOnTime != null || categoryLatestOffTime != null) {
-                            CategoryElectricityInfoVO categoryVO = new CategoryElectricityInfoVO();
-                            categoryVO.setCategoryId(category.getId());
-                            categoryVO.setCategoryName(category.getCategoryName());
-                            categoryVO.setTotalElectricity(MathUtils.formatDouble(categoryTotalElectricity));
-                            categoryVO.setDeviceCount(roomDevices.size());
+                        // 从所有设备中选择最早的开启时间和最晚的关闭时间
+                        if (!onTimes.isEmpty()) {
+                            categoryEarliestOnTime = onTimes.stream()
+                                    .min(Instant::compareTo)
+                                    .orElse(null);
+                        }
 
-                            // 设置开关时间信息
-                            if (categoryEarliestOnTime != null) {
-                                String formattedStartTime = categoryEarliestOnTime
-                                        .atZone(ZoneId.systemDefault())
-                                        .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-                                categoryVO.setStartTime(formattedStartTime);
+                        if (!offTimes.isEmpty()) {
+                            categoryLatestOffTime = offTimes.stream()
+                                    .max(Instant::compareTo)
+                                    .orElse(null);
+                        }
+                    } else {
+                        // 非今天或昨天的查询，只计算用电量
+                        for (Device device : roomDevices) {
+                            DeviceElectricityDataVO deviceData = getDeviceElectricityByRange(
+                                    device.getDeviceCode(), range, startTime, endTime, roomId.toString());
+                            if (deviceData != null && deviceData.getTotalElectricity() != null) {
+                                categoryTotalElectricity += deviceData.getTotalElectricity();
                             }
-                            if (categoryLatestOffTime != null) {
-                                String formattedEndTime = categoryLatestOffTime
-                                        .atZone(ZoneId.systemDefault())
-                                        .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-                                categoryVO.setEndTime(formattedEndTime);
-                            }
-
-                            result.add(categoryVO);
                         }
                     }
+
+                    if (categoryTotalElectricity > 0 || categoryEarliestOnTime != null || categoryLatestOffTime != null) {
+                        CategoryElectricityInfoVO categoryVO = new CategoryElectricityInfoVO();
+                        categoryVO.setCategoryId(category.getId());
+                        categoryVO.setCategoryName(category.getCategoryName());
+                        categoryVO.setTotalElectricity(MathUtils.formatDouble(categoryTotalElectricity));
+                        categoryVO.setDeviceCount(roomDevices.size());
+
+                        // 设置开关时间信息
+                        if (categoryEarliestOnTime != null) {
+                            String formattedStartTime = categoryEarliestOnTime
+                                    .atZone(ZoneId.systemDefault())
+                                    .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                            categoryVO.setStartTime(formattedStartTime);
+                        }
+                        if (categoryLatestOffTime != null) {
+                            String formattedEndTime = categoryLatestOffTime
+                                    .atZone(ZoneId.systemDefault())
+                                    .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                            categoryVO.setEndTime(formattedEndTime);
+                        }
+
+                        result.add(categoryVO);
+                    }
                 }
+
             }
 
         } catch (Exception e) {
