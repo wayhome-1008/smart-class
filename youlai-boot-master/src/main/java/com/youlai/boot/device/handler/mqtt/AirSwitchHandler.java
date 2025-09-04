@@ -29,6 +29,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import static com.youlai.boot.common.util.JsonUtils.mergeJson;
@@ -60,6 +61,7 @@ public class AirSwitchHandler implements MsgHandler {
         String deviceCode = getCodeByTopic(topic);
         // 2. 获取设备信息（缓存优先）
         Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
+        boolean isSwitch = false;
         if (ObjectUtils.isNotEmpty(device)) {
             // 更新设备在线状态
             deviceStatusManager.updateDeviceOnlineStatus(deviceCode, device, deviceService);
@@ -69,6 +71,15 @@ public class AirSwitchHandler implements MsgHandler {
             int power = jsonNode.get("power").asInt();
             double total = jsonNode.get("electricDegree").asDouble();
             boolean relayState = jsonNode.get("relayState").asBoolean();
+            //此处对开关上次及本次状态进行对比
+            if (ObjectUtils.isNotEmpty(device)) {
+                if (device.getDeviceInfo().has("switch1")) {
+                    String lastSwitchState = device.getDeviceInfo().get("switch1").asText();
+                    if (!Objects.equals(lastSwitchState, relayState ? "ON" : "OFF")) {
+                        isSwitch = true;
+                    }
+                }
+            }
             metrics.put("voltage", voltageA);
             metrics.put("current", current);
             metrics.put("power", power);
@@ -98,7 +109,9 @@ public class AirSwitchHandler implements MsgHandler {
             influxPlug.setCategoryId(device.getCategoryId().toString());
             //tag为设备编号
             influxPlug.setDeviceCode(device.getDeviceCode());
-            influxPlug.setSwitchState(metrics.get("switch1").asText());
+            if (isSwitch) {
+                influxPlug.setSwitchState(metrics.get("switch1").asText());
+            }
             //tag为房间id
             influxPlug.setRoomId(device.getDeviceRoom().toString());
             influxPlug.setDeviceType(String.valueOf(device.getDeviceTypeId()));

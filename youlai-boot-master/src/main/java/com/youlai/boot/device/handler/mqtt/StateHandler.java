@@ -23,6 +23,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.Iterator;
+import java.util.Objects;
 import java.util.Optional;
 
 import static com.youlai.boot.common.util.JsonUtils.mergeJson;
@@ -75,6 +76,7 @@ public class StateHandler implements MsgHandler {
             JsonNode jsonNode = stringToJsonNode(jsonMsg);
             String deviceCode = getCodeByTopic(topic);
             Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
+            boolean isSwitch = false;
             if (ObjectUtils.isNotEmpty(device)) {
                 String power = jsonNode.get("POWER").asText();
                 ObjectNode metrics = JsonNodeFactory.instance.objectNode();
@@ -104,6 +106,15 @@ public class StateHandler implements MsgHandler {
 }
                  **/
                 metrics.put("count", 1);
+                //此处对开关上次及本次状态进行对比
+                if (ObjectUtils.isNotEmpty(device)) {
+                    if (device.getDeviceInfo().has("switch1")) {
+                        String lastSwitchState = device.getDeviceInfo().get("switch1").asText();
+                        if (!Objects.equals(lastSwitchState, power)) {
+                            isSwitch = true;
+                        }
+                    }
+                }
                 metrics.put("switch1", power);
                 //创建influx数据
                 InfluxMqttPlug influxPlug = new InfluxMqttPlug();
@@ -112,7 +123,9 @@ public class StateHandler implements MsgHandler {
                 influxPlug.setDeviceCode(device.getDeviceCode());
                 influxPlug.setRoomId(device.getDeviceRoom().toString());
                 influxPlug.setDeviceType(String.valueOf(device.getDeviceTypeId()));
-                influxPlug.setSwitchState(power);
+                if (isSwitch) {
+                    influxPlug.setSwitchState(power);
+                }
                 influxDBClient.getWriteApiBlocking().writeMeasurement(
                         influxProperties.getBucket(),
                         influxProperties.getOrg(),

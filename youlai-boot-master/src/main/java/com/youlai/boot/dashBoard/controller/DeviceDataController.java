@@ -803,7 +803,7 @@ public class DeviceDataController {
                     .range(startTime, endTime);
 
             String offFluxQuery = offBuilder.build();
-            log.debug("查询设备最晚关闭时间 - 设备编码: {}, 查询语句: {}", deviceCode, offFluxQuery);
+            log.info("查询设备最晚关闭时间 - 设备编码: {}, 查询语句: {}", deviceCode, offFluxQuery);
 
             List<InfluxMqttPlug> offResults = influxDBClient.getQueryApi()
                     .query(offFluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);

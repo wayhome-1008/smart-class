@@ -59,6 +59,7 @@ public class SubUpdateHandler implements MsgHandler {
     private final SceneExecuteService sceneExecuteService;
     private final SceneService sceneService;
     private final DeviceStatusManager deviceStatusManager;
+
     /**
      * @description: zigBee设备统一分处理方法
      * @author: way
@@ -197,7 +198,6 @@ public class SubUpdateHandler implements MsgHandler {
                         switchState = "OFF";
                     }
                     // 3. 存储每个开关状态
-//                    allSwitchStates.put("outlet" + outletNum, outletNum);
                     allSwitchStates.put("switch" + outletNum, switchState);
                 }
             }
@@ -266,12 +266,22 @@ public class SubUpdateHandler implements MsgHandler {
         JsonNode params = jsonNode.get("params");
         ObjectNode metrics = JsonNodeFactory.instance.objectNode();
         String switchState = "";
+        boolean isSwitch = false;
         //开关状态
         if (params.has("switches")) {
             JsonNode switchesArray = params.get("switches");
             for (JsonNode switchNode : switchesArray) {
                 metrics.put("count", 1);
                 switchState = Objects.equals(switchNode.get("switch").asText(), "on") ? "ON" : "OFF";
+                //此处对开关上次及本次状态进行对比
+                if (ObjectUtils.isNotEmpty(deviceCache)) {
+                    if (deviceCache.getDeviceInfo().has("switch1")) {
+                        String lastSwitchState = deviceCache.getDeviceInfo().get("switch1").asText();
+                        if (!Objects.equals(lastSwitchState, switchState)) {
+                            isSwitch = true;
+                        }
+                    }
+                }
                 metrics.put("switch1", switchState);
             }
         }
@@ -319,7 +329,7 @@ public class SubUpdateHandler implements MsgHandler {
         //tag为设备编号
         influxPlug.setDeviceCode(deviceCache.getDeviceCode());
         if (params.has("switches")) {
-        influxPlug.setSwitchState(switchState);
+            influxPlug.setSwitchState(switchState);
         }
         //tag为房间id
         influxPlug.setRoomId(deviceCache.getDeviceRoom().toString());
@@ -344,7 +354,7 @@ public class SubUpdateHandler implements MsgHandler {
                 influxPlug.setTotal(mergeParams.get("total").asDouble());
             }
             //开关
-            if (StringUtils.isNotEmpty(switchState)) {
+            if (StringUtils.isNotEmpty(switchState) && isSwitch) {
                 influxPlug.setSwitchState(switchState);
             }
 //            if (mergeParams.has("activePowerB") && mergeParams.get("activePowerB").isInt()) {

@@ -26,6 +26,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 
 import static com.youlai.boot.common.util.JsonUtils.mergeJson;
 import static com.youlai.boot.common.util.JsonUtils.stringToJsonNode;
@@ -79,6 +80,16 @@ public class ResultHandler implements MsgHandler {
     private void plug(JsonNode jsonNode, Device device, String deviceCode, MqttClient mqttClient) {
         ObjectNode metrics = JsonNodeFactory.instance.objectNode();
         String power = jsonNode.get("POWER").asText();
+        boolean isSwitch = false;
+        //此处对开关上次及本次状态进行对比
+        if (ObjectUtils.isNotEmpty(device)) {
+            if (device.getDeviceInfo().has("switch1")) {
+                String lastSwitchState = device.getDeviceInfo().get("switch1").asText();
+                if (!Objects.equals(lastSwitchState, power)) {
+                    isSwitch = true;
+                }
+            }
+        }
         metrics.put("switch1", power);
         metrics.put("count", 1);
         //场景
@@ -93,7 +104,9 @@ public class ResultHandler implements MsgHandler {
         influxPlug.setCategoryId(device.getCategoryId().toString());
         influxPlug.setRoomId(device.getDeviceRoom().toString());
         influxPlug.setDeviceType(String.valueOf(device.getDeviceTypeId()));
-        influxPlug.setSwitchState(power);
+        if (isSwitch) {
+            influxPlug.setSwitchState(power);
+        }
         influxDBClient.getWriteApiBlocking().writeMeasurement(
                 influxProperties.getBucket(),
                 influxProperties.getOrg(),

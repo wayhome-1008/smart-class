@@ -108,7 +108,6 @@ public class SensorHandler implements MsgHandler {
         influxPlug.setTotal(jsonNode.get("ENERGY").get("Total").asDouble());
         influxPlug.setYesterday(jsonNode.get("ENERGY").get("Yesterday").asDouble());
         influxPlug.setToday(jsonNode.get("ENERGY").get("Today").asDouble());
-//            influxPlug.setPeriod(jsonNode.get("ENERGY").get("Period").asDouble());
         influxPlug.setPower(jsonNode.get("ENERGY").get("Power").asInt());
         influxPlug.setApparentPower(jsonNode.get("ENERGY").get("ApparentPower").asInt());
         influxPlug.setReactivePower(jsonNode.get("ENERGY").get("ReactivePower").asInt());
