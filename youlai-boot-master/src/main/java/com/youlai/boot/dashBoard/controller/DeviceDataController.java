@@ -121,6 +121,77 @@ public class DeviceDataController {
         return Result.success(options);
     }
 
+    @Operation(summary = "测试部门明细数据")
+    @GetMapping("/demo")
+    public Result<DepartmentElectricityDetailVO> demo() {
+        // 创建部门用电详情对象
+        DepartmentElectricityDetailVO detailVO = new DepartmentElectricityDetailVO();
+        detailVO.setDepartmentId(6L);
+        detailVO.setDepartmentName("中杰同创-销售部");
+
+        // 生成测试数据
+        List<RoomElectricityDataVO> roomList = new ArrayList<>();
+
+        // 创建房间用电数据
+        RoomElectricityDataVO roomVO = new RoomElectricityDataVO();
+        roomVO.setRoomId(2L);
+        roomVO.setRoomName("公司办公室wh区域");
+        roomVO.setBuildingName("办公室楼wh楼");
+        roomVO.setFloorName("一层");
+
+        // 生成分类用电数据列表
+        List<CategoryElectricityDataVO> categoryList = new ArrayList<>();
+
+        // 定义基础测试数据
+        Object[][] testData = {
+                {"插座", 0.0, 4L},
+                {"冰箱", 0.7, 9L},
+                {"qqqq", 22.0, 1L},
+                {"cccccc", 321.0, 222L},
+                {"2212121", 3213312.0, 11L},
+                {"12312321", 56243.0, 12312L},
+                {"5533", 33.0, 555L},
+                {"123414", 1534254235.0, 34321413L},
+                {"23523", 2545764.0, 2323522L}
+        };
+
+        // 循环添加基础分类数据
+        for (Object[] data : testData) {
+            CategoryElectricityDataVO categoryVO = new CategoryElectricityDataVO();
+            categoryVO.setCategoryName((String) data[0]);
+            categoryVO.setCategoryElectricity((Double) data[1]);
+            categoryVO.setCategoryId((Long) data[2]);
+            categoryVO.setStartTime("2025-09-04 15:04:02");
+            categoryVO.setEndTime("2025-09-04 16:50:25");
+            categoryList.add(categoryVO);
+        }
+
+        // 循环添加多个插座分类数据
+        for (int i = 0; i < 80; i++) {
+            CategoryElectricityDataVO categoryVO = new CategoryElectricityDataVO();
+            categoryVO.setCategoryName("插座");
+            categoryVO.setCategoryElectricity(0.0);
+            categoryVO.setCategoryId(4L);
+            categoryVO.setStartTime("2025-09-04 15:04:02");
+            categoryVO.setEndTime("2025-09-04 16:50:25");
+            categoryList.add(categoryVO);
+        }
+
+        // 计算总用电量
+        double totalElectricity = categoryList.stream()
+                .mapToDouble(CategoryElectricityDataVO::getCategoryElectricity)
+                .sum();
+
+        roomVO.setTotalElectricity(MathUtils.formatDouble(totalElectricity));
+        roomVO.setCategoryElectricityList(categoryList);
+        roomList.add(roomVO);
+
+        detailVO.setTotalElectricity(MathUtils.formatDouble(totalElectricity));
+        detailVO.setRoomElectricityList(roomList);
+
+        return Result.success(detailVO);
+    }
+
 
     @Operation(summary = "1.部门明细")
     @GetMapping("/department/electricity/detail")
@@ -349,7 +420,7 @@ public class DeviceDataController {
         } catch (Exception e) {
             log.error("分页查询各部门各分类用电量失败: ", e);
         }
-        return PageResult.success(null);
+        return PageResult.success(new Page<>());
     }
 
 
@@ -541,7 +612,6 @@ public class DeviceDataController {
         for (List<Object> row : result) {
             mutableResult.add(new ArrayList<>(row));
         }
-
         return mutableResult;
     }
 
@@ -1443,8 +1513,6 @@ public class DeviceDataController {
         int index = 1; // 序号从1开始
 
         for (Long deptId : departmentIds) {
-            Map<String, Double> categoryData = departmentDataMap.get(deptId);
-
             List<Object> rowData = new ArrayList<>();
             rowData.add(index++); // 序号
             rowData.add(departmentNameMap.get(deptId)); // 部门名称
@@ -1612,7 +1680,7 @@ public class DeviceDataController {
 
         } catch (Exception e) {
             log.error("分页查询各部门用电量失败 - deptIds: {}, range: {}", deptIds, range, e);
-            return PageResult.success(null);
+            return PageResult.success(new Page<>());
         }
     }
 }
