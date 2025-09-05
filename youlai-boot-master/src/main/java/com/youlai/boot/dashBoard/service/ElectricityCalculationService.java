@@ -661,13 +661,11 @@ public class ElectricityCalculationService {
         for (Room room : roomList) {
             // 使用已有的计算方法根据range计算用电量
             Double totalElectricity = calculateRoomElectricity(room.getId(), range, startTime, endTime, categoryId);
-            if (totalElectricity != 0.0) {
                 RoomsElectricityVO vo = new RoomsElectricityVO();
                 vo.setRoomId(room.getId());
                 vo.setRoomName(room.getClassroomCode());
                 vo.setTotalElectricity(MathUtils.formatDouble(totalElectricity));
                 resultList.add(vo);
-            }
         }
 
         return resultList;
