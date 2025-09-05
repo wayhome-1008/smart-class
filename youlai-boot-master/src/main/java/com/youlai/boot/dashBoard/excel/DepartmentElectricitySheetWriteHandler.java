@@ -59,7 +59,7 @@ public class DepartmentElectricitySheetWriteHandler implements SheetWriteHandler
         // 头的策略
         WriteCellStyle headWriteCellStyle = new WriteCellStyle();
         // 背景颜色
-        headWriteCellStyle.setFillForegroundColor(IndexedColors.PINK.getIndex());
+        headWriteCellStyle.setFillForegroundColor(IndexedColors.GREY_40_PERCENT.getIndex());
         headWriteCellStyle.setFillPatternType(FillPatternType.SOLID_FOREGROUND);
         // 字体
         WriteFont headWriteFont = new WriteFont();

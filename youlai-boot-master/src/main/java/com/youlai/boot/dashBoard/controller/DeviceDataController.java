@@ -480,7 +480,7 @@ public class DeviceDataController {
         // 这里需要指定 FillPatternType 为FillPatternType.SOLID_FOREGROUND 不然无法显示背景颜色.头默认了 FillPatternType所以可以不指定
         contentWriteCellStyle.setFillPatternType(FillPatternType.SOLID_FOREGROUND);
         // 背景绿色
-        contentWriteCellStyle.setFillForegroundColor(IndexedColors.BLUE_GREY.getIndex());
+        contentWriteCellStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
         WriteFont contentWriteFont = new WriteFont();
         // 字体大小
         contentWriteFont.setFontHeightInPoints((short) 12);
@@ -549,7 +549,7 @@ public class DeviceDataController {
             for (String categoryName : categoryNames) {
                 Double value = categoryData.getOrDefault(categoryName, 0.0);
                 if (value == 0.0) {
-                    rowData.add("-"); // 无数据时显示"-"
+                    rowData.add(0); // 无数据时显示"-"
                 } else {
                     rowData.add(formatDouble(value));
                 }
@@ -676,7 +676,7 @@ public class DeviceDataController {
         // 这里需要指定 FillPatternType 为FillPatternType.SOLID_FOREGROUND 不然无法显示背景颜色.头默认了 FillPatternType所以可以不指定
         contentWriteCellStyle.setFillPatternType(FillPatternType.SOLID_FOREGROUND);
         // 背景绿色
-        contentWriteCellStyle.setFillForegroundColor(IndexedColors.BLUE_GREY.getIndex());
+        contentWriteCellStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
         WriteFont contentWriteFont = new WriteFont();
         // 字体大小
         contentWriteFont.setFontHeightInPoints((short) 12);
@@ -748,7 +748,7 @@ public class DeviceDataController {
             for (String categoryName : categoryNames) {
                 Double value = categoryData.getOrDefault(categoryName, 0.0);
                 if (value == 0.0) {
-                    rowData.add("-"); // 无数据时显示"-"
+                    rowData.add(0); // 无数据时显示"-"
                 } else {
                     rowData.add(formatDouble(value));
                 }
@@ -1263,7 +1263,7 @@ public class DeviceDataController {
         // 这里需要指定 FillPatternType 为FillPatternType.SOLID_FOREGROUND 不然无法显示背景颜色.头默认了 FillPatternType所以可以不指定
         contentWriteCellStyle.setFillPatternType(FillPatternType.SOLID_FOREGROUND);
         // 背景绿色
-        contentWriteCellStyle.setFillForegroundColor(IndexedColors.BLUE_GREY.getIndex());
+        contentWriteCellStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
         WriteFont contentWriteFont = new WriteFont();
         // 字体大小
         contentWriteFont.setFontHeightInPoints((short) 12);
@@ -1459,7 +1459,7 @@ public class DeviceDataController {
         // 这里需要指定 FillPatternType 为FillPatternType.SOLID_FOREGROUND 不然无法显示背景颜色.头默认了 FillPatternType所以可以不指定
         contentWriteCellStyle.setFillPatternType(FillPatternType.SOLID_FOREGROUND);
         // 背景绿色
-        contentWriteCellStyle.setFillForegroundColor(IndexedColors.BLUE_GREY.getIndex());
+        contentWriteCellStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
         WriteFont contentWriteFont = new WriteFont();
         // 字体大小
         contentWriteFont.setFontHeightInPoints((short) 12);
