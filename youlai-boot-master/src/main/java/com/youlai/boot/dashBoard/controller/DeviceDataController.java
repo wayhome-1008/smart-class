@@ -416,7 +416,19 @@ public class DeviceDataController {
             @RequestParam(required = false) String roomIds) {
 
         try {
-            return getDepartmentCategoryElectricityInfoVOPageResult(pageNum, pageSize, range, startTime, endTime, deptIds, roomIds);
+            PageResult<DepartmentCategoryElectricityInfoVO> departmentCategoryElectricityInfoVOPageResult =
+                    getDepartmentCategoryElectricityInfoVOPageResult(pageNum, pageSize, range, startTime, endTime, deptIds, roomIds);
+            // 过滤掉totalElectricity为0或null的记录
+            List<DepartmentCategoryElectricityInfoVO> filteredList =
+                    departmentCategoryElectricityInfoVOPageResult.getData().getList().stream()
+                            .filter(vo -> vo.getTotalElectricity() != null && vo.getTotalElectricity() > 0)
+                            .collect(Collectors.toList());
+            // 重新构造Page对象
+            Page<DepartmentCategoryElectricityInfoVO> newPage = new Page<>(pageNum, pageSize);
+            newPage.setRecords(filteredList);
+            newPage.setTotal(filteredList.size());
+            // 重新构造PageResult对象
+            return PageResult.success(newPage);
         } catch (Exception e) {
             log.error("分页查询各部门各分类用电量失败: ", e);
         }
