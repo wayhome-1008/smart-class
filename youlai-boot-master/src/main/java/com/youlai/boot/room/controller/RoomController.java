@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.youlai.boot.common.model.Option;
 import com.youlai.boot.common.result.PageResult;
 import com.youlai.boot.common.result.Result;
+import com.youlai.boot.common.util.MathUtils;
 import com.youlai.boot.dashBoard.service.ElectricityCalculationService;
 import com.youlai.boot.device.model.vo.DeviceInfo;
 import com.youlai.boot.device.model.vo.DeviceInfoVO;
@@ -72,7 +73,7 @@ public class RoomController {
                 for (DeviceInfoVO roomDevice : roomDevices) {
                     todayElectricity = todayElectricity + electricityCalculationService.calculateTodayElectricity(roomDevice.getDeviceCode(), String.valueOf(roomVO.getId()));
                 }
-                roomVO.setTodayElectricity(todayElectricity);
+                roomVO.setTodayElectricity(MathUtils.formatDouble(todayElectricity));
             });
         }
 
