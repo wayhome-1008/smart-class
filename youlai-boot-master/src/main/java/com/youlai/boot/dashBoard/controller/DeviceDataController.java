@@ -59,6 +59,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.youlai.boot.common.util.DateUtils.formatTime;
 import static com.youlai.boot.common.util.MathUtils.formatDouble;
 import static com.youlai.boot.dashBoard.excel.DepartmentElectricitySheetWriteHandler.head;
 
@@ -120,78 +121,6 @@ public class DeviceDataController {
 
         return Result.success(options);
     }
-
-    @Operation(summary = "测试部门明细数据")
-    @GetMapping("/demo")
-    public Result<DepartmentElectricityDetailVO> demo() {
-        // 创建部门用电详情对象
-        DepartmentElectricityDetailVO detailVO = new DepartmentElectricityDetailVO();
-        detailVO.setDepartmentId(6L);
-        detailVO.setDepartmentName("中杰同创-销售部");
-
-        // 生成测试数据
-        List<RoomElectricityDataVO> roomList = new ArrayList<>();
-
-        // 创建房间用电数据
-        RoomElectricityDataVO roomVO = new RoomElectricityDataVO();
-        roomVO.setRoomId(2L);
-        roomVO.setRoomName("公司办公室wh区域");
-        roomVO.setBuildingName("办公室楼wh楼");
-        roomVO.setFloorName("一层");
-
-        // 生成分类用电数据列表
-        List<CategoryElectricityDataVO> categoryList = new ArrayList<>();
-
-        // 定义基础测试数据
-        Object[][] testData = {
-                {"插座", 0.0, 4L},
-                {"冰箱", 0.7, 9L},
-                {"qqqq", 22.0, 1L},
-                {"cccccc", 321.0, 222L},
-                {"2212121", 3213312.0, 11L},
-                {"12312321", 56243.0, 12312L},
-                {"5533", 33.0, 555L},
-                {"123414", 1534254235.0, 34321413L},
-                {"23523", 2545764.0, 2323522L}
-        };
-
-        // 循环添加基础分类数据
-        for (Object[] data : testData) {
-            CategoryElectricityDataVO categoryVO = new CategoryElectricityDataVO();
-            categoryVO.setCategoryName((String) data[0]);
-            categoryVO.setCategoryElectricity((Double) data[1]);
-            categoryVO.setCategoryId((Long) data[2]);
-            categoryVO.setStartTime("2025-09-04 15:04:02");
-            categoryVO.setEndTime("2025-09-04 16:50:25");
-            categoryList.add(categoryVO);
-        }
-
-        // 循环添加多个插座分类数据
-        for (int i = 0; i < 80; i++) {
-            CategoryElectricityDataVO categoryVO = new CategoryElectricityDataVO();
-            categoryVO.setCategoryName("插座");
-            categoryVO.setCategoryElectricity(0.0);
-            categoryVO.setCategoryId(4L);
-            categoryVO.setStartTime("2025-09-04 15:04:02");
-            categoryVO.setEndTime("2025-09-04 16:50:25");
-            categoryList.add(categoryVO);
-        }
-
-        // 计算总用电量
-        double totalElectricity = categoryList.stream()
-                .mapToDouble(CategoryElectricityDataVO::getCategoryElectricity)
-                .sum();
-
-        roomVO.setTotalElectricity(MathUtils.formatDouble(totalElectricity));
-        roomVO.setCategoryElectricityList(categoryList);
-        roomList.add(roomVO);
-
-        detailVO.setTotalElectricity(MathUtils.formatDouble(totalElectricity));
-        detailVO.setRoomElectricityList(roomList);
-
-        return Result.success(detailVO);
-    }
-
 
     @Operation(summary = "1.部门明细")
     @GetMapping("/department/electricity/detail")
@@ -298,9 +227,7 @@ public class DeviceDataController {
             detailVO.setDepartmentName(department.getName());
             detailVO.setTotalElectricity(MathUtils.formatDouble(departmentTotalElectricity));
             detailVO.setRoomElectricityList(roomElectricityList);
-
             return Result.success(detailVO);
-
         } catch (Exception e) {
             log.error("查询部门用电详情失败 - departmentId: {}, range: {}", departmentId, range, e);
             return Result.failed("查询部门用电详情失败");
@@ -840,15 +767,16 @@ public class DeviceDataController {
             Instant startTime, endTime;
 
             if ("today".equals(range)) {
+                // 今天：从今天00:00:00到当前时间
                 startTime = LocalDate.now().atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
                 endTime = Instant.now();
             } else if ("yesterday".equals(range)) {
+                // 昨天：从昨天00:00:00到昨天23:59:59.999
                 startTime = LocalDate.now().minusDays(1).atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
-                endTime = LocalDate.now().atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+                endTime = LocalDate.now().minusDays(1).atTime(23, 59, 59, 999_000_000).atZone(ZoneId.systemDefault()).toInstant();
             } else {
                 return new SwitchTimeInfo(null, null);
             }
-
             // 查询最早开启时间 (switch为on的最早记录)
             InfluxQueryBuilder onBuilder = InfluxQueryBuilder.newBuilder()
                     .bucket(influxDBProperties.getBucket())
@@ -860,18 +788,13 @@ public class DeviceDataController {
                     .sort("_time", InfluxQueryBuilder.SORT_ASC)
                     .limit(1)
                     .range(startTime, endTime);
-
             String onFluxQuery = onBuilder.build();
-            log.info("查询设备最早开启时间 - 设备编码: {}, 查询语句: {}", deviceCode, onFluxQuery);
-
             List<InfluxMqttPlug> onResults = influxDBClient.getQueryApi()
                     .query(onFluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
-
             Instant earliestOnTime = null;
             if (!onResults.isEmpty()) {
                 earliestOnTime = onResults.get(0).getTime();
             }
-
             // 查询最晚关闭时间 (switch为off的最晚记录)
             InfluxQueryBuilder offBuilder = InfluxQueryBuilder.newBuilder()
                     .bucket(influxDBProperties.getBucket())
@@ -883,39 +806,19 @@ public class DeviceDataController {
                     .sort("_time", InfluxQueryBuilder.SORT_DESC)
                     .limit(1)
                     .range(startTime, endTime);
-
             String offFluxQuery = offBuilder.build();
-            log.info("查询设备最晚关闭时间 - 设备编码: {}, 查询语句: {}", deviceCode, offFluxQuery);
-
             List<InfluxMqttPlug> offResults = influxDBClient.getQueryApi()
                     .query(offFluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
-
             Instant latestOffTime = null;
             if (!offResults.isEmpty()) {
                 latestOffTime = offResults.get(0).getTime();
             }
-
-            return new SwitchTimeInfo(earliestOnTime, latestOffTime);
-
+            log.info("设备 {} 的开关时间：{} - {}", deviceCode, earliestOnTime, latestOffTime);
+            return new SwitchTimeInfo(formatTime(earliestOnTime), formatTime(latestOffTime));
         } catch (Exception e) {
             log.error("查询设备开关时间失败 - 设备编码: {}, 时间范围: {}", deviceCode, range, e);
             return new SwitchTimeInfo(null, null);
         }
-    }
-
-    /**
-     * 用于存储开关时间信息的简单类
-     */
-    @Getter
-    private static class SwitchTimeInfo {
-        private final Instant earliestOnTime;
-        private final Instant latestOffTime;
-
-        public SwitchTimeInfo(Instant earliestOnTime, Instant latestOffTime) {
-            this.earliestOnTime = earliestOnTime;
-            this.latestOffTime = latestOffTime;
-        }
-
     }
 
     /**
@@ -953,13 +856,13 @@ public class DeviceDataController {
                 if (!roomDevices.isEmpty()) {
                     // 计算该分类下该房间设备的总用电量
                     double categoryTotalElectricity = 0.0;
-                    Instant categoryEarliestOnTime = null;
-                    Instant categoryLatestOffTime = null;
+                    String categoryEarliestOnTime = null;
+                    String categoryLatestOffTime = null;
 
                     // 为昨天或今天查询时，收集开关时间信息
                     if ("today".equals(range) || "yesterday".equals(range)) {
-                        List<Instant> onTimes = new ArrayList<>();
-                        List<Instant> offTimes = new ArrayList<>();
+                        List<String> onTimes = new ArrayList<>();
+                        List<String> offTimes = new ArrayList<>();
 
                         for (Device device : roomDevices) {
                             SwitchTimeInfo switchTimeInfo = queryDeviceSwitchTimes(
@@ -982,14 +885,16 @@ public class DeviceDataController {
 
                         // 从所有设备中选择最早的开启时间和最晚的关闭时间
                         if (!onTimes.isEmpty()) {
+                            // 使用自然排序（时间戳升序）获取最早时间
                             categoryEarliestOnTime = onTimes.stream()
-                                    .min(Instant::compareTo)
+                                    .min(Comparator.naturalOrder())
                                     .orElse(null);
                         }
 
                         if (!offTimes.isEmpty()) {
+                            // 使用自然排序（时间戳降序）获取最晚时间
                             categoryLatestOffTime = offTimes.stream()
-                                    .max(Instant::compareTo)
+                                    .max(Comparator.naturalOrder())
                                     .orElse(null);
                         }
                     } else {
@@ -1012,28 +917,19 @@ public class DeviceDataController {
 
                         // 设置开关时间信息
                         if (categoryEarliestOnTime != null) {
-                            String formattedStartTime = categoryEarliestOnTime
-                                    .atZone(ZoneId.systemDefault())
-                                    .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-                            categoryVO.setStartTime(formattedStartTime);
+                            categoryVO.setStartTime(categoryEarliestOnTime);
                         }
                         if (categoryLatestOffTime != null) {
-                            String formattedEndTime = categoryLatestOffTime
-                                    .atZone(ZoneId.systemDefault())
-                                    .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-                            categoryVO.setEndTime(formattedEndTime);
+                            categoryVO.setEndTime(categoryLatestOffTime);
                         }
-
                         result.add(categoryVO);
                     }
                 }
-
             }
 
         } catch (Exception e) {
             log.error("查询房间分类用电量失败 - roomId: {}, range: {}", roomId, range, e);
         }
-
         return result;
     }
 

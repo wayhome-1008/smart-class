@@ -15,7 +15,7 @@ public class MathUtils {
         if (value <= 0) {
             return 0.0;
         }
-        DecimalFormat df = new DecimalFormat("#.##"); // 保留两位小数，自动四舍五入
-        return Double.parseDouble(df.format(value));
+        DecimalFormat df = new DecimalFormat("0.00"); // 保留两位小数，自动四舍五入
+        return Double.valueOf(df.format(value));
     }
 }

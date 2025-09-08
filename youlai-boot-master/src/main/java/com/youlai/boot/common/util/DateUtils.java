@@ -15,10 +15,8 @@ import java.util.Random;
  *
  * @author ruoyi
  */
-public class DateUtils extends org.apache.commons.lang3.time.DateUtils
-{
+public class DateUtils extends org.apache.commons.lang3.time.DateUtils {
     public static String YYYY = "yyyy";
-
     public static String YYYY_MM = "yyyy-MM";
 
     public static String YYYY_MM_DD = "yyyy-MM-dd";
@@ -247,5 +245,14 @@ public class DateUtils extends org.apache.commons.lang3.time.DateUtils
                     time.atZone(utcZone).getSecond());
             default -> time.atZone(utcZone).format(DateTimeFormatter.ISO_LOCAL_TIME);
         };
+    }
+
+    public static String formatTime(Instant time) {
+        if (time == null) {
+            return null;
+        }
+        return time
+                .atZone(ZoneId.systemDefault())
+                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
     }
 }
