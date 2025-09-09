@@ -93,7 +93,7 @@ public interface DeviceService extends IService<Device> {
 
     List<Device> listMqttDevices();
 
-    void masterSlave(String ids, Boolean isMaster, Long roomId);
+    void masterSlave(String ids, Long roomId);
 
     IPage<Device> listAllMasterDevices(Page<Device> objectPage);
 
