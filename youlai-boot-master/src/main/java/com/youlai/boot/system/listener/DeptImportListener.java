@@ -135,7 +135,7 @@ public class DeptImportListener extends AnalysisEventListener<DeptImportDTO> {
      * @return 父节点路径以英文逗号(, )分割，eg: ,1,2,
      */
     private String generateDeptTreePath(Long parentId) {
-        String treePath = "";
+        String treePath;
         if (SystemConstants.ROOT_NODE_ID.equals(parentId)) {
             treePath = ","; // 根节点路径
         } else {

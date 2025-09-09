@@ -22,7 +22,6 @@ import com.youlai.boot.room.model.form.RoomForm;
 import com.youlai.boot.room.model.query.RoomQuery;
 import com.youlai.boot.room.model.vo.RoomVO;
 import com.youlai.boot.room.service.RoomService;
-import com.youlai.boot.system.model.dto.DeptImportDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
