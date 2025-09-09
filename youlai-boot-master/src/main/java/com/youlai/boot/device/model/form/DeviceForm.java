@@ -39,6 +39,9 @@ public class DeviceForm implements Serializable {
 
     private String deviceMac;
 
+    @Schema(description = "是否主设备")
+    private Integer isMaster;
+
     private Long deviceGatewayId;
 
     private Long categoryId;

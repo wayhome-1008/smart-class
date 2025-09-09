@@ -66,6 +66,6 @@ public class DeviceVO implements Serializable {
     private Boolean isOpen;
 
     @Schema(description = "是否主从")
-    private Boolean isMaster;
+    private Integer isMaster;
     private List<DeviceInfo> deviceInfoList;
 }
