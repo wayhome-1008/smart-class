@@ -1,22 +1,41 @@
 package com.youlai.boot.system.controller;
 
+import cn.idev.excel.EasyExcel;
+import cn.idev.excel.ExcelWriter;
 import com.youlai.boot.common.enums.LogModuleEnum;
 import com.youlai.boot.common.annotation.RepeatSubmit;
 import com.youlai.boot.common.model.Option;
+import com.youlai.boot.common.result.ExcelResult;
 import com.youlai.boot.common.result.Result;
+import com.youlai.boot.common.util.ExcelUtils;
+import com.youlai.boot.system.listener.DeptImportListener;
+import com.youlai.boot.system.listener.UserImportListener;
+import com.youlai.boot.system.model.dto.DeptImportDTO;
+import com.youlai.boot.system.model.dto.UserExportDTO;
+import com.youlai.boot.system.model.dto.UserImportDTO;
 import com.youlai.boot.system.model.form.DeptForm;
 import com.youlai.boot.system.model.query.DeptQuery;
+import com.youlai.boot.system.model.query.UserPageQuery;
 import com.youlai.boot.system.model.vo.DeptVO;
 import com.youlai.boot.common.annotation.Log;
 import com.youlai.boot.system.service.DeptService;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
@@ -35,9 +54,9 @@ public class DeptController {
 
     @Operation(summary = "部门列表")
     @GetMapping
-    @Log( value = "部门列表",module = LogModuleEnum.DEPT)
+    @Log(value = "部门列表", module = LogModuleEnum.DEPT)
     public Result<List<DeptVO>> getDeptList(
-             DeptQuery queryParams
+            DeptQuery queryParams
     ) {
         List<DeptVO> list = deptService.getDeptList(queryParams);
         return Result.success(list);
@@ -64,7 +83,7 @@ public class DeptController {
     @Operation(summary = "获取部门表单数据")
     @GetMapping("/{deptId}/form")
     public Result<DeptForm> getDeptForm(
-            @Parameter(description ="部门ID") @PathVariable Long deptId
+            @Parameter(description = "部门ID") @PathVariable Long deptId
     ) {
         DeptForm deptForm = deptService.getDeptForm(deptId);
         return Result.success(deptForm);
@@ -85,10 +104,38 @@ public class DeptController {
     @DeleteMapping("/{ids}")
     @PreAuthorize("@ss.hasPerm('sys:dept:delete')")
     public Result<?> deleteDepartments(
-            @Parameter(description ="部门ID，多个以英文逗号(,)分割") @PathVariable("ids") String ids
+            @Parameter(description = "部门ID，多个以英文逗号(,)分割") @PathVariable("ids") String ids
     ) {
         boolean result = deptService.deleteByIds(ids);
         return Result.judge(result);
+    }
+
+    @Operation(summary = "部门导入模板下载")
+    @GetMapping("/template")
+    @Log(value = "部门导入模板下载", module = LogModuleEnum.DEPT)
+    public void downloadTemplate(HttpServletResponse response) {
+        String fileName = "部门导入模板.xlsx";
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename=" + URLEncoder.encode(fileName, StandardCharsets.UTF_8));
+
+        String fileClassPath = "templates" + File.separator + "excel" + File.separator + fileName;
+        InputStream inputStream = this.getClass().getClassLoader().getResourceAsStream(fileClassPath);
+
+        try (ServletOutputStream outputStream = response.getOutputStream();
+             ExcelWriter excelWriter = EasyExcel.write(outputStream).withTemplate(inputStream).build()) {
+            excelWriter.finish();
+        } catch (IOException e) {
+            throw new RuntimeException("部门导入模板下载失败", e);
+        }
+    }
+
+    @Operation(summary = "导入部门")
+    @PostMapping("/import")
+    @Log(value = "导入用户", module = LogModuleEnum.DEPT)
+    public Result<ExcelResult> importUsers(MultipartFile file) throws IOException {
+        DeptImportListener listener = new DeptImportListener();
+        ExcelUtils.importExcel(file.getInputStream(), DeptImportDTO.class, listener);
+        return Result.success(listener.getExcelResult());
     }
 
 }

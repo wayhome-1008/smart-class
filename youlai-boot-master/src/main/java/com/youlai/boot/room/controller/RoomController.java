@@ -1,29 +1,46 @@
 package com.youlai.boot.room.controller;
 
+import cn.idev.excel.EasyExcel;
+import cn.idev.excel.ExcelWriter;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.youlai.boot.common.annotation.Log;
+import com.youlai.boot.common.enums.LogModuleEnum;
 import com.youlai.boot.common.model.Option;
+import com.youlai.boot.common.result.ExcelResult;
 import com.youlai.boot.common.result.PageResult;
 import com.youlai.boot.common.result.Result;
+import com.youlai.boot.common.util.ExcelUtils;
 import com.youlai.boot.common.util.MathUtils;
 import com.youlai.boot.dashBoard.service.ElectricityCalculationService;
 import com.youlai.boot.device.model.vo.DeviceInfo;
 import com.youlai.boot.device.model.vo.DeviceInfoVO;
 import com.youlai.boot.device.service.DeviceService;
+import com.youlai.boot.room.listener.RoomImportListener;
+import com.youlai.boot.room.model.dto.RoomImportDTO;
 import com.youlai.boot.room.model.entity.Room;
 import com.youlai.boot.room.model.form.RoomForm;
 import com.youlai.boot.room.model.query.RoomQuery;
 import com.youlai.boot.room.model.vo.RoomVO;
 import com.youlai.boot.room.service.RoomService;
+import com.youlai.boot.system.model.dto.DeptImportDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -228,5 +245,33 @@ public class RoomController {
         //根据房间id查询设备
         List<DeviceInfoVO> roomDevices = deviceService.listDeviceByRoomId(id, room);
         return Result.success(roomDevices);
+    }
+
+    @Operation(summary = "房间导入模板下载")
+    @GetMapping("/template")
+    @Log(value = "房间导入模板下载", module = LogModuleEnum.ROOM)
+    public void downloadTemplate(HttpServletResponse response) {
+        String fileName = "房间导入模板.xlsx";
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename=" + URLEncoder.encode(fileName, StandardCharsets.UTF_8));
+
+        String fileClassPath = "templates" + File.separator + "excel" + File.separator + fileName;
+        InputStream inputStream = this.getClass().getClassLoader().getResourceAsStream(fileClassPath);
+
+        try (ServletOutputStream outputStream = response.getOutputStream();
+             ExcelWriter excelWriter = EasyExcel.write(outputStream).withTemplate(inputStream).build()) {
+            excelWriter.finish();
+        } catch (IOException e) {
+            throw new RuntimeException("房间导入模板下载失败", e);
+        }
+    }
+
+    @Operation(summary = "导入房间")
+    @PostMapping("/import")
+    @Log(value = "导入房间", module = LogModuleEnum.ROOM)
+    public Result<ExcelResult> importUsers(MultipartFile file) throws IOException {
+        RoomImportListener listener = new RoomImportListener();
+        ExcelUtils.importExcel(file.getInputStream(), RoomImportDTO.class, listener);
+        return Result.success(listener.getExcelResult());
     }
 }
