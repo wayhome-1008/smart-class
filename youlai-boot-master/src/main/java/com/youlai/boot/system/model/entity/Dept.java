@@ -1,5 +1,6 @@
 package com.youlai.boot.system.model.entity;
 
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.youlai.boot.common.base.BaseEntity;
 import lombok.Getter;
@@ -59,6 +60,7 @@ public class Dept extends BaseEntity {
     /**
      * 是否删除(0-否 1-是)
      */
+    @TableLogic(value = "0", delval = "1")
     private Integer isDeleted;
 
 }

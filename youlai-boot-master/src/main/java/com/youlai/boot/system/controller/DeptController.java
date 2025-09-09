@@ -129,7 +129,7 @@ public class DeptController {
     @Log(value = "导入用户", module = LogModuleEnum.DEPT)
     public Result<ExcelResult> importUsers(MultipartFile file) throws IOException {
         DeptImportListener listener = new DeptImportListener();
-        ExcelUtils.importExcel(file.getInputStream(), DeptImportDTO.class, listener);
+        ExcelUtils.importExcel(file.getInputStream(), DeptImportDTO.class, listener,2);
         return Result.success(listener.getExcelResult());
     }
 

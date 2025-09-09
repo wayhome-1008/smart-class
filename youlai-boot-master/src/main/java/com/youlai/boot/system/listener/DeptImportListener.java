@@ -1,6 +1,5 @@
 package com.youlai.boot.system.listener;
 
-import cn.hutool.core.util.StrUtil;
 import cn.hutool.extra.spring.SpringUtil;
 import cn.hutool.json.JSONUtil;
 import cn.idev.excel.context.AnalysisContext;
@@ -13,6 +12,7 @@ import com.youlai.boot.system.model.entity.Dept;
 import com.youlai.boot.system.service.DeptService;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  *@Author: way
@@ -50,7 +50,7 @@ public class DeptImportListener extends AnalysisEventListener<DeptImportDTO> {
 
         // 部门的名称校验
         String deptName = deptImportDTO.getName();
-        if (StrUtil.isBlank(deptName)) {
+        if (StringUtils.isEmpty(deptName)) {
             errorMsg += "部门名称为空；";
             validation = false;
         } else {
@@ -63,7 +63,10 @@ public class DeptImportListener extends AnalysisEventListener<DeptImportDTO> {
 
         // 部门编码校验（如果提供了编码）
         String deptCode = deptImportDTO.getCode();
-        if (StrUtil.isNotBlank(deptCode)) {
+        if (StringUtils.isEmpty(deptCode)) {
+            errorMsg += "部门编码为空；";
+            validation = false;
+        } else {
             long count = deptService.count(new LambdaQueryWrapper<Dept>().eq(Dept::getCode, deptCode));
             if (count > 0) {
                 errorMsg += "部门编码已存在；";
@@ -83,7 +86,7 @@ public class DeptImportListener extends AnalysisEventListener<DeptImportDTO> {
             String parentCode = deptImportDTO.getParentCode();
             Long parentId = SystemConstants.ROOT_NODE_ID; // 默认根部门
 
-            if (StrUtil.isNotBlank(parentCode)) {
+            if (StringUtils.isNotEmpty(parentCode)) {
                 Dept parentDept = deptService.getOne(new LambdaQueryWrapper<Dept>().eq(Dept::getCode, parentCode));
                 if (parentDept != null) {
                     parentId = parentDept.getId();
@@ -137,7 +140,7 @@ public class DeptImportListener extends AnalysisEventListener<DeptImportDTO> {
     private String generateDeptTreePath(Long parentId) {
         String treePath;
         if (SystemConstants.ROOT_NODE_ID.equals(parentId)) {
-            treePath = ","; // 根节点路径
+            treePath = "0"; // 根节点路径
         } else {
             Dept parent = deptService.getById(parentId);
             if (parent != null) {

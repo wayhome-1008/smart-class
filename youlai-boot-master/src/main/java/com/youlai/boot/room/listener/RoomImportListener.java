@@ -18,6 +18,7 @@ import com.youlai.boot.system.model.entity.Dept;
 import com.youlai.boot.system.service.DeptService;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  *@Author: way
@@ -64,22 +65,22 @@ public class RoomImportListener extends AnalysisEventListener<RoomImportDTO> {
         String floorNumber = roomImportDTO.getFloorNumber();
         String classRoomCode = roomImportDTO.getClassRoomCode();
 
-        if (StrUtil.isBlank(buildingName)) {
+        if (StringUtils.isEmpty(buildingName)) {
             errorMsg += "楼宇名称为空；";
             validation = false;
         }
 
-        if (StrUtil.isBlank(buildingCode)) {
+        if (StringUtils.isEmpty(buildingCode)) {
             errorMsg += "楼宇编号为空；";
             validation = false;
         }
 
-        if (StrUtil.isBlank(floorNumber)) {
+        if (StringUtils.isEmpty(floorNumber)) {
             errorMsg += "楼层号为空；";
             validation = false;
         }
 
-        if (StrUtil.isBlank(classRoomCode)) {
+        if (StringUtils.isEmpty(classRoomCode)) {
             errorMsg += "房间名称为空；";
             validation = false;
         }
@@ -150,7 +151,7 @@ public class RoomImportListener extends AnalysisEventListener<RoomImportDTO> {
 
                 // 5. 处理部门（可选）
                 String deptName = roomImportDTO.getDeptName();
-                if (StrUtil.isNotBlank(deptName)) {
+                if (StringUtils.isNotEmpty(deptName)) {
                     Dept dept = deptService.getOne(new LambdaQueryWrapper<Dept>()
                             .eq(Dept::getName, deptName));
                     if (dept != null) {

@@ -157,7 +157,7 @@ public class UserController {
     @Log(value = "导入用户", module = LogModuleEnum.USER)
     public Result<ExcelResult> importUsers(MultipartFile file) throws IOException {
         UserImportListener listener = new UserImportListener();
-        ExcelUtils.importExcel(file.getInputStream(), UserImportDTO.class, listener);
+        ExcelUtils.importExcel(file.getInputStream(), UserImportDTO.class, listener,2);
         return Result.success(listener.getExcelResult());
     }
 

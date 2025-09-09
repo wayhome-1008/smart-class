@@ -10,12 +10,12 @@ import lombok.Data;
  */
 @Data
 public class DeptImportDTO {
-    @ExcelProperty(value = "部门名称")
+    @ExcelProperty(value = {"部门导入","部门名称(必填)"})
     private String name;
 
-    @ExcelProperty(value = "部门编号")
+    @ExcelProperty(value = {"部门导入","部门编号(必填)"})
     private String code;
 
-    @ExcelProperty(value = "父部门编号")
+    @ExcelProperty(value = {"部门导入","父部门编号"})
     private String parentCode;
 }
