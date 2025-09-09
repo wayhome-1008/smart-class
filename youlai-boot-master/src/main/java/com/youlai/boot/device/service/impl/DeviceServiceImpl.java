@@ -391,25 +391,34 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
 
     @Override
     public void masterSlave(String ids, Long roomId) {
-        List<Long> idList = Arrays.stream(ids.split(","))
-                .map(Long::parseLong)
-                .toList();
-        //根据房间id查询出所有主设备并且设置非主设备
-        List<Device> masterDevices = this.list(new LambdaQueryWrapper<Device>().eq(Device::getDeviceRoom, roomId).eq(Device::getIsMaster, 1));
-        for (Device masterDevice : masterDevices) {
-            masterDevice.setIsMaster(0);
-            redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, masterDevice.getDeviceCode(), masterDevice);
+        if (ObjectUtils.isEmpty(ids)) {
+            List<Device> masterDevices = this.list(new LambdaQueryWrapper<Device>().eq(Device::getDeviceRoom, roomId).eq(Device::getIsMaster, 1));
+            for (Device masterDevice : masterDevices) {
+                masterDevice.setIsMaster(0);
+                redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, masterDevice.getDeviceCode(), masterDevice);
+            }
+            this.updateBatchById(masterDevices);
+        } else {
+            List<Long> idList = Arrays.stream(ids.split(","))
+                    .map(Long::parseLong)
+                    .toList();
+            //根据房间id查询出所有主设备并且设置非主设备
+            List<Device> masterDevices = this.list(new LambdaQueryWrapper<Device>().eq(Device::getDeviceRoom, roomId).eq(Device::getIsMaster, 1));
+            for (Device masterDevice : masterDevices) {
+                masterDevice.setIsMaster(0);
+                redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, masterDevice.getDeviceCode(), masterDevice);
+            }
+            this.updateBatchById(masterDevices);
+            //当前设置的主设备
+            List<Device> devices = this.listByIdAndRoomId(idList, roomId);
+            for (Device device : devices) {
+                device.setIsMaster(1);
+                //缓存同步
+                redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
+            }
+            this.updateBatchById(devices);
         }
-        this.updateBatchById(masterDevices);
 
-        //当前设置的主设备
-        List<Device> devices = this.listByIdAndRoomId(idList, roomId);
-        for (Device device : devices) {
-            device.setIsMaster(1);
-            //缓存同步
-            redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
-        }
-        this.updateBatchById(devices);
     }
 
     @Override
