@@ -270,7 +270,7 @@ public class RoomController {
     @Log(value = "导入房间", module = LogModuleEnum.ROOM)
     public Result<ExcelResult> importUsers(MultipartFile file) throws IOException {
         RoomImportListener listener = new RoomImportListener();
-        ExcelUtils.importExcel(file.getInputStream(), RoomImportDTO.class, listener, 5);
+        ExcelUtils.importExcel(file.getInputStream(), RoomImportDTO.class, listener, 2);
         return Result.success(listener.getExcelResult());
     }
 }

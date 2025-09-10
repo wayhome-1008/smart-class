@@ -40,7 +40,7 @@ public class RoomImportListener extends AnalysisEventListener<RoomImportDTO> {
     /**
      * 当前行
      */
-    private Integer currentRow = 1;
+    private Integer currentRow = -1;
 
     /**
      * 构造方法
@@ -55,6 +55,11 @@ public class RoomImportListener extends AnalysisEventListener<RoomImportDTO> {
 
     @Override
     public void invoke(RoomImportDTO roomImportDTO, AnalysisContext context) {
+        if (currentRow <= 0) {
+            log.info("跳出模板数据");
+            currentRow++;
+            return;
+        }
         log.info("解析到一条房间数据:{}", JSONUtil.toJsonStr(roomImportDTO));
         boolean validation = true;
         String errorMsg = "第" + currentRow + "行数据校验失败：";
