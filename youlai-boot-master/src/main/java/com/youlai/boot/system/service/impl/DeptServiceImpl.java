@@ -236,14 +236,13 @@ public class DeptServiceImpl extends ServiceImpl<DeptMapper, Dept> implements De
     public boolean deleteByIds(String ids) {
         // 删除部门及子部门
         if (StrUtil.isNotBlank(ids)) {
-            String[] menuIds = ids.split(",");
-            for (String deptId : menuIds) {
-                this.update(new LambdaUpdateWrapper<Dept>()
+            String[] deptIds = ids.split(",");
+            for (String deptId : deptIds) {
+                // 物理删除部门及其所有子部门
+                this.remove(new LambdaQueryWrapper<Dept>()
                         .eq(Dept::getId, deptId)
                         .or()
-                        .apply("CONCAT (',',tree_path,',') LIKE CONCAT('%,',{0},',%')", deptId)
-                        .set(Dept::getIsDeleted, 1)
-                        .set(Dept::getUpdateBy, SecurityUtils.getUserId())
+                        .apply("CONCAT(',', tree_path, ',') LIKE CONCAT('%,', {0}, ',%')", deptId)
                 );
             }
         }

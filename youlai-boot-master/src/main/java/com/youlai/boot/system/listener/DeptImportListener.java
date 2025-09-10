@@ -80,7 +80,6 @@ public class DeptImportListener extends AnalysisEventListener<DeptImportDTO> {
             entity.setName(deptName);
             entity.setCode(deptCode);
             entity.setStatus(1);
-            entity.setIsDeleted(0);
             entity.setSort(1); // 默认排序
             // 设置父级部门
             String parentCode = deptImportDTO.getParentCode();
