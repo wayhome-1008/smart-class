@@ -14,6 +14,9 @@ import java.io.InputStream;
 public class ExcelUtils {
 
     public static <T> void importExcel(InputStream is, Class clazz, AnalysisEventListener<T> listener, Integer headRowNumber) {
-        EasyExcel.read(is, clazz, listener).sheet().headRowNumber(headRowNumber).doRead();
+        EasyExcel.read(is, clazz, listener)
+                .sheet()
+                .headRowNumber(headRowNumber)
+                .doRead();
     }
 }

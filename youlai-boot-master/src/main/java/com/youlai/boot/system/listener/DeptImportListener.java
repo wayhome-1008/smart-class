@@ -32,7 +32,7 @@ public class DeptImportListener extends AnalysisEventListener<DeptImportDTO> {
     /**
      * 当前行
      */
-    private Integer currentRow = 1;
+    private Integer currentRow = -3;
 
     /**
      * 构造方法
@@ -44,6 +44,12 @@ public class DeptImportListener extends AnalysisEventListener<DeptImportDTO> {
 
     @Override
     public void invoke(DeptImportDTO deptImportDTO, AnalysisContext context) {
+        if (currentRow<=0)
+        {
+            log.info("跳出模板数据");
+            currentRow++;
+            return;
+        }
         log.info("解析到一条部门数据:{}", JSONUtil.toJsonStr(deptImportDTO));
         boolean validation = true;
         String errorMsg = "第" + currentRow + "行数据校验失败：";
