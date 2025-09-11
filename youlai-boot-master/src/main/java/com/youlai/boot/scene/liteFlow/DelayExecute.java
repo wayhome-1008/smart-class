@@ -70,24 +70,18 @@ public class DelayExecute extends NodeComponent {
 
     private void executeDeviceOperations(List<Action> actions, MqttClient mqttClient) {
         try {
-//            log.info("准备执行 {} 个动作", actions.size());
-
             for (Action action : actions) {
                 List<String> deviceCodes = Arrays.stream(action.getDeviceCodes().split(","))
                         .filter(id -> !id.trim().isEmpty())
                         .toList();
                 String parameters = action.getParameters();
-
                 if (parameters != null && !parameters.isEmpty()) {
                     List<DeviceOperate> deviceOperates = JSON.parseArray(parameters, DeviceOperate.class);
-//                    log.info("准备执行动作，涉及 {} 个设备", deviceCodes.size());
-
                     for (DeviceOperate deviceOperate : deviceOperates) {
                         for (String deviceCode : deviceCodes) {
                             try {
                                 log.info("执行设备操作 - DeviceId: {}, Operate: {}", deviceCode, deviceOperate.getOperate());
                                 operate(deviceOperate, deviceCode, mqttClient);
-//                                log.info("设备 {} 执行操作成功", deviceCode);
                             } catch (Exception e) {
                                 log.error("设备 {} 执行操作失败: {}", deviceCode, e.getMessage(), e);
                             }
@@ -120,13 +114,12 @@ public class DelayExecute extends NodeComponent {
     }
 
     private void zigBeeDevice(String deviceCode, Long deviceGatewayId, @Pattern(regexp = "ON|OFF", message = "错误操作") String operate, String way, Integer count, MqttClient mqttClient) throws MqttException {
-        log.info("zigBeeDevice演示出发");
         Control control = makeControl(deviceCode);
         Switch plug = makeSwitch(operate, Integer.parseInt(way) - 1);
         List<Switch> switches = new ArrayList<>();
         switches.add(plug);
         makeControlParams(switches, control);
-        mqttClient.publish("/zbgw/" + "9454c5ee8180" + "/sub/control", JSON.toJSONString(control).getBytes(), 2, false);
+        mqttClient.publish("/zbgw/" + deviceCode + "/sub/control", JSON.toJSONString(control).getBytes(), 2, false);
         this.setIsEnd(true);
     }
 
