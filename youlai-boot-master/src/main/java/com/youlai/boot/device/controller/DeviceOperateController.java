@@ -1,18 +1,13 @@
 package com.youlai.boot.device.controller;
 
 import com.alibaba.fastjson.JSON;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.youlai.boot.common.annotation.Log;
-import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.common.enums.LogModuleEnum;
 import com.youlai.boot.common.result.Result;
 import com.youlai.boot.common.util.MacUtils;
 import com.youlai.boot.config.mqtt.MqttProducer;
 import com.youlai.boot.device.Enum.CommunicationModeEnum;
 import com.youlai.boot.device.model.dto.Control;
-import com.youlai.boot.device.model.dto.ControlParams;
 import com.youlai.boot.device.model.dto.Switch;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.DeviceOperate;
@@ -20,6 +15,8 @@ import com.youlai.boot.device.model.form.SerialData;
 import com.youlai.boot.device.model.form.SerialDataDown;
 import com.youlai.boot.device.model.vo.DeviceInfo;
 import com.youlai.boot.device.model.vo.DeviceInfoVO;
+import com.youlai.boot.device.operation.DeviceOperation;
+import com.youlai.boot.device.operation.OperationUtils;
 import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.floor.model.entity.Floor;
 import com.youlai.boot.floor.service.FloorService;
@@ -33,7 +30,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.jetbrains.annotations.NotNull;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -42,7 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import static com.youlai.boot.common.util.JsonUtils.mergeJson;
+import static com.youlai.boot.device.operation.OperationUtils.*;
 
 /**
  *@Author: way
@@ -60,7 +56,7 @@ public class DeviceOperateController {
     private final MqttProducer mqttProducer;
     private final RoomService roomService;
     private final FloorService floorService;
-    private final RedisTemplate<String, Object> redisTemplate;
+    private final DeviceOperation deviceOperation;
 
     @Operation(summary = "串口透传demo")
     @GetMapping(value = "/serial{id}")
@@ -138,194 +134,9 @@ public class DeviceOperateController {
     @PutMapping(value = "/{id}")
     @Log(value = "对单设备操作", module = LogModuleEnum.OPERATION)
     public Result<Void> operateSocket(@Parameter(description = "设备ID") @PathVariable Long id, @RequestBody @Validated DeviceOperate deviceOperate) {
-        //根据设备发送mqtt
-        Device device = deviceService.getById(id);
-        if (ObjectUtils.isEmpty(device)) return Result.failed("设备不存在");
-        //状态
-        if (device.getStatus() != 1) return Result.failed("该设备非正常状态，无法操作");
-        return operate(deviceOperate.getOperate(), deviceOperate.getWay(), deviceOperate.getCount(), device.getDeviceCode(), device.getDeviceGatewayId(), device.getCommunicationModeItemId(), device.getDeviceTypeId());
+        return deviceOperation.operate(id, deviceOperate, mqttProducer);
     }
 
-    public void operate(DeviceOperate deviceOperate, Long deviceId) {
-        Device device = deviceService.getById(deviceId);
-        if (ObjectUtils.isEmpty(device)) return;
-        if (device.getDeviceTypeId() != 4 && device.getDeviceTypeId() != 7 && device.getDeviceTypeId() != 10 && device.getDeviceTypeId() != 8)
-            return;
-        //根据通信协议去发送不同协议报文
-        switch (CommunicationModeEnum.getNameById(device.getCommunicationModeItemId())) {
-            case "ZigBee" ->
-                //zigBee
-                    zigBeeDevice(device.getDeviceCode(), device.getDeviceGatewayId(), deviceOperate.getOperate(), deviceOperate.getWay(), deviceOperate.getCount());
-            case "WiFi" ->
-                //WiFi
-                    wifiDevice(device.getDeviceCode(), deviceOperate.getOperate(), deviceOperate.getWay(), deviceOperate.getCount());
-            default -> Result.failed("暂不支持该协议");
-        }
-    }
 
-    private Result<Void> operate(String operate, String way, Integer lightCount, String deviceCode, Long deviceGatewayId, Long deviceCommunicationModeItemId, Long deviceTypeId) {
-        if (deviceTypeId != 4 && deviceTypeId != 7 && deviceTypeId != 10 && deviceTypeId != 8)
-            return Result.failed("该设备暂无操作");
-        //根据通信协议去发送不同协议报文
-        return switch (CommunicationModeEnum.getNameById(deviceCommunicationModeItemId)) {
-            case "ZigBee" ->
-                //zigBee
-                    zigBeeDevice(deviceCode, deviceGatewayId, operate, way, lightCount);
-
-            case "WiFi" ->
-                //WiFi
-                    wifiDevice(deviceCode, operate, way, lightCount);
-            default -> Result.failed("暂不支持该协议");
-        };
-    }
-
-    private void updateAllZigBee(String deviceCode, String operate, String way, Integer lightCount) {
-        //缓存查设备
-        Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
-        if (ObjectUtils.isNotEmpty(device)) {
-            JsonNode deviceInfo = device.getDeviceInfo();
-            ObjectNode metrics = JsonNodeFactory.instance.objectNode();
-            if (ObjectUtils.isNotEmpty(deviceInfo)) {
-                if (way.equals("-1")) {
-                    if (deviceInfo.has("count")) {
-                        int count = deviceInfo.get("count").asInt();
-                        for (int i = 1; i <= count; i++) {
-                            metrics.put("switch" + i, operate);
-                        }
-                        mergeJson(deviceInfo, metrics);
-                    }
-                } else {
-                    if (deviceInfo.has("switch" + way)) {
-                        metrics.put("switch" + way, operate);
-                    }
-                }
-                device.setDeviceInfo(mergeJson(deviceInfo, metrics));
-                deviceService.updateById(device);
-                redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
-                log.info("双更新成功");
-            }
-        }
-    }
-
-    private void updateAllWifi(String deviceCode, String operate, String way, Integer lightCount) {
-        //缓存查设备
-        Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
-        if (ObjectUtils.isNotEmpty(device)) {
-            JsonNode deviceInfo = device.getDeviceInfo();
-            ObjectNode metrics = JsonNodeFactory.instance.objectNode();
-            if (ObjectUtils.isNotEmpty(deviceInfo)) {
-                if (way.equals("-1")) {
-                    if (deviceInfo.has("count")) {
-                        int count = deviceInfo.get("count").asInt();
-                        for (int i = 1; i <= count; i++) {
-                            metrics.put("switch" + i, operate);
-                        }
-                        mergeJson(deviceInfo, metrics);
-                    }
-                } else {
-                    if (deviceInfo.has("switch" + way)) {
-                        metrics.put("switch" + way, operate);
-                    }
-                }
-                device.setDeviceInfo(mergeJson(deviceInfo, metrics));
-                deviceService.updateById(device);
-                redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
-                log.info("双更新成功");
-            }
-        }
-    }
-
-    private Result<Void> wifiDevice(String deviceCode, String operate, String way, Integer lightCount) {
-        //目前能控制的就只有灯的开关
-        log.info("正在发送~~~~~~~~~~");
-        //判断几路
-        if (lightCount == 1) {
-            try {
-                mqttProducer.send("cmnd/" + deviceCode + "/POWER", 0, false, operate);
-            } catch (MqttException e) {
-                log.error("发送消息失败", e);
-            }
-
-        } else if (way.equals("-1")) {
-            try {
-                for (int i = 1; i <= lightCount; i++) {
-                    mqttProducer.send("cmnd/" + deviceCode + "/POWER" + i, 0, false, operate);
-                }
-            } catch (MqttException e) {
-                log.error("发送消息失败", e);
-            }
-        } else {
-            try {
-                mqttProducer.send("cmnd/" + deviceCode + "/POWER" + way, 0, false, operate);
-            } catch (MqttException e) {
-                log.error("发送消息失败", e);
-            }
-        }
-        return Result.success();
-    }
-
-    private Result<Void> zigBeeDevice(String deviceCode, Long deviceGatewayId, String operate, String way, Integer lightCount) {
-        //目前能控制的就只有计量插座和开关
-        //查询该子设备的网关
-        Device gateway = deviceService.getById(deviceGatewayId);
-        if (ObjectUtils.isEmpty(gateway)) return Result.failed("该设备没有网关");
-        //组发送json
-        if (way.equals("-1")) {
-            for (int i = 0; i < lightCount; i++) {
-                Control control = makeControl(deviceCode);
-                Switch plug = makeSwitch(operate, i);
-                List<Switch> switches = new ArrayList<>();
-                switches.add(plug);
-                makeControlParams(switches, control);
-                String deviceMac = gateway.getDeviceMac();
-                String gateWayTopic = MacUtils.reParseMACAddress(deviceMac);
-                try {
-                    mqttProducer.send("/zbgw/" + gateWayTopic + "/sub/control", 0, false, JSON.toJSONString(control));
-                    updateAllZigBee(deviceCode, operate, way, lightCount);
-                } catch (MqttException e) {
-                    log.error(e.getMessage());
-                }
-            }
-        } else {
-            Control control = makeControl(deviceCode);
-            Switch plug = makeSwitch(operate, Integer.parseInt(way) - 1);
-            List<Switch> switches = new ArrayList<>();
-            switches.add(plug);
-            makeControlParams(switches, control);
-            String deviceMac = gateway.getDeviceMac();
-            String gateWayTopic = MacUtils.reParseMACAddress(deviceMac);
-            log.info(control.toString());
-            try {
-                mqttProducer.send("/zbgw/" + gateWayTopic + "/sub/control", 0, false, JSON.toJSONString(control));
-                updateAllZigBee(deviceCode, operate, way, lightCount);
-            } catch (MqttException e) {
-                log.error(e.getMessage());
-            }
-        }
-        return Result.success();
-
-    }
-
-    public static void makeControlParams(List<Switch> switches, Control control) {
-        ControlParams controlParams = new ControlParams();
-        controlParams.setSwitches(switches);
-        control.setParams(controlParams);
-    }
-
-    @NotNull
-    private static Switch makeSwitch(String operate, int i) {
-        Switch plug = new Switch();
-        plug.setSwitchStatus(operate.equals("ON") ? "on" : "off");
-        plug.setOutlet(i);
-        return plug;
-    }
-
-    @NotNull
-    private static Control makeControl(String deviceCode) {
-        Control control = new Control();
-        control.setDeviceId(deviceCode);
-        control.setSequence((int) System.currentTimeMillis());
-        return control;
-    }
 
 }

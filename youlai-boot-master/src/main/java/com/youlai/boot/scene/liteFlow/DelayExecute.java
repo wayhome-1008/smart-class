@@ -10,6 +10,7 @@ import com.youlai.boot.device.model.dto.Control;
 import com.youlai.boot.device.model.dto.Switch;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.DeviceOperate;
+import com.youlai.boot.device.operation.OperationUtils;
 import com.youlai.boot.scene.model.entity.Action;
 import com.youlai.boot.scene.model.entity.Scene;
 import jakarta.validation.constraints.Pattern;
@@ -24,8 +25,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
-import static com.youlai.boot.device.controller.DeviceOperateController.makeControlParams;
 
 /**
  *@Author: way
@@ -118,7 +117,7 @@ public class DelayExecute extends NodeComponent {
         Switch plug = makeSwitch(operate, Integer.parseInt(way) - 1);
         List<Switch> switches = new ArrayList<>();
         switches.add(plug);
-        makeControlParams(switches, control);
+        OperationUtils.makeControlParams(switches, control);
         mqttClient.publish("/zbgw/" + deviceCode + "/sub/control", JSON.toJSONString(control).getBytes(), 2, false);
         this.setIsEnd(true);
     }

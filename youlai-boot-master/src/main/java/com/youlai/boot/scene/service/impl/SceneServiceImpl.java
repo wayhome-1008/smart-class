@@ -70,60 +70,6 @@ public class SceneServiceImpl extends ServiceImpl<SceneMapper, Scene> implements
         };
     }
 
-    //    @EventListener
-//    public void handleContextRefresh(ContextRefreshedEvent event) {
-//        // 确保是根应用上下文
-//        if (event.getApplicationContext().getParent() == null) {
-//            // 延迟执行，确保LiteFlow完全初始化
-//            new Thread(() -> {
-//                try {
-//                    // 循环检查组件是否已注册
-//                    int retryCount = 0;
-//                    while (retryCount < 10) {
-//                        if (checkRequiredComponents()) {
-//                            log.info("LiteFlow组件已就绪，开始初始化场景");
-//                            initScenesToLiteFlow();
-//                            break;
-//                        } else {
-//                            log.info("LiteFlow组件未就绪，等待中... ({}/10)", retryCount + 1);
-//                            Thread.sleep(1000);
-//                            retryCount++;
-//                        }
-//                    }
-//
-//                    if (retryCount >= 10) {
-//                        log.error("LiteFlow组件初始化超时，跳过场景初始化");
-//                    }
-//                } catch (InterruptedException e) {
-//                    Thread.currentThread().interrupt();
-//                    log.error("场景初始化被中断", e);
-//                } catch (Exception e) {
-//                    log.error("场景初始化失败", e);
-//                }
-//            }).start();
-//        }
-//    }
-
-//    /**
-//     * 检查必需的LiteFlow组件是否已注册
-//     */
-//    private boolean checkRequiredComponents() {
-//        try {
-//            boolean deviceTriggerExists = com.yomahub.liteflow.flow.FlowBus.containNode("deviceTrigger");
-//            boolean silenceCheckExists = com.yomahub.liteflow.flow.FlowBus.containNode("silenceCheck");
-//            boolean delayExecuteExists = com.yomahub.liteflow.flow.FlowBus.containNode("delayExecute");
-//            boolean deviceExecuteExists = com.yomahub.liteflow.flow.FlowBus.containNode("deviceExecute");
-//
-//            log.info("组件存在性检查: deviceTrigger={}, silenceCheck={}, delayExecute={}, deviceExecute={}",
-//                    deviceTriggerExists, silenceCheckExists, delayExecuteExists, deviceExecuteExists);
-//
-//            return deviceTriggerExists && silenceCheckExists && delayExecuteExists && deviceExecuteExists;
-//        } catch (Exception e) {
-//            log.warn("检查组件存在性时出错: {}", e.getMessage());
-//            return false;
-//        }
-//    }
-
     /**
      * 初始化所有场景的设备索引到Redis
      */
