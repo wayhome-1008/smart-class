@@ -124,8 +124,9 @@ public class DeviceOperateController {
     @NotNull
     private Result<Void> getVoidResult(com.youlai.boot.device.model.form.Operation operation, List<DeviceInfoVO> deviceInfoVOS) {
         for (DeviceInfoVO deviceInfoVO : deviceInfoVOS) {
-            Optional<Integer> tempValue = DeviceInfo.getValueByName(deviceInfoVO.getDeviceInfo(), "count", Integer.class);
-            tempValue.ifPresent(value -> this.operate(operation.getOperate(), "-1", value, deviceInfoVO.getDeviceCode(), deviceInfoVO.getDeviceGatewayId(), deviceInfoVO.getCommunicationModeItemId(), deviceInfoVO.getDeviceTypeId()));
+            Optional<Integer> count = DeviceInfo.getValueByName(deviceInfoVO.getDeviceInfo(), "count", Integer.class);
+            count.ifPresent(
+                    value -> deviceOperation.operate(deviceInfoVO.getId(), OperationUtils.convert(operation, value, "-1"), mqttProducer));
         }
         return Result.success();
     }
@@ -136,7 +137,6 @@ public class DeviceOperateController {
     public Result<Void> operateSocket(@Parameter(description = "设备ID") @PathVariable Long id, @RequestBody @Validated DeviceOperate deviceOperate) {
         return deviceOperation.operate(id, deviceOperate, mqttProducer);
     }
-
 
 
 }

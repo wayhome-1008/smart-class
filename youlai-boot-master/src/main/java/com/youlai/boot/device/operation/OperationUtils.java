@@ -24,8 +24,8 @@ public class OperationUtils {
         return ZIGBEE_TOPIC_PREFIX + gateWayTopic + ZIGBEE_TOPIC_SUFFIX;
     }
 
-    public static String makeWifiTopic(String deviceCode,String way) {
-        return WIFI_TOPIC_PREFIX + deviceCode + WIFI_TOPIC_SUFFIX+way;
+    public static String makeWifiTopic(String deviceCode, String way) {
+        return WIFI_TOPIC_PREFIX + deviceCode + WIFI_TOPIC_SUFFIX + way;
     }
 
     @NotNull
@@ -50,10 +50,11 @@ public class OperationUtils {
         control.setParams(controlParams);
     }
 
-    public static DeviceOperate convert(Operation operation) {
+    public static DeviceOperate convert(Operation operation, Integer count, String way) {
         DeviceOperate deviceOperate = new DeviceOperate();
         deviceOperate.setOperate(operation.getOperate());
-        deviceOperate.setWay(operation.getWay());
-        deviceOperate.setCount(operation.getCount());
+        deviceOperate.setWay(way);
+        deviceOperate.setCount(count);
+        return deviceOperate;
     }
 }

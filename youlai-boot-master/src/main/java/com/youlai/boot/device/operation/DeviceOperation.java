@@ -178,29 +178,30 @@ public class DeviceOperation {
             log.warn("[接口执行]设备信息为空: deviceCode={}", deviceCode);
             return Result.failed();
         }
-
         String way = operation.getWay();
         if (StringUtils.isEmpty(way)) {
             log.warn("[接口执行]操作路数为空: deviceCode={}", deviceCode);
             return Result.failed();
         }
 
-        JsonNode wayNode = deviceInfo.get("switch" + way);
-        if (wayNode == null) {
-            log.warn("[接口执行]设备路数信息不存在: deviceCode={}, way={}", deviceCode, way);
-            return Result.failed();
-        }
+        if (!way.equals("-1")) {
+            JsonNode wayNode = deviceInfo.get("switch" + way);
+            if (wayNode == null) {
+                log.warn("[接口执行]设备路数信息不存在: deviceCode={}, way={}", deviceCode, way);
+                return Result.failed();
+            }
 
-        String wayStatus = wayNode.asText();
-        String operate = operation.getOperate();
-        if (StringUtils.isEmpty(operate)) {
-            log.warn("[接口执行]操作指令为空: deviceCode={}", deviceCode);
-            return Result.failed();
-        }
+            String wayStatus = wayNode.asText();
+            String operate = operation.getOperate();
+            if (StringUtils.isEmpty(operate)) {
+                log.warn("[接口执行]操作指令为空: deviceCode={}", deviceCode);
+                return Result.failed();
+            }
 
-        if (Objects.equals(wayStatus, operate)) {
-            log.info("[接口执行]设备状态一致，无需操作: deviceCode={}, way={}, status={}", deviceCode, way, operate);
-            return Result.failed();
+            if (Objects.equals(wayStatus, operate)) {
+                log.info("[接口执行]设备状态一致，无需操作: deviceCode={}, way={}, status={}", deviceCode, way, operate);
+                return Result.failed();
+            }
         }
 
         if (isUnSupportedDeviceType(device.getDeviceTypeId())) {
@@ -224,7 +225,6 @@ public class DeviceOperation {
             } catch (MqttException e) {
                 log.error("发送消息失败", e);
             }
-
         } else if (operation.getWay().equals("-1")) {
             try {
                 for (int i = 1; i <= operation.getCount(); i++) {
