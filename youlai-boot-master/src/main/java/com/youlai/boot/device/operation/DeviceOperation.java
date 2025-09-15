@@ -221,14 +221,14 @@ public class DeviceOperation {
         //判断几路
         if (operation.getCount() == 1) {
             try {
-                mqttProducer.send(OperationUtils.makeWifiTopic(deviceCode, operation.getWay()), 0, false, operation.getOperate());
+                mqttProducer.send(WIFI_TOPIC_PREFIX + deviceCode + WIFI_TOPIC_SUFFIX, 0, false, operation.getOperate());
             } catch (MqttException e) {
                 log.error("发送消息失败", e);
             }
         } else if (operation.getWay().equals("-1")) {
             try {
                 for (int i = 1; i <= operation.getCount(); i++) {
-                    mqttProducer.send(OperationUtils.makeWifiTopic(deviceCode, operation.getWay()), 0, false, operation.getOperate());
+                    mqttProducer.send(WIFI_TOPIC_PREFIX + deviceCode + WIFI_TOPIC_SUFFIX + i, 0, false, operation.getOperate());
                 }
             } catch (MqttException e) {
                 log.error("发送消息失败", e);

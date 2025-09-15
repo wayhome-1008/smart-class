@@ -5,6 +5,7 @@ import com.youlai.boot.device.model.dto.ControlParams;
 import com.youlai.boot.device.model.dto.Switch;
 import com.youlai.boot.device.model.form.DeviceOperate;
 import com.youlai.boot.device.model.form.Operation;
+import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -14,18 +15,23 @@ import java.util.List;
  *@CreateTime: 2025-09-12  10:06
  *@Description: TODO
  */
+@Slf4j
 public class OperationUtils {
-    private static final String ZIGBEE_TOPIC_PREFIX = "/zbgw/";
-    private static final String ZIGBEE_TOPIC_SUFFIX = "/sub/control";
-    private static final String WIFI_TOPIC_PREFIX = "cmnd/";
-    private static final String WIFI_TOPIC_SUFFIX = "/POWER";
+     static final String ZIGBEE_TOPIC_PREFIX = "/zbgw/";
+     static final String ZIGBEE_TOPIC_SUFFIX = "/sub/control";
+     static final String WIFI_TOPIC_PREFIX = "cmnd/";
+     static final String WIFI_TOPIC_SUFFIX = "/POWER";
 
     public static String makeZigBeeTopic(String gateWayTopic) {
-        return ZIGBEE_TOPIC_PREFIX + gateWayTopic + ZIGBEE_TOPIC_SUFFIX;
+        String topic = ZIGBEE_TOPIC_PREFIX + gateWayTopic + ZIGBEE_TOPIC_SUFFIX;
+        log.info("生成ZigBee主题: {}", topic);
+        return topic;
     }
 
     public static String makeWifiTopic(String deviceCode, String way) {
-        return WIFI_TOPIC_PREFIX + deviceCode + WIFI_TOPIC_SUFFIX + way;
+        String topic = WIFI_TOPIC_PREFIX + deviceCode + WIFI_TOPIC_SUFFIX + way;
+        log.info("生成WiFi主题: {}", topic);
+        return topic;
     }
 
     @NotNull
