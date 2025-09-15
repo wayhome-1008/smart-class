@@ -4,11 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.youlai.boot.common.annotation.Log;
 import com.youlai.boot.common.enums.LogModuleEnum;
 import com.youlai.boot.common.result.Result;
-import com.youlai.boot.common.util.MacUtils;
 import com.youlai.boot.config.mqtt.MqttProducer;
-import com.youlai.boot.device.Enum.CommunicationModeEnum;
-import com.youlai.boot.device.model.dto.Control;
-import com.youlai.boot.device.model.dto.Switch;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.DeviceOperate;
 import com.youlai.boot.device.model.form.SerialData;
@@ -34,11 +30,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
-import static com.youlai.boot.device.operation.OperationUtils.*;
 
 /**
  *@Author: way
