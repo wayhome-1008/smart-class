@@ -10,9 +10,9 @@ import com.youlai.boot.deviceJob.service.DeviceJobService;
 import com.youlai.boot.scene.model.entity.Scene;
 import com.youlai.boot.scene.model.entity.Trigger;
 import com.youlai.boot.scene.model.form.ThresholdCondition;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.SchedulerException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 
 import java.util.ArrayList;
@@ -27,11 +27,10 @@ import java.util.List;
  */
 @LiteflowComponent(id = "deviceTrigger", name = "设备触发器组件")
 @Slf4j
+@RequiredArgsConstructor
 public class DeviceTriggerComponent extends NodeComponent {
-    @Autowired
-    private RedisTemplate<String, Object> redisTemplate;
-    @Autowired
-    private DeviceJobService deviceJobService;
+    private final RedisTemplate<String, Object> redisTemplate;
+    private final DeviceJobService deviceJobService;
 
     @Override
     public boolean isAccess() {

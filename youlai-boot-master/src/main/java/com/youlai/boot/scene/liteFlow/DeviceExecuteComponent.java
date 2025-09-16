@@ -86,7 +86,7 @@ public class DeviceExecuteComponent extends NodeComponent {
                     //校验警报配置
                     AlertRule alertRule = alertRuleEngine.checkAlertConfig(device.getId(), metrics);
                     if (ObjectUtils.isNotEmpty(alertRule)) {
-                        boolean checkRule = alertRuleEngine.checkRule(alertRule, metrics.get(alertRule.getMetricKey()).asLong());
+                        boolean checkRule = alertRuleEngine.checkRule(alertRule, metrics.get(alertRule.getMetricKey()).asText());
                         //满足条件
                         if (checkRule) {
                             //创建AlertEvent

@@ -415,10 +415,6 @@ public class SceneServiceImpl extends ServiceImpl<SceneMapper, Scene> implements
                     addJob.setActions(action.getParameters());
                     needSaveJobs.add(addJob);
                 }
-                //对执行动作为设备告警做关联
-                if(action.getType().equals("ALERT_EXECUTE")){
-
-                }
             }
         }
         if (ObjectUtils.isNotEmpty(needSaveJobs)) {

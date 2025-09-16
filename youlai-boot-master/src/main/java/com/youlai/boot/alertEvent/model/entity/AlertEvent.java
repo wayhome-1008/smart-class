@@ -33,7 +33,7 @@ public class AlertEvent extends BaseEntity {
     /**
      * 当前值（如 36.5℃）
      */
-    private Long currentValue;
+    private String currentValue;
     /**
      * 报警内容（如 “温度 36.5℃，超出阈值 35℃”）
      */

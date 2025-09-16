@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
@@ -16,11 +15,8 @@ import java.time.LocalDateTime;
  */
 @Getter
 @Setter
-@Schema( description = "报警记录视图对象")
+@Schema(description = "报警记录视图对象")
 public class AlertEventVO implements Serializable {
-
-    @Serial
-    private static final long serialVersionUID = 1L;
 
     private Long id;
     @Schema(description = "关联的规则 ID")
@@ -36,7 +32,7 @@ public class AlertEventVO implements Serializable {
     @Schema(description = "触发的指标")
     private String metricKey;
     @Schema(description = "当前值（如 36.5℃）")
-    private Long currentValue;
+    private String currentValue;
     @Schema(description = "报警内容（如 “温度 36.5℃，超出阈值 35℃”）")
     private String alarmContent;
     @Schema(description = "报警级别（继承规则的 level）")

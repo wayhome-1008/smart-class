@@ -40,7 +40,7 @@ public class AlertRuleVO implements Serializable {
     @Schema(description = "比较类型（>、<、>=、<=、==、!=，或 “range” 表示范围）")
     private String compareType;
     @Schema(description = "阈值（如 35，表示 “temperature>35” 报警）")
-    private Long thresholdValue;
+    private String thresholdValue;
     @Schema(description = "时间窗口（秒，如 60，表示 “1 分钟内连续 3 次超阈值” 报警）")
     private Integer timeWindow;
     @Schema(description = "连续次数（如 3，配合 time_window 使用）")

@@ -42,7 +42,7 @@ public class AlertRule extends BaseEntity {
     /**
      * 阈值（如 35，表示 “temperature>35” 报警）
      */
-    private Long thresholdValue;
+    private String thresholdValue;
     /**
      * 时间窗口（秒，如 60，表示 “1 分钟内连续 3 次超阈值” 报警）
      */

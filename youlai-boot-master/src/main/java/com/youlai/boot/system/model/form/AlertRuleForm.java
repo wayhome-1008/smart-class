@@ -53,7 +53,7 @@ public class AlertRuleForm implements Serializable {
 
     @Schema(description = "阈值（如 35，表示 “temperature>35” 报警）")
 //    @NotNull(message = "阈值（如 35，表示 “temperature>35” 报警）不能为空")
-    private Long thresholdValue;
+    private String thresholdValue;
 
     @Schema(description = "时间窗口（秒，如 60，表示 “1 分钟内连续 3 次超阈值” 报警）")
 //    @NotNull(message = "时间窗口（秒，如 60，表示 “1 分钟内连续 3 次超阈值” 报警）不能为空")

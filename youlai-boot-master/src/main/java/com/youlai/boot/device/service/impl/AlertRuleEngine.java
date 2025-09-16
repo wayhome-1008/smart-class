@@ -7,6 +7,7 @@ import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.system.model.entity.AlertRule;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -32,7 +33,7 @@ public class AlertRuleEngine {
     /**
      * 检查规则是否触发报警（带时间窗口处理）
      */
-    public boolean checkRule(AlertRule rule, Long currentValue) {
+    public boolean checkRule(AlertRule rule, String currentValue) {
         // 1. 基础条件检查
         boolean conditionMet = checkBasicCondition(rule, currentValue);
         if (!conditionMet) {
@@ -43,22 +44,32 @@ public class AlertRuleEngine {
         return checkTimeWindow(rule, currentValue);
     }
 
-    private boolean checkBasicCondition(AlertRule rule, Long currentValue) {
+    private boolean checkBasicCondition(AlertRule rule, String currentValue) {
         String compareType = rule.getCompareType();
-        return switch (compareType) {
-            case ">" -> currentValue.compareTo(rule.getThresholdValue()) > 0;
-            case "<" -> currentValue.compareTo(rule.getThresholdValue()) < 0;
-            case ">=" -> currentValue.compareTo(rule.getThresholdValue()) >= 0;
-            case "<=" -> currentValue.compareTo(rule.getThresholdValue()) <= 0;
-            case "==" -> currentValue.compareTo(rule.getThresholdValue()) == 0;
-            case "!=" -> currentValue.compareTo(rule.getThresholdValue()) != 0;
-            case "range" -> currentValue.compareTo(rule.getMinValue()) < 0 ||
-                    currentValue.compareTo(rule.getMaxValue()) > 0;
-            default -> false;
-        };
+        if (currentValue.equals("ON") || currentValue.equals("OFF")) {
+            return switch (compareType) {
+                case "=" -> currentValue.compareTo(rule.getThresholdValue()) == 0;
+                case "!=" -> currentValue.compareTo(rule.getThresholdValue()) != 0;
+                default -> false;
+            };
+        } else {
+            Long metricValue = NumberUtils.toLong(currentValue);
+            return switch (compareType) {
+                case ">" -> metricValue.compareTo(Long.valueOf(rule.getThresholdValue())) > 0;
+                case "<" -> metricValue.compareTo(Long.valueOf(rule.getThresholdValue())) < 0;
+                case ">=" -> metricValue.compareTo(Long.valueOf(rule.getThresholdValue())) >= 0;
+                case "<=" -> metricValue.compareTo(Long.valueOf(rule.getThresholdValue())) <= 0;
+                case "==" -> metricValue.compareTo(Long.valueOf(rule.getThresholdValue())) == 0;
+                case "!=" -> metricValue.compareTo(Long.valueOf(rule.getThresholdValue())) != 0;
+                case "range" -> metricValue.compareTo(rule.getMinValue()) < 0 ||
+                        metricValue.compareTo(rule.getMaxValue()) > 0;
+                default -> false;
+            };
+        }
+
     }
 
-    private boolean checkTimeWindow(AlertRule rule, Long currentValue) {
+    private boolean checkTimeWindow(AlertRule rule, String currentValue) {
         // 如果没有设置时间窗口，直接返回true
         if (rule.getTimeWindow() == null || rule.getTimeWindow() <= 0) {
             return true;
@@ -99,7 +110,7 @@ public class AlertRuleEngine {
         alertEvent.setRuleId(rule.getId());
         alertEvent.setDeviceId(device.getId());
         alertEvent.setMetricKey(rule.getMetricKey());
-        alertEvent.setCurrentValue(metrics.get(rule.getMetricKey()).asLong());
+        alertEvent.setCurrentValue(metrics.get(rule.getMetricKey()).asText());
         alertEvent.setAlarmContent(rule.getRuleName());
         alertEvent.setLevel(rule.getLevel());
         alertEvent.setEventTime(System.currentTimeMillis());
