@@ -33,6 +33,7 @@ public class SceneExecuteService {
                     scene,     // 上下文对象
                     device, mqttClient, allSwitchStates
             );
+            log.info("设备上报属性:{}", allSwitchStates);
             // 3. 处理执行结果
             if (response.isSuccess()) {
 //                log.info("场景[{}:{}]正常执行", scene.getId(), scene.getSceneName());

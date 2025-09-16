@@ -28,6 +28,11 @@ public class Scene extends BaseEntity {
      * 任务id
      */
     private Long jobId;
+
+    /**
+     * 设备报警id
+     */
+    private Long alertId;
     /**
      * 触发条件类型（ALL/ANY/NOT）
      */

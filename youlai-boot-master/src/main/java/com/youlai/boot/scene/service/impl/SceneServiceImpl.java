@@ -408,11 +408,16 @@ public class SceneServiceImpl extends ServiceImpl<SceneMapper, Scene> implements
             for (Action action : scene.getActions()) {
                 action.setSceneId(scene.getId());
                 actionMapper.insert(action);
+                //对动作进行设备任务关联
                 if (ObjectUtils.isNotEmpty(jobs)) {
                     DeviceJob addJob = new DeviceJob();
                     BeanUtils.copyProperties(job, addJob);
                     addJob.setActions(action.getParameters());
                     needSaveJobs.add(addJob);
+                }
+                //对执行动作为设备告警做关联
+                if(action.getType().equals("ALERT_EXECUTE")){
+
                 }
             }
         }
