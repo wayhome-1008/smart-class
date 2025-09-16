@@ -22,7 +22,7 @@ public class SceneExecuteService {
     /**
      * 执行单个场景的核心方法（内部封装）
      */
-    public boolean executeScene(Scene scene, Device device, MqttClient mqttClient, ObjectNode allSwitchStates) {
+    public void executeScene(Scene scene, Device device, MqttClient mqttClient, ObjectNode allSwitchStates) {
         String flowId = "scene_" + scene.getId();
         try {
             // 1. 准备上下文参数
@@ -37,15 +37,12 @@ public class SceneExecuteService {
             // 3. 处理执行结果
             if (response.isSuccess()) {
 //                log.info("场景[{}:{}]正常执行", scene.getId(), scene.getSceneName());
-                return true;
             } else {
                 log.error("场景[{}:{}]执行失败：{}",
                         scene.getId(), scene.getSceneName(), response.getMessage());
-                return false;
             }
         } catch (Exception e) {
             log.error("场景[{}:{}]执行抛出异常", scene.getId(), scene.getSceneName(), e);
-            return false;
         }
     }
 

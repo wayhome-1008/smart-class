@@ -4,7 +4,6 @@ import com.alibaba.fastjson.JSON;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.yomahub.liteflow.annotation.LiteflowComponent;
 import com.yomahub.liteflow.core.NodeComponent;
-import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.DeviceOperate;
 import com.youlai.boot.device.operation.DeviceOperation;
@@ -16,7 +15,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.eclipse.paho.client.mqttv3.MqttClient;
-import org.springframework.data.redis.core.RedisTemplate;
 
 import java.util.Arrays;
 import java.util.List;
