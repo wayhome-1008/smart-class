@@ -29,6 +29,9 @@ public class AlertRuleForm implements Serializable {
     @NotNull(message = "不能为空")
     private Long deviceId;
 
+    @Schema(description = "场景id")
+    private Long sceneId;
+
     @Schema(description = "报警级别（1 - 紧急，2 - 重要，3 - 一般，用于后续通知策略）")
 //    @NotNull(message = "报警级别（1 - 紧急，2 - 重要，3 - 一般，用于后续通知策略）不能为空")
     private Integer level;

@@ -7,6 +7,8 @@
         SELECT
         ar.id,
         ar.rule_name,
+        ar.scene_id,
+        s.scene_name,
         ar.level,
         ar.min_value,
         ar.max_value,
@@ -25,6 +27,7 @@
         FROM
         alert_rule ar
         LEFT JOIN device d ON ar.device_id = d.id
+        LEFT JOIN scene s ON ar.scene_id = s.id
         <where>
             <if test="queryParams.ruleName != null and queryParams.ruleName != ''">
                 AND ar.rule_name LIKE CONCAT('%', #{queryParams.ruleName}, '%')

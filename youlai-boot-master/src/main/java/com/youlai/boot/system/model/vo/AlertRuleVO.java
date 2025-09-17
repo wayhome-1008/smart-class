@@ -27,6 +27,10 @@ public class AlertRuleVO implements Serializable {
     private Long id;
     @Schema(description = "报警的设备 ID")
     private Long deviceId;
+    @Schema(description = "场景id")
+    private Long sceneId;
+    @Schema(description = "场景名称")
+    private String sceneName;
     @Schema(description = "报警的设备名称")
     private String deviceName;
     @Schema(description = "报警级别（1 - 紧急，2 - 重要，3 - 一般，用于后续通知策略）")
