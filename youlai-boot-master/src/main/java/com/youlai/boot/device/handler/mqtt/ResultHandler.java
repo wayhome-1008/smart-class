@@ -13,10 +13,12 @@ import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.influx.InfluxMqttPlug;
 import com.youlai.boot.device.model.influx.InfluxSwitch;
 import com.youlai.boot.device.service.DeviceService;
+import com.youlai.boot.device.service.impl.AlertRuleEngine;
 import com.youlai.boot.device.topic.HandlerType;
 import com.youlai.boot.scene.liteFlow.SceneExecuteService;
 import com.youlai.boot.scene.model.entity.Scene;
 import com.youlai.boot.scene.service.SceneService;
+import com.youlai.boot.system.model.entity.AlertRule;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
@@ -48,6 +50,7 @@ public class ResultHandler implements MsgHandler {
     private final SceneExecuteService sceneExecuteService;
     private final SceneService sceneService;
     private final DeviceStatusManager deviceStatusManager;
+    private final AlertRuleEngine alertRuleEngine;
 
     @Override
     public void process(String topic, String jsonMsg, MqttClient mqttClient) {
@@ -114,6 +117,17 @@ public class ResultHandler implements MsgHandler {
                 influxPlug
         );
         JsonNode mergedInfo = mergeJson(device.getDeviceInfo(), metrics);
+        //校验警报配置
+        AlertRule alertRule = alertRuleEngine.checkAlertConfig(device.getId(), metrics);
+        if (ObjectUtils.isNotEmpty(alertRule)) {
+            boolean checkRule = alertRuleEngine.checkRule(alertRule, metrics.get(alertRule.getMetricKey()).asText());
+            //满足条件
+            if (checkRule) {
+                alertRuleEngine.runningScene(alertRule.getSceneId(), device, mqttClient, metrics);
+                //创建AlertEvent
+                alertRuleEngine.constructAlertEvent(device, alertRule, metrics);
+            }
+        }
         device.setDeviceInfo(mergedInfo);
         device.setStatus(1);
         redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
@@ -163,6 +177,17 @@ public class ResultHandler implements MsgHandler {
             List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(device.getDeviceCode());
             for (Scene scene : scenesByDeviceId) {
                 sceneExecuteService.executeScene(scene, device, mqttClient, metrics);
+            }
+            //校验警报配置
+            AlertRule alertRule = alertRuleEngine.checkAlertConfig(device.getId(), metrics);
+            if (ObjectUtils.isNotEmpty(alertRule)) {
+                boolean checkRule = alertRuleEngine.checkRule(alertRule, metrics.get(alertRule.getMetricKey()).asText());
+                //满足条件
+                if (checkRule) {
+                    alertRuleEngine.runningScene(alertRule.getSceneId(), device, mqttClient, metrics);
+                    //创建AlertEvent
+                    alertRuleEngine.constructAlertEvent(device, alertRule, metrics);
+                }
             }
             JsonNode mergedInfo = mergeJson(device.getDeviceInfo(), metrics);
             device.setDeviceInfo(mergedInfo);

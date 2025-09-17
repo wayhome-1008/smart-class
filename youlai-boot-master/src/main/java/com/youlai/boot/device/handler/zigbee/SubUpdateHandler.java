@@ -123,6 +123,17 @@ public class SubUpdateHandler implements MsgHandler {
         for (Scene scene : scenesByDeviceId) {
             sceneExecuteService.executeScene(scene, device, mqttClient, null);
         }
+        //校验警报配置
+        AlertRule alertRule = alertRuleEngine.checkAlertConfig(device.getId(), null);
+        if (ObjectUtils.isNotEmpty(alertRule)) {
+            boolean checkRule = alertRuleEngine.checkRule(alertRule, "metrics.get(alertRule.getMetricKey()).asText()");
+            //满足条件
+            if (checkRule) {
+                alertRuleEngine.runningScene(alertRule.getSceneId(), device, mqttClient, null);
+                //创建AlertEvent
+                alertRuleEngine.constructAlertEvent(device, alertRule, null);
+            }
+        }
     }
 
     private void processSocket(String topic, MqttClient mqttClient, Device device, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
@@ -155,6 +166,17 @@ public class SubUpdateHandler implements MsgHandler {
                 sceneExecuteService.executeScene(scene, device, mqttClient, allSwitchStates);
             }
             JsonNode mergeJson = mergeJson(Optional.of(device).map(Device::getDeviceInfo).orElse(null), allSwitchStates);
+            //校验警报配置
+            AlertRule alertRule = alertRuleEngine.checkAlertConfig(device.getId(), allSwitchStates);
+            if (ObjectUtils.isNotEmpty(alertRule)) {
+                boolean checkRule = alertRuleEngine.checkRule(alertRule, allSwitchStates.get(alertRule.getMetricKey()).asText());
+                //满足条件
+                if (checkRule) {
+                    alertRuleEngine.runningScene(alertRule.getSceneId(), device, mqttClient, allSwitchStates);
+                    //创建AlertEvent
+                    alertRuleEngine.constructAlertEvent(device, alertRule, allSwitchStates);
+                }
+            }
             device.setDeviceInfo(mergeJson);
             device.setStatus(1);
             redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
@@ -209,6 +231,17 @@ public class SubUpdateHandler implements MsgHandler {
                     sceneExecuteService.executeScene(scene, device, mqttClient, allSwitchStates);
                 }
                 JsonNode mergeJson = mergeJson(Optional.of(device).map(Device::getDeviceInfo).orElse(null), allSwitchStates);
+                //校验警报配置
+                AlertRule alertRule = alertRuleEngine.checkAlertConfig(device.getId(), allSwitchStates);
+                if (ObjectUtils.isNotEmpty(alertRule)) {
+                    boolean checkRule = alertRuleEngine.checkRule(alertRule, allSwitchStates.get(alertRule.getMetricKey()).asText());
+                    //满足条件
+                    if (checkRule) {
+                        alertRuleEngine.runningScene(alertRule.getSceneId(), device, mqttClient, allSwitchStates);
+                        //创建AlertEvent
+                        alertRuleEngine.constructAlertEvent(device, alertRule, allSwitchStates);
+                    }
+                }
                 device.setDeviceInfo(mergeJson);
                 device.setStatus(1);
                 //todo 将开关状态存influxdb
@@ -255,12 +288,23 @@ public class SubUpdateHandler implements MsgHandler {
             sceneExecuteService.executeScene(scene, device, mqttClient, allSwitchStates);
         }
         mergeJson = mergeJson(Optional.of(device).map(Device::getDeviceInfo).orElse(null), allSwitchStates);
+        //校验警报配置
+        AlertRule alertRule = alertRuleEngine.checkAlertConfig(device.getId(), allSwitchStates);
+        if (ObjectUtils.isNotEmpty(alertRule)) {
+            boolean checkRule = alertRuleEngine.checkRule(alertRule, allSwitchStates.get(alertRule.getMetricKey()).asText());
+            //满足条件
+            if (checkRule) {
+                alertRuleEngine.runningScene(alertRule.getSceneId(), device, mqttClient, allSwitchStates);
+                //创建AlertEvent
+                alertRuleEngine.constructAlertEvent(device, alertRule, allSwitchStates);
+            }
+        }
         device.setDeviceInfo(mergeJson);
         redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
         RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
     }
 
-    private void processPlug(String topic, MqttClient mqttClient, Device deviceCache, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
+    private void processPlug(String topic, MqttClient mqttClient, Device device, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
         JsonNode jsonNode = stringToJsonNode(jsonMsg);
         //获取params
         JsonNode params = jsonNode.get("params");
@@ -274,9 +318,9 @@ public class SubUpdateHandler implements MsgHandler {
                 metrics.put("count", 1);
                 switchState = Objects.equals(switchNode.get("switch").asText(), "on") ? "ON" : "OFF";
                 //此处对开关上次及本次状态进行对比
-                if (ObjectUtils.isNotEmpty(deviceCache)) {
-                    if (deviceCache.getDeviceInfo().has("switch1")) {
-                        String lastSwitchState = deviceCache.getDeviceInfo().get("switch1").asText();
+                if (ObjectUtils.isNotEmpty(device)) {
+                    if (device.getDeviceInfo().has("switch1")) {
+                        String lastSwitchState = device.getDeviceInfo().get("switch1").asText();
                         if (!Objects.equals(lastSwitchState, switchState)) {
                             isSwitch = true;
                         }
@@ -302,38 +346,39 @@ public class SubUpdateHandler implements MsgHandler {
             metrics.put("total", params.get("electricalEnergy").asDouble());
         }
         //场景
-        List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(deviceCache.getDeviceCode());
+        List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(device.getDeviceCode());
         for (Scene scene : scenesByDeviceId) {
-            sceneExecuteService.executeScene(scene, deviceCache, mqttClient, metrics);
+            sceneExecuteService.executeScene(scene, device, mqttClient, metrics);
         }
         //接受得数据与旧数据合并
-        JsonNode mergeJson = mergeJson(Optional.of(deviceCache).map(Device::getDeviceInfo).orElse(null), metrics);
-        deviceCache.setDeviceInfo(mergeJson);
+        JsonNode mergeJson = mergeJson(Optional.of(device).map(Device::getDeviceInfo).orElse(null), metrics);
+        device.setDeviceInfo(mergeJson);
 
         //校验警报配置
-        AlertRule alertRule = alertRuleEngine.checkAlertConfig(deviceCache.getId(), metrics);
+        AlertRule alertRule = alertRuleEngine.checkAlertConfig(device.getId(), metrics);
         if (ObjectUtils.isNotEmpty(alertRule)) {
             boolean checkRule = alertRuleEngine.checkRule(alertRule, metrics.get(alertRule.getMetricKey()).asText());
             //满足条件
             if (checkRule) {
+                alertRuleEngine.runningScene(alertRule.getSceneId(), device, mqttClient, metrics);
                 //创建AlertEvent
-                alertRuleEngine.constructAlertEvent(deviceCache, alertRule, metrics);
+                alertRuleEngine.constructAlertEvent(device, alertRule, metrics);
             }
         }
         //获取合并后的params节点
-        JsonNode mergeParams = deviceCache.getDeviceInfo();
+        JsonNode mergeParams = device.getDeviceInfo();
 
         //创建influx数据
         InfluxMqttPlug influxPlug = new InfluxMqttPlug();
-        influxPlug.setCategoryId(deviceCache.getCategoryId().toString());
+        influxPlug.setCategoryId(device.getCategoryId().toString());
         //tag为设备编号
-        influxPlug.setDeviceCode(deviceCache.getDeviceCode());
+        influxPlug.setDeviceCode(device.getDeviceCode());
         if (params.has("switches")) {
             influxPlug.setSwitchState(switchState);
         }
         //tag为房间id
-        influxPlug.setRoomId(deviceCache.getDeviceRoom().toString());
-        influxPlug.setDeviceType(String.valueOf(deviceCache.getDeviceTypeId()));
+        influxPlug.setRoomId(device.getDeviceRoom().toString());
+        influxPlug.setDeviceType(String.valueOf(device.getDeviceTypeId()));
         //处理插座数据
         if (mergeParams != null) {
             //电压
@@ -378,8 +423,8 @@ public class SubUpdateHandler implements MsgHandler {
 //                influxPlug.setRMS_CurrentC(mergeParams.get("RMS_CurrentC").asInt());
 //            }
             log.info("插座数据:{}", influxPlug);
-            RspMqtt(topic, mqttClient, deviceCache.getDeviceCode(), sequence);
-            if (deviceCache.getIsMaster() == 1) {
+            RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
+            if (device.getIsMaster() == 1) {
                 influxDBClient.getWriteApiBlocking().writeMeasurement(
                         influxProperties.getBucket(),
                         influxProperties.getOrg(),
@@ -388,11 +433,11 @@ public class SubUpdateHandler implements MsgHandler {
                 );
             }
         }
-        deviceCache.setStatus(1);
-        redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCache.getDeviceCode(), deviceCache);
+        device.setStatus(1);
+        redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
     }
 
-    private void processHumanRadarSensor(String topic, MqttClient mqttClient, Device deviceCache, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
+    private void processHumanRadarSensor(String topic, MqttClient mqttClient, Device device, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
         //1.字符串转jsonNode
         JsonNode jsonNode = stringToJsonNode(jsonMsg);
         //2.获取params
@@ -405,28 +450,31 @@ public class SubUpdateHandler implements MsgHandler {
             metrics.put("motion", params.get("Occupancy").asInt());
         }
         //场景
-        List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(deviceCache.getDeviceCode());
+        List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(device.getDeviceCode());
         for (Scene scene : scenesByDeviceId) {
-            sceneExecuteService.executeScene(scene, deviceCache, mqttClient, metrics);
+            sceneExecuteService.executeScene(scene, device, mqttClient, metrics);
         }
         //接收的数据与旧数据合并
-        JsonNode mergeJson = mergeJson(Optional.of(deviceCache).map(Device::getDeviceInfo).orElse(null), metrics);
-        deviceCache.setDeviceInfo(mergeJson);
+        JsonNode mergeJson = mergeJson(Optional.of(device).map(Device::getDeviceInfo).orElse(null), metrics);
+        device.setDeviceInfo(mergeJson);
+
         //校验警报配置
-        AlertRule alertRule = alertRuleEngine.checkAlertConfig(deviceCache.getId(), metrics);
+        AlertRule alertRule = alertRuleEngine.checkAlertConfig(device.getId(), metrics);
         if (ObjectUtils.isNotEmpty(alertRule)) {
             boolean checkRule = alertRuleEngine.checkRule(alertRule, metrics.get(alertRule.getMetricKey()).asText());
             //满足条件
             if (checkRule) {
+                alertRuleEngine.runningScene(alertRule.getSceneId(), device, mqttClient, metrics);
                 //创建AlertEvent
-                alertRuleEngine.constructAlertEvent(deviceCache, alertRule, metrics);
+                alertRuleEngine.constructAlertEvent(device, alertRule, metrics);
             }
         }
+
         //创建influx数据
         InfluxHumanRadarSensor point = new InfluxHumanRadarSensor();
         //tag为设备编号
-        point.setDeviceCode(deviceCache.getDeviceCode());
-        point.setRoomId(deviceCache.getDeviceRoom().toString());
+        point.setDeviceCode(device.getDeviceCode());
+        point.setRoomId(device.getDeviceRoom().toString());
         //处理数据
         if (mergeJson.has("battery")) {
             point.setBattery(mergeJson.get("battery").asInt());
@@ -441,9 +489,9 @@ public class SubUpdateHandler implements MsgHandler {
                 point
         );
         log.info("人体传感器数据:{}", point);
-        deviceCache.setStatus(1);
-        redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCache.getDeviceCode(), deviceCache);
-        RspMqtt(topic, mqttClient, deviceCache.getDeviceCode(), sequence);
+        device.setStatus(1);
+        redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
+        RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
     }
 
     /**
@@ -453,7 +501,7 @@ public class SubUpdateHandler implements MsgHandler {
      * @param: [topic, mqttClient, deviceCache, jsonMsg, sequence]
      * @return: void
      **/
-    private void processSensor(String topic, MqttClient mqttClient, Device deviceCache, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
+    private void processSensor(String topic, MqttClient mqttClient, Device device, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
         //字符串转jsonNode
         JsonNode jsonNode = stringToJsonNode(jsonMsg);
         //获取params
@@ -476,29 +524,32 @@ public class SubUpdateHandler implements MsgHandler {
             metrics.put("motion", params.get("motion").asInt());
         }
         //场景
-        List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(deviceCache.getDeviceCode());
+        List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(device.getDeviceCode());
         for (Scene scene : scenesByDeviceId) {
-            sceneExecuteService.executeScene(scene, deviceCache, mqttClient, metrics);
+            sceneExecuteService.executeScene(scene, device, mqttClient, metrics);
         }
         //接收得数据于旧数据合并
-        JsonNode mergeJson = mergeJson(Optional.of(deviceCache).map(Device::getDeviceInfo).orElse(null), metrics);
-        deviceCache.setDeviceInfo(mergeJson);
+        JsonNode mergeJson = mergeJson(Optional.of(device).map(Device::getDeviceInfo).orElse(null), metrics);
+        device.setDeviceInfo(mergeJson);
+
         //校验警报配置
-        AlertRule alertRule = alertRuleEngine.checkAlertConfig(deviceCache.getId(), metrics);
+        AlertRule alertRule = alertRuleEngine.checkAlertConfig(device.getId(), metrics);
         if (ObjectUtils.isNotEmpty(alertRule)) {
             boolean checkRule = alertRuleEngine.checkRule(alertRule, metrics.get(alertRule.getMetricKey()).asText());
             //满足条件
             if (checkRule) {
+                alertRuleEngine.runningScene(alertRule.getSceneId(), device, mqttClient, metrics);
                 //创建AlertEvent
-                alertRuleEngine.constructAlertEvent(deviceCache, alertRule, metrics);
+                alertRuleEngine.constructAlertEvent(device, alertRule, metrics);
             }
         }
+
         //创建influx数据
         InfluxSensor point = new InfluxSensor();
         //tag为设备编号
-        point.setDeviceCode(deviceCache.getDeviceCode());
+        point.setDeviceCode(device.getDeviceCode());
         //tag为房间编号
-        point.setRoomId(deviceCache.getDeviceRoom().toString());
+        point.setRoomId(device.getDeviceRoom().toString());
         // 处理传感器数据
         if (mergeJson != null) {
             if (mergeJson.has("battery")) {
@@ -516,19 +567,19 @@ public class SubUpdateHandler implements MsgHandler {
             if (mergeJson.has("motion")) {
                 point.setMotion(mergeJson.get("motion").asInt());
             }
-            RspMqtt(topic, mqttClient, deviceCache.getDeviceCode(), sequence);
-            point.setRoomId(deviceCache.getDeviceRoom().toString());
+            RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
+            point.setRoomId(device.getDeviceRoom().toString());
             influxDBClient.getWriteApiBlocking().writeMeasurement(
                     influxProperties.getBucket(),
                     influxProperties.getOrg(),
                     WritePrecision.MS,
                     point
             );
-            deviceCache.setStatus(1);
+            device.setStatus(1);
             redisTemplate.opsForHash().put(
                     RedisConstants.Device.DEVICE,
-                    deviceCache.getDeviceCode(),
-                    deviceCache
+                    device.getDeviceCode(),
+                    device
             );
         }
     }

@@ -100,6 +100,7 @@ public class AirSwitchHandler implements MsgHandler {
                 boolean checkRule = alertRuleEngine.checkRule(alertRule, metrics.get(alertRule.getMetricKey()).asText());
                 //满足条件
                 if (checkRule) {
+                    alertRuleEngine.runningScene(alertRule.getSceneId(), device, mqttClient, metrics);
                     //创建AlertEvent
                     alertRuleEngine.constructAlertEvent(device, alertRule, metrics);
                 }

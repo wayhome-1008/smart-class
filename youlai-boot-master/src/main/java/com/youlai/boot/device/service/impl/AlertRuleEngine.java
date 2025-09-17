@@ -1,13 +1,18 @@
 package com.youlai.boot.device.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.youlai.boot.alertEvent.model.entity.AlertEvent;
 import com.youlai.boot.alertEvent.service.AlertEventService;
 import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.device.model.entity.Device;
+import com.youlai.boot.scene.liteFlow.SceneExecuteService;
+import com.youlai.boot.scene.model.entity.Scene;
 import com.youlai.boot.system.model.entity.AlertRule;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.math.NumberUtils;
+import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -29,6 +34,7 @@ public class AlertRuleEngine {
     private final Map<String, List<AlertEvent>> deviceAlarmHistory = new ConcurrentHashMap<>();
     private final RedisTemplate<String, Object> redisTemplate;
     private final AlertEventService alertEventService;
+    private final SceneExecuteService sceneExecuteService;
 
     /**
      * 检查规则是否触发报警（带时间窗口处理）
@@ -163,6 +169,22 @@ public class AlertRuleEngine {
             return (AlertRule) alertRuleObj;
         }
         return null;
+    }
+
+    /**
+     * 运行场景
+     * @param sceneId 场景ID
+     * @param device 设备对象
+     * @param mqttClient MQTT客户端对象
+     * @param metrics 设备上报的参数对象
+     */
+    public void runningScene(Long sceneId, Device device, MqttClient mqttClient, ObjectNode metrics) {
+        //根据场景Id查询场景对象
+        String sceneKey = "scene:" + sceneId;
+        Scene scene = (Scene) redisTemplate.opsForValue().get(sceneKey);
+        if (ObjectUtils.isNotEmpty(scene)) {
+            sceneExecuteService.executeScene(scene, device, mqttClient, metrics);
+        }
     }
 }
 

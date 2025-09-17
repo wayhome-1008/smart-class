@@ -19,6 +19,8 @@ public class AlertRule extends BaseEntity {
     private String ruleName;
 
     private Long deviceId;
+
+    private Long sceneId;
     /**
      * 报警级别（1 - 紧急，2 - 重要，3 - 一般，用于后续通知策略）
      */

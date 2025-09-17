@@ -53,11 +53,11 @@ public class SensorHandler implements MsgHandler {
         }
         //计量插座
         if (device.getDeviceTypeId() == 4) {
-            handlerPlug(jsonMsg, device);
+            handlerPlug(jsonMsg, device,mqttClient);
         }
     }
 
-    private void handlerPlug(String jsonMsg, Device device) throws JsonProcessingException {
+    private void handlerPlug(String jsonMsg, Device device,MqttClient mqttClient) throws JsonProcessingException {
         JsonNode jsonNode = stringToJsonNode(jsonMsg);
         log.info("MQTT传感器{}", jsonNode);
             /*
@@ -93,6 +93,7 @@ public class SensorHandler implements MsgHandler {
             boolean checkRule = alertRuleEngine.checkRule(alertRule, metrics.get(alertRule.getMetricKey()).asText());
             //满足条件
             if (checkRule) {
+                alertRuleEngine.runningScene(alertRule.getSceneId(), device, mqttClient, metrics);
                 //创建AlertEvent
                 alertRuleEngine.constructAlertEvent(device, alertRule, metrics);
             }
