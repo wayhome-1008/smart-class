@@ -34,23 +34,8 @@ public class SceneExecuteService {
                     device, mqttClient, allSwitchStates
             );
             log.info("设备上报属性:{}", allSwitchStates);
-            // 3. 处理执行结果
-            if (response.isSuccess()) {
-//                log.info("场景[{}:{}]正常执行", scene.getId(), scene.getSceneName());
-            } else {
-                log.error("场景[{}:{}]执行失败：{}",
-                        scene.getId(), scene.getSceneName(), response.getMessage());
-            }
         } catch (Exception e) {
             log.error("场景[{}:{}]执行抛出异常", scene.getId(), scene.getSceneName(), e);
         }
     }
-
-//    /**
-//     * 判断场景是否包含定时触发器
-//     */
-//    private boolean hasTimerTrigger(Scene scene) {
-//        return scene.getTriggers().stream()
-//                .anyMatch(trigger -> "TIMER_TRIGGER".equals(trigger.getType()));
-//    }
 }
