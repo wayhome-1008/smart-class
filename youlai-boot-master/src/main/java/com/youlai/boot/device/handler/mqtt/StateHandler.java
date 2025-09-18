@@ -53,10 +53,14 @@ public class StateHandler implements MsgHandler {
         if (device == null) {
             device = deviceService.getByCode(deviceCode);
         }
-        //温湿度传感器
-        if (device.getDeviceTypeId() == 2) {
-            handlerSensor(topic, jsonMsg);
-        }
+//        //温湿度传感器
+//        if (device.getDeviceTypeId() == 2) {
+//            handlerSensor(topic, jsonMsg);
+//        }
+//        //三合一传感器
+//        if (device.getDeviceTypeId() == 9) {
+//            handlerSensor3On1(topic, jsonMsg);
+//        }
         //计量插座
         if (device.getDeviceTypeId() == 4) {
             handlerPlug(topic, jsonMsg);
@@ -64,10 +68,6 @@ public class StateHandler implements MsgHandler {
         //灯光
         if (device.getDeviceTypeId() == 7) {
             handlerLight(topic, jsonMsg);
-        }
-        //三合一传感器
-        if (device.getDeviceTypeId() == 9) {
-            handlerSensor3On1(topic, jsonMsg);
         }
     }
 
@@ -208,7 +208,6 @@ public class StateHandler implements MsgHandler {
                     if (data.has("Humidity")) {
                         metrics.put("humidity", data.get("Humidity").asDouble());
                     }
-                    mergeJson(device.getDeviceInfo(), metrics);
                     //校验警报配置
                     AlertRule alertRule = alertRuleEngine.checkAlertConfig(device.getId(), metrics);
                     if (ObjectUtils.isNotEmpty(alertRule)) {
@@ -219,6 +218,7 @@ public class StateHandler implements MsgHandler {
                             alertRuleEngine.constructAlertEvent(device, alertRule, metrics);
                         }
                     }
+                    mergeJson(device.getDeviceInfo(), metrics);
                 }
                 device.setDeviceInfo(mergeJson);
                 redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
