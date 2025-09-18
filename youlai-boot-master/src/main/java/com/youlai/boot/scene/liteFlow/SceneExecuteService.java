@@ -27,7 +27,7 @@ public class SceneExecuteService {
         try {
             // 1. 准备上下文参数
             // 2. 执行LiteFlow流程
-            LiteflowResponse response = flowExecutor.execute2Resp(
+            flowExecutor.execute2Resp(
                     flowId,  // 流程ID（与注册时一致）
                     null,    // 初始参数（无则传null）
                     scene,     // 上下文对象

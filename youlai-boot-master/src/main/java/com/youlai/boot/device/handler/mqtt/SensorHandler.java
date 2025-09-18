@@ -66,13 +66,9 @@ public class SensorHandler implements MsgHandler {
         }
         //温湿度传感器
         if (device.getDeviceTypeId() == 2 || device.getDeviceTypeId() == 9) {
-//            handlerSensor(topic, jsonMsg, mqttClient);
-            handlerSensor3On1(topic, jsonMsg, mqttClient);
+            handlerSensor(topic, jsonMsg, mqttClient);
         }
-//        //三合一传感器
-//        if (device.getDeviceTypeId() == 9) {
-//            handlerSensor3On1(topic, jsonMsg, mqttClient);
-//        }
+
     }
 
     private void handlerPlug(String jsonMsg, Device device, MqttClient mqttClient) throws JsonProcessingException {
@@ -147,74 +143,6 @@ public class SensorHandler implements MsgHandler {
     }
 
     private void handlerSensor(String topic, String jsonMsg, MqttClient mqttClient) {
-        try {
-            //topic是code 唯一的
-            //截取code
-            String deviceCode = getCodeByTopic(topic);
-            //从设备缓存获取看是否存在
-            Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
-            if (ObjectUtils.isNotEmpty(device)) {
-                JsonNode jsonNode = stringToJsonNode(jsonMsg);
-                JsonNode mergeJson = mergeJson(device.getDeviceInfo(), jsonNode);
-                device.setStatus(1);
-                if (device.getDeviceInfo().has("DHT11")) {
-                    ObjectNode metrics = JsonNodeFactory.instance.objectNode();
-                    JsonNode data = device.getDeviceInfo().get("DHT11");
-                    //温度
-                    if (data.has("Temperature")) {
-                        metrics.put("temperature", data.get("Temperature").asDouble());
-                    }
-                    //湿度
-                    if (data.has("Humidity")) {
-                        metrics.put("humidity", data.get("Humidity").asDouble());
-                    }
-                    //校验警报配置
-                    AlertRule alertRule = alertRuleEngine.checkAlertConfig(device.getId(), metrics);
-                    if (ObjectUtils.isNotEmpty(alertRule)) {
-                        boolean checkRule = alertRuleEngine.checkRule(alertRule, metrics.get(alertRule.getMetricKey()).asText());
-                        //满足条件
-                        if (checkRule) {
-                            //创建AlertEvent
-                            alertRuleEngine.constructAlertEvent(device, alertRule, metrics);
-                        }
-                    }
-                    mergeJson(device.getDeviceInfo(), metrics);
-                }
-                device.setDeviceInfo(mergeJson);
-                redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
-                JsonNode deviceInfo = device.getDeviceInfo();
-                //创建influx数据
-                InfluxSensor point = new InfluxSensor();
-
-                //tag为设备编号
-                point.setDeviceCode(device.getDeviceCode());
-                //tag为房间编号
-                point.setRoomId(device.getDeviceRoom().toString());
-                if (deviceInfo.has("DHT11")) {
-                    JsonNode data = deviceInfo.get("DHT11");
-                    //温度
-                    if (data.has("Temperature")) {
-                        point.setTemperature(data.get("Temperature").asDouble());
-
-                    }
-                    //湿度
-                    if (data.has("Humidity")) {
-                        point.setHumidity(data.get("Humidity").asDouble());
-                    }
-                }
-                influxDBClient.getWriteApiBlocking().writeMeasurement(
-                        influxProperties.getBucket(),
-                        influxProperties.getOrg(),
-                        WritePrecision.MS,
-                        point
-                );
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private void handlerSensor3On1(String topic, String jsonMsg, MqttClient mqttClient) {
         try {
             String deviceCode = getCodeByTopic(topic);
             Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
