@@ -2,7 +2,6 @@ package com.youlai.boot.scene.liteFlow;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.yomahub.liteflow.core.FlowExecutor;
-import com.yomahub.liteflow.flow.LiteflowResponse;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.scene.model.entity.Scene;
 import jakarta.annotation.Resource;
