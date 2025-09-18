@@ -133,20 +133,26 @@ public class DeviceTriggerComponent extends NodeComponent {
         }
 
         List<ThresholdCondition> conditions = trigger.getThresholdConditions();
+        //新增功能 时间范围触发(仅限当天的时间范围)
+        if ("TIME_RANGE".equals(trigger.getType())) {
+            for (ThresholdCondition condition : conditions) {
 
-        // 修改为AND逻辑：触发器内所有条件都必须满足
-        for (ThresholdCondition condition : conditions) {
-            boolean conditionMet = false;
-            // 检查是否有设备满足当前条件
-            for (Device device : triggerDevices) {
-                if (checkConditionForDevice(device, condition, metrics)) {
-                    conditionMet = true;
-                    break;
-                }
             }
-            // 如果有任何一个条件没有被满足，则整个触发器不满足
-            if (!conditionMet) {
-                return false;
+        }else{
+            // 修改为AND逻辑：触发器内所有条件都必须满足
+            for (ThresholdCondition condition : conditions) {
+                boolean conditionMet = false;
+                // 检查是否有设备满足当前条件
+                for (Device device : triggerDevices) {
+                    if (checkConditionForDevice(device, condition, metrics)) {
+                        conditionMet = true;
+                        break;
+                    }
+                }
+                // 如果有任何一个条件没有被满足，则整个触发器不满足
+                if (!conditionMet) {
+                    return false;
+                }
             }
         }
 
