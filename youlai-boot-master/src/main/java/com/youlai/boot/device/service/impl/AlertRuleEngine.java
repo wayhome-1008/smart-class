@@ -10,6 +10,7 @@ import com.youlai.boot.scene.liteFlow.SceneExecuteService;
 import com.youlai.boot.scene.model.entity.Scene;
 import com.youlai.boot.system.model.entity.AlertRule;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.eclipse.paho.client.mqttv3.MqttClient;
@@ -27,6 +28,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  *@CreateTime: 2025-07-22  16:51
  *@Description: 报警规则引擎 - 核心处理逻辑
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class AlertRuleEngine {
@@ -52,28 +54,53 @@ public class AlertRuleEngine {
 
     private boolean checkBasicCondition(AlertRule rule, String currentValue) {
         String compareType = rule.getCompareType();
+        boolean result;
+
         if (currentValue.equals("ON") || currentValue.equals("OFF")) {
-            return switch (compareType) {
+            result = switch (compareType) {
                 case "=" -> currentValue.compareTo(rule.getThresholdValue()) == 0;
                 case "!=" -> currentValue.compareTo(rule.getThresholdValue()) != 0;
                 default -> false;
             };
+            log.info("开关状态比较 - 规则ID: {}, 当前值: {}, 比较类型: {}, 阈值: {}, 结果: {}",
+                    rule.getId(), currentValue, compareType, rule.getThresholdValue(), result);
         } else {
-            Long metricValue = NumberUtils.toLong(currentValue);
-            return switch (compareType) {
-                case ">" -> metricValue.compareTo(Long.valueOf(rule.getThresholdValue())) > 0;
-                case "<" -> metricValue.compareTo(Long.valueOf(rule.getThresholdValue())) < 0;
-                case ">=" -> metricValue.compareTo(Long.valueOf(rule.getThresholdValue())) >= 0;
-                case "<=" -> metricValue.compareTo(Long.valueOf(rule.getThresholdValue())) <= 0;
-                case "==" -> metricValue.compareTo(Long.valueOf(rule.getThresholdValue())) == 0;
-                case "!=" -> metricValue.compareTo(Long.valueOf(rule.getThresholdValue())) != 0;
-                case "range" -> metricValue.compareTo(rule.getMinValue()) < 0 ||
-                        metricValue.compareTo(rule.getMaxValue()) > 0;
-                default -> false;
-            };
+            try {
+                // 使用 BigDecimal 进行精确的数值比较，支持整数和小数
+                java.math.BigDecimal metricValue = new java.math.BigDecimal(currentValue);
+                java.math.BigDecimal thresholdValue = new java.math.BigDecimal(rule.getThresholdValue());
+
+                result = switch (compareType) {
+                    case ">" -> metricValue.compareTo(thresholdValue) > 0;
+                    case "<" -> metricValue.compareTo(thresholdValue) < 0;
+                    case ">=" -> metricValue.compareTo(thresholdValue) >= 0;
+                    case "<=" -> metricValue.compareTo(thresholdValue) <= 0;
+                    case "==" -> metricValue.compareTo(thresholdValue) == 0;
+                    case "!=" -> metricValue.compareTo(thresholdValue) != 0;
+                    case "range" -> {
+                        java.math.BigDecimal minValue = new java.math.BigDecimal(rule.getMinValue());
+                        java.math.BigDecimal maxValue = new java.math.BigDecimal(rule.getMaxValue());
+                        yield metricValue.compareTo(minValue) < 0 || metricValue.compareTo(maxValue) > 0;
+                    }
+                    default -> false;
+                };
+
+                if ("range".equals(compareType)) {
+                    log.info("范围值比较 - 规则ID: {}, 当前值: {}, 比较类型: {}, 最小值: {}, 最大值: {}, 结果: {}",
+                            rule.getId(), currentValue, compareType, rule.getMinValue(), rule.getMaxValue(), result);
+                } else {
+                    log.info("数值比较 - 规则ID: {}, 当前值: {}, 比较类型: {}, 阈值: {}, 结果: {}",
+                            rule.getId(), currentValue, compareType, rule.getThresholdValue(), result);
+                }
+            } catch (NumberFormatException e) {
+                log.error("数值转换错误 - 规则ID: {}, 当前值: {}, 阈值: {}", rule.getId(), currentValue, rule.getThresholdValue(), e);
+                result = false;
+            }
         }
 
+        return result;
     }
+
 
     private boolean checkTimeWindow(AlertRule rule, String currentValue) {
         // 如果没有设置时间窗口，直接返回true

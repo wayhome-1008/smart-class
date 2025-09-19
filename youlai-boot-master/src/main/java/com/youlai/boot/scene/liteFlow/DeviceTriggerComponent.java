@@ -136,6 +136,7 @@ public class DeviceTriggerComponent extends NodeComponent {
             //只在value存了时间范围
             ThresholdCondition thresholdCondition = conditions.get(0);
             String timeRange = (String) thresholdCondition.getValue();
+            log.info("时间范围触发: {}", timeRange);
             return DateUtils.checkTimeRangeTrigger(timeRange);
         } else {
             // 修改为AND逻辑：触发器内所有条件都必须满足

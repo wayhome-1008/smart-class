@@ -83,7 +83,7 @@ public class SceneFlowBuilder {
      */
     private String getTriggerCompId(Trigger trigger) {
         return switch (trigger.getType()) {
-            case "DEVICE_TRIGGER", "TIMER_TRIGGER" -> "deviceTrigger";
+            case "DEVICE_TRIGGER", "TIMER_TRIGGER", "TIME_RANGE" -> "deviceTrigger";
             case "PRODUCT_TRIGGER" -> "productTrigger";
             default -> throw new IllegalArgumentException("未知触发类型: " + trigger.getType());
         };
