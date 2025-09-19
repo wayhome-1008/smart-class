@@ -8,6 +8,7 @@
         ar.id,
         ar.rule_name,
         ar.scene_id,
+        ar.time_range,
         s.scene_name,
         ar.level,
         ar.min_value,

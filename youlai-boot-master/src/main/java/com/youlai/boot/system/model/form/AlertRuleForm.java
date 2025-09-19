@@ -32,6 +32,9 @@ public class AlertRuleForm implements Serializable {
     @Schema(description = "场景id")
     private Long sceneId;
 
+    @Schema(description = "时间范围")
+    private String timeRange;
+
     @Schema(description = "报警级别（1 - 紧急，2 - 重要，3 - 一般，用于后续通知策略）")
 //    @NotNull(message = "报警级别（1 - 紧急，2 - 重要，3 - 一般，用于后续通知策略）不能为空")
     private Integer level;

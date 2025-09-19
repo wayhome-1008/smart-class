@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.youlai.boot.alertEvent.model.entity.AlertEvent;
 import com.youlai.boot.alertEvent.service.AlertEventService;
 import com.youlai.boot.common.constant.RedisConstants;
+import com.youlai.boot.common.util.DateUtils;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.scene.liteFlow.SceneExecuteService;
 import com.youlai.boot.scene.model.entity.Scene;
@@ -12,6 +13,7 @@ import com.youlai.boot.system.model.entity.AlertRule;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -48,6 +50,14 @@ public class AlertRuleEngine {
             return false;
         }
 
+        //时间范围检查
+        String timeRange = rule.getTimeRange();
+        if (StringUtils.isEmpty(timeRange)) {
+            boolean checkTimeRange = DateUtils.checkTimeRangeTrigger(timeRange);
+            if (!checkTimeRange) {
+                return false;
+            }
+        }
         // 2. 时间窗口检查
         return checkTimeWindow(rule, currentValue);
     }
