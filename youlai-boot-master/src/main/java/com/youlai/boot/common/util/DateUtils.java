@@ -255,4 +255,40 @@ public class DateUtils extends org.apache.commons.lang3.time.DateUtils {
                 .atZone(ZoneId.systemDefault())
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
     }
+
+    /**
+     * 检查时间范围触发器是否满足条件
+     * @param timeRange 时间范围字符串，格式为 HH:mm-HH:mm
+     * @return 如果当前时间在指定范围内返回true，否则返回false
+     */
+    public static boolean checkTimeRangeTrigger(String timeRange) {
+        // 参数校验
+        if (timeRange == null || timeRange.isEmpty()) {
+            return false;
+        }
+        try {
+            // 解析时间范围字符串
+            String[] times = timeRange.split("-");
+            if (times.length != 2) {
+                return false;
+            }
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
+            LocalTime startTime = LocalTime.parse(times[0].trim(), formatter);
+            LocalTime endTime = LocalTime.parse(times[1].trim(), formatter);
+            LocalTime now = LocalTime.now();
+            boolean isSatisfied;
+            // 处理跨天情况（例如 22:00-06:00）
+            if (startTime.isAfter(endTime)) {
+                // 跨天情况：当前时间大于等于开始时间 或者 小于等于结束时间
+                isSatisfied = now.isAfter(startTime) || now.isBefore(endTime);
+            } else {
+                // 正常情况：当前时间在开始时间和结束时间之间（包含边界）
+                isSatisfied = !now.isBefore(startTime) && !now.isAfter(endTime);
+            }
+            return isSatisfied;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
 }

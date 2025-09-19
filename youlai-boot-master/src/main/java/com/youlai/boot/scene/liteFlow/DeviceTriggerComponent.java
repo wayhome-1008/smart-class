@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.yomahub.liteflow.annotation.LiteflowComponent;
 import com.yomahub.liteflow.core.NodeComponent;
 import com.youlai.boot.common.constant.RedisConstants;
+import com.youlai.boot.common.util.DateUtils;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.deviceJob.service.DeviceJobService;
 import com.youlai.boot.scene.model.entity.Scene;
@@ -15,10 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.quartz.SchedulerException;
 import org.springframework.data.redis.core.RedisTemplate;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 /**
  *@Author: way
@@ -135,10 +133,11 @@ public class DeviceTriggerComponent extends NodeComponent {
         List<ThresholdCondition> conditions = trigger.getThresholdConditions();
         //新增功能 时间范围触发(仅限当天的时间范围)
         if ("TIME_RANGE".equals(trigger.getType())) {
-            for (ThresholdCondition condition : conditions) {
-
-            }
-        }else{
+            //只在value存了时间范围
+            ThresholdCondition thresholdCondition = conditions.get(0);
+            String timeRange = (String) thresholdCondition.getValue();
+            return DateUtils.checkTimeRangeTrigger(timeRange);
+        } else {
             // 修改为AND逻辑：触发器内所有条件都必须满足
             for (ThresholdCondition condition : conditions) {
                 boolean conditionMet = false;
