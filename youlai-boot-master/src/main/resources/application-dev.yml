@@ -137,13 +137,13 @@ oss:
   # MinIO 对象存储服务
   minio:
     # MinIO 服务地址
-    endpoint: http://192.168.80.216:9005
+    endpoint: http://192.168.80.185:9000
     # 访问凭据
-    access-key: name
+    access-key: admin
     # 凭据密钥
-    secret-key: password
+    secret-key: bjzjtc2024
     # 存储桶名称
-    bucket-name: testbucket
+    bucket-name: zjtc
     # (可选) 自定义域名：配置后，文件 URL 会使用该域名格式
   #    custom-domain:
   # 阿里云OSS对象存储服务

@@ -49,7 +49,7 @@ public class AlertRuleEngine {
             return false;
         }
 
-        //时间范围检查
+        //2. 时间范围检查
         String timeRange = rule.getTimeRange();
         if (StringUtils.isEmpty(timeRange)) {
             boolean checkTimeRange = DateUtils.checkTimeRangeTrigger(timeRange);
@@ -57,7 +57,7 @@ public class AlertRuleEngine {
                 return false;
             }
         }
-        // 2. 时间窗口检查
+        // 3. 时间窗口检查
         return checkTimeWindow(rule, currentValue);
     }
 
