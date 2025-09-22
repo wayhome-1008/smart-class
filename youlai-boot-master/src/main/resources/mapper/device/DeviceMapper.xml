@@ -22,7 +22,7 @@
         <result column="categoryName" property="categoryName"/>
     </resultMap>
 
-    <!-- 修改查询使用 resultMap -->
+    <!-- 分页查询-->
     <select id="getDevicePage" resultMap="DeviceVOResultMap">
         SELECT
         d.id,
@@ -72,6 +72,19 @@
                     #{roomId}
                 </foreach>
             </if>
+            <!-- 新增部门ID查询条件 -->
+            <!-- 新增部门ID查询条件 -->
+            <if test="queryParams.deptIds != null and queryParams.deptIds != ''">
+                AND d.device_room IN (
+                SELECT id FROM room
+                WHERE department_id IN
+                <foreach collection="queryParams.deptIds.split(',')" item="deptId"
+                         open="(" separator="," close=")">
+                    #{deptId}
+                </foreach>
+                AND is_deleted = 0
+                )
+            </if>
             <if test="queryParams.deviceMac != null and queryParams.deviceMac != ''">
                 AND device_gateway_id = #{queryParams.deviceMac}
             </if>
@@ -92,6 +105,8 @@
         </where>
     </select>
 
+
+    <!-- 获取网关子设备 -->
     <select id="getSubDevicePage" resultType="com.youlai.boot.device.model.vo.DeviceVO">
         SELECT
         d.id,
