@@ -67,5 +67,8 @@ public class DeviceVO implements Serializable {
 
     @Schema(description = "是否主从")
     private Integer isMaster;
+
+    @Schema(description = "是否锁定 0-未锁定 1-锁定")
+    private Integer isLock;
     private List<DeviceInfo> deviceInfoList;
 }

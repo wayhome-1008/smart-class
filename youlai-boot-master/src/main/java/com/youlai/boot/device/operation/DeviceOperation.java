@@ -52,7 +52,7 @@ public class DeviceOperation {
             log.warn("[场景执行]: deviceCode={}", deviceCode);
             return;
         }
-
+        if (device.getIsLock() == 1) return;
         JsonNode deviceInfo = device.getDeviceInfo();
         if (ObjectUtils.isEmpty(deviceInfo)) {
             log.warn("[场景执行]设备信息为空: deviceCode={}", deviceCode);
@@ -111,6 +111,7 @@ public class DeviceOperation {
             log.warn("[任务执行]设备未找到: deviceId={}", deviceId);
             return;
         }
+        if (device.getIsLock() == 1) return;
 
         String deviceCode = device.getDeviceCode();
         JsonNode deviceInfo = device.getDeviceInfo();
