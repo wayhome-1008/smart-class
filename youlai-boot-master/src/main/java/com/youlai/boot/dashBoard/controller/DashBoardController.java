@@ -128,12 +128,12 @@ public class DashBoardController {
                             List<Double> deviceValues = deviceData.getValue();
                             int minSize = Math.min(totalValues.size(), deviceValues.size());
                             for (int i = 0; i < minSize; i++) {
-                                Double v1 = MathUtils.formatDouble(totalValues.get(i));
-                                Double v2 = MathUtils.formatDouble(deviceValues.get(i));
+                                Double v1 = totalValues.get(i);
+                                Double v2 = deviceValues.get(i);
                                 // 处理null值
                                 if (v1 == null) v1 = 0.0;
                                 if (v2 == null) v2 = 0.0;
-                                totalValues.set(i, v1 + v2);
+                                totalValues.set(i,MathUtils.formatDouble(v1 + v2));
                             }
                         }
                     }
