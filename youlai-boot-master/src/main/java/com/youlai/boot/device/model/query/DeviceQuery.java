@@ -25,6 +25,10 @@ public class DeviceQuery extends BasePageQuery {
     private String roomIds;
     @Schema(description = "部门ids")
     private String deptIds;
+    @Schema(description = "分类ids")
+    private String categoryIds;
+    @Schema(description = "是否锁定 0-未锁定 1-锁定")
+    private Integer isLock;
     @Schema(description = "网关")
     private String deviceMac;
     @Schema(description = "设备类型")

@@ -38,6 +38,7 @@
         d.device_info,
         dt.device_type,
         d.is_master,
+        d.is_lock,
         cmi.label AS communicationModeItemName,
         cmi.value AS communicationModeItemId,
         r.classroom_code AS roomName,
@@ -72,7 +73,13 @@
                     #{roomId}
                 </foreach>
             </if>
-            <!-- 新增部门ID查询条件 -->
+            <if test="queryParams.categoryIds != null and queryParams.categoryIds != ''">
+                AND d.category_id IN
+                <foreach collection="queryParams.categoryIds.split(',')" item="categoryId"
+                         open="(" separator="," close=")">
+                    #{categoryId}
+                </foreach>
+            </if>
             <!-- 新增部门ID查询条件 -->
             <if test="queryParams.deptIds != null and queryParams.deptIds != ''">
                 AND d.device_room IN (
