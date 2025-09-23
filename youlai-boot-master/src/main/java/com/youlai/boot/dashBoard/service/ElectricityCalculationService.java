@@ -534,7 +534,8 @@ public class ElectricityCalculationService {
 
             List<InfluxMqttPlug> results = influxDBClient.getQueryApi()
                     .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
-
+            //排序
+            results.sort(Comparator.comparing(InfluxMqttPlug::getTime));
             if (!results.isEmpty()) {
                 // 查找最接近结束时间的有效数据点
                 InfluxMqttPlug endData = null;
@@ -661,11 +662,11 @@ public class ElectricityCalculationService {
         for (Room room : roomList) {
             // 使用已有的计算方法根据range计算用电量
             Double totalElectricity = calculateRoomElectricity(room.getId(), range, startTime, endTime, categoryId);
-                RoomsElectricityVO vo = new RoomsElectricityVO();
-                vo.setRoomId(room.getId());
-                vo.setRoomName(room.getClassroomCode());
-                vo.setTotalElectricity(MathUtils.formatDouble(totalElectricity));
-                resultList.add(vo);
+            RoomsElectricityVO vo = new RoomsElectricityVO();
+            vo.setRoomId(room.getId());
+            vo.setRoomName(room.getClassroomCode());
+            vo.setTotalElectricity(MathUtils.formatDouble(totalElectricity));
+            resultList.add(vo);
         }
 
         return resultList;
