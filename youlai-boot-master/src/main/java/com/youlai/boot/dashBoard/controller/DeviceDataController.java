@@ -875,7 +875,7 @@ public class DeviceDataController {
                             }
 
                             DeviceElectricityDataVO deviceData = getDeviceElectricityByRange(
-                                    device.getDeviceCode(), range, startTime, endTime, roomId.toString());
+                                    device, range, startTime, endTime, roomId.toString());
                             if (deviceData != null && deviceData.getTotalElectricity() != null) {
                                 categoryTotalElectricity += deviceData.getTotalElectricity();
                             }
@@ -899,7 +899,7 @@ public class DeviceDataController {
                         // 非今天或昨天的查询，只计算用电量
                         for (Device device : roomDevices) {
                             DeviceElectricityDataVO deviceData = getDeviceElectricityByRange(
-                                    device.getDeviceCode(), range, startTime, endTime, roomId.toString());
+                                    device, range, startTime, endTime, roomId.toString());
                             if (deviceData != null && deviceData.getTotalElectricity() != null) {
                                 categoryTotalElectricity += deviceData.getTotalElectricity();
                             }
@@ -1012,7 +1012,7 @@ public class DeviceDataController {
                 // 检查设备是否属于查询范围内的房间
                 if (roomMap.containsKey(masterDevice.getDeviceRoom())) {
                     DeviceElectricityDataVO deviceData = getDeviceElectricityByRange(
-                            masterDevice.getDeviceCode(), range, startTime, endTime, roomIds);
+                            masterDevice, range, startTime, endTime, roomIds);
 
                     if (deviceData != null && deviceData.getTotalElectricity() != null) {
                         // 获取设备所在房间
@@ -1109,13 +1109,13 @@ public class DeviceDataController {
     /**
      * 根据时间范围获取设备用电量（修改版）
      */
-    private DeviceElectricityDataVO getDeviceElectricityByRange(String deviceCode, String range, String startTime, String endTime, String roomIds) {
+    private DeviceElectricityDataVO getDeviceElectricityByRange(Device device, String range, String startTime, String endTime, String roomIds) {
         try {
-            Double totalElectricity = electricityCalculationService.calculateDeviceElectricity(deviceCode, range, startTime, endTime, roomIds);
-            log.info("设备用电量计算 - 设备编码: {}, 范围: {}, 用电量: {}", deviceCode, range, totalElectricity);
+            Double totalElectricity = electricityCalculationService.calculateDeviceElectricity(device, range, startTime, endTime, roomIds);
+            log.info("设备用电量计算 - 设备编码: {}, 范围: {}, 用电量: {}", device, range, totalElectricity);
             return new DeviceElectricityDataVO(totalElectricity, Instant.now());
         } catch (Exception e) {
-            log.error("计算设备用电量失败 - 设备编码: {}, 范围: {}, 异常信息: ", deviceCode, range, e);
+            log.error("计算设备用电量失败 - 设备编码: {}, 范围: {}, 异常信息: ", device, range, e);
             return null;
         }
     }

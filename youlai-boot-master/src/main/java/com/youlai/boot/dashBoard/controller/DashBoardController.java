@@ -114,8 +114,21 @@ public class DashBoardController {
                 List<Double> totalValues = null;
                 // 遍历所有主设备，获取并累加数据
                 for (Device masterDevice : masterDevices) {
-                    List<InfluxMqttPlugVO> deviceDataList = querySingleDevice(masterDevice, 1L, "w", "1d");
+//                    List<InfluxMqttPlugVO> deviceDataList = querySingleDevice(masterDevice, 1L, "w", "1d");
+// 获取当前日期
+                    LocalDate today = LocalDate.now();
 
+// 获取一周前的日期
+                    LocalDate oneWeekAgo = today.minusWeeks(1);
+
+// 构造一周前的开始时间（00:00:00）
+                    Instant startTime = oneWeekAgo.atStartOfDay(ZoneId.systemDefault()).toInstant();
+
+// 构造当前日期的结束时间（23:59:59）
+                    Instant endTime = today.atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant();
+
+                    List<InfluxMqttPlug> influxMqttPlugs = calculateCustomElectricity(masterDevice, startTime, endTime, "");
+                    List<InfluxMqttPlugVO> deviceDataList = convertToVOWithDifferences(influxMqttPlugs, "w");
                     if (!deviceDataList.isEmpty()) {
                         InfluxMqttPlugVO deviceData = deviceDataList.get(0);
 
@@ -133,7 +146,7 @@ public class DashBoardController {
                                 // 处理null值
                                 if (v1 == null) v1 = 0.0;
                                 if (v2 == null) v2 = 0.0;
-                                totalValues.set(i,MathUtils.formatDouble(v1 + v2));
+                                totalValues.set(i, MathUtils.formatDouble(v1 + v2));
                             }
                         }
                     }
@@ -144,6 +157,50 @@ public class DashBoardController {
         }
         result.setData(categoryDataList);
         return Result.success(result);
+    }
+
+    /**
+     * 计算自定义时间范围用电量
+     */
+    public List<InfluxMqttPlug> calculateCustomElectricity(Device device, Instant startTime, Instant endTime, String roomIds) {
+        // 查询自定义时间范围的数据
+        InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
+                .bucket(influxDBProperties.getBucket())
+                .measurement("device")
+                .fields("Total")
+                .tag("deviceCode", device.getDeviceCode())
+                .tag("categoryId", device.getCategoryId().toString())
+                .pivot()
+                .window("1d", "last")
+                .sort("_time", InfluxQueryBuilder.SORT_DESC)
+                .range(startTime, endTime);
+
+        if (StringUtils.isNotBlank(roomIds)) {
+            List<String> roomIdList = Arrays.stream(roomIds.split(","))
+                    .map(String::trim)
+                    .filter(StringUtils::isNotBlank)
+                    .toList();
+
+            if (!roomIdList.isEmpty()) {
+                String roomFilter = roomIdList.stream()
+                        .map(id -> String.format("r.roomId == \"%s\"", id))
+                        .collect(Collectors.joining(" or "));
+                builder.filter("(" + roomFilter + ")");
+            }
+        } else {
+            builder.tag("roomId", device.getDeviceRoom().toString());
+        }
+
+        String fluxQuery = builder.build();
+        log.info("查询分类一周 - 设备编码: {}, 开始时间: {}, 结束时间: {}, 查询语句: {}",
+                device.getDeviceCode(), startTime, endTime, fluxQuery);
+
+        List<InfluxMqttPlug> results = influxDBClient.getQueryApi()
+                .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
+        //排序
+        results.sort(Comparator.comparing(InfluxMqttPlug::getTime));
+        return results;
+
     }
 
     @Operation(summary = "获取首页count数量")

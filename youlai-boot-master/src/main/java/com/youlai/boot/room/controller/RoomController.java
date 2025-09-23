@@ -4,6 +4,7 @@ import cn.idev.excel.EasyExcel;
 import cn.idev.excel.ExcelWriter;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.youlai.boot.common.annotation.Log;
+import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.common.enums.LogModuleEnum;
 import com.youlai.boot.common.model.Option;
 import com.youlai.boot.common.result.ExcelResult;
@@ -12,6 +13,7 @@ import com.youlai.boot.common.result.Result;
 import com.youlai.boot.common.util.ExcelUtils;
 import com.youlai.boot.common.util.MathUtils;
 import com.youlai.boot.dashBoard.service.ElectricityCalculationService;
+import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.vo.DeviceInfo;
 import com.youlai.boot.device.model.vo.DeviceInfoVO;
 import com.youlai.boot.device.service.DeviceService;
@@ -30,6 +32,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -61,6 +64,7 @@ public class RoomController {
     private final RoomService roomService;
     private final DeviceService deviceService;
     private final ElectricityCalculationService electricityCalculationService;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Operation(summary = "房间管理分页列表")
     @GetMapping("/page")
@@ -75,8 +79,7 @@ public class RoomController {
         List<DeviceInfoVO> devices = deviceService.listDeviceByRoomIds(result.getRecords());
         if (ObjectUtils.isNotEmpty(devices)) {
             // 3. 按房间ID分组设备
-            Map<Long, List<DeviceInfoVO>> deviceMap = devices.stream()
-                    .collect(Collectors.groupingBy(DeviceInfoVO::getDeviceRoom));
+            Map<Long, List<DeviceInfoVO>> deviceMap = devices.stream().collect(Collectors.groupingBy(DeviceInfoVO::getDeviceRoom));
 
             // 4. 为每个房间设置设备及状态
             result.getRecords().forEach(roomVO -> {
@@ -87,7 +90,10 @@ public class RoomController {
                 //根据roomDevices查询influxdb获取当天用电数据
                 double todayElectricity = 0.0;
                 for (DeviceInfoVO roomDevice : roomDevices) {
-                    todayElectricity = todayElectricity + electricityCalculationService.calculateTodayElectricity(roomDevice.getDeviceCode(), String.valueOf(roomVO.getId()));
+                    Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, roomDevice.getDeviceCode());
+                    if (ObjectUtils.isNotEmpty(device)) {
+                        todayElectricity = todayElectricity + electricityCalculationService.calculateTodayElectricity(device, String.valueOf(roomVO.getId()));
+                    }
                 }
                 roomVO.setTodayElectricity(MathUtils.formatDouble(todayElectricity));
             });
@@ -109,17 +115,11 @@ public class RoomController {
                 if (device.getStatus() == 1) {
                     switch (device.getCategoryId().intValue()) {
                         case 6: // 2->温湿度传感器
-                            DeviceInfo.getValueByName(device.getDeviceInfo(), "temperature", Double.class)
-                                    .map(temp -> Double.parseDouble(String.format("%.2f", temp)))
-                                    .ifPresent(roomVO::setTemperature);
+                            DeviceInfo.getValueByName(device.getDeviceInfo(), "temperature", Double.class).map(temp -> Double.parseDouble(String.format("%.2f", temp))).ifPresent(roomVO::setTemperature);
 
-                            DeviceInfo.getValueByName(device.getDeviceInfo(), "humidity", Double.class)
-                                    .map(hum -> Double.parseDouble(String.format("%.2f", hum)))
-                                    .ifPresent(roomVO::setHumidity);
+                            DeviceInfo.getValueByName(device.getDeviceInfo(), "humidity", Double.class).map(hum -> Double.parseDouble(String.format("%.2f", hum))).ifPresent(roomVO::setHumidity);
 
-                            DeviceInfo.getValueByName(device.getDeviceInfo(), "illuminance", Double.class)
-                                    .map(ill -> Double.parseDouble(String.format("%.2f", ill)))
-                                    .ifPresent(roomVO::setIlluminance);
+                            DeviceInfo.getValueByName(device.getDeviceInfo(), "illuminance", Double.class).map(ill -> Double.parseDouble(String.format("%.2f", ill))).ifPresent(roomVO::setIlluminance);
                             break;
 
                         case 1: // 8->灯光
@@ -127,9 +127,7 @@ public class RoomController {
                             break;
 
                         case 3: // 5->人体感应雷达
-                            DeviceInfo.getValueByName(device.getDeviceInfo(), "motion", Integer.class)
-                                    .filter(motion -> motion == 1)
-                                    .ifPresent(motion -> roomVO.setHuman(true));
+                            DeviceInfo.getValueByName(device.getDeviceInfo(), "motion", Integer.class).filter(motion -> motion == 1).ifPresent(motion -> roomVO.setHuman(true));
                             break;
                     }
                     switch (device.getDeviceTypeId().intValue()) {
@@ -145,50 +143,40 @@ public class RoomController {
     }
 
     private void checkDeviceLightStatus(DeviceInfoVO device, RoomVO roomVO) {
-        DeviceInfo.getValueByName(device.getDeviceInfo(), "count", Integer.class)
-                .ifPresent(count -> {
-                    for (int i = 0; i < count; i++) {
-                        String switchName = "switch" + (i + 1);
-                        Optional<String> switchStatus = DeviceInfo.getValueByName(
-                                device.getDeviceInfo(),
-                                switchName,
-                                String.class
-                        );
-                        if (switchStatus.isPresent() && "ON".equals(switchStatus.get())) {
-                            //有灯
-                            roomVO.setLight(true);
-                            //开
-                            roomVO.setIsOpen(true);
-                            //灯光路数
-                            roomVO.setLightNum(roomVO.getLightNum() + 1); // 设置开启数量
-                        }
-                    }
-                });
+        DeviceInfo.getValueByName(device.getDeviceInfo(), "count", Integer.class).ifPresent(count -> {
+            for (int i = 0; i < count; i++) {
+                String switchName = "switch" + (i + 1);
+                Optional<String> switchStatus = DeviceInfo.getValueByName(device.getDeviceInfo(), switchName, String.class);
+                if (switchStatus.isPresent() && "ON".equals(switchStatus.get())) {
+                    //有灯
+                    roomVO.setLight(true);
+                    //开
+                    roomVO.setIsOpen(true);
+                    //灯光路数
+                    roomVO.setLightNum(roomVO.getLightNum() + 1); // 设置开启数量
+                }
+            }
+        });
     }
 
     // 检查设备开关状态的通用方法
     private void checkDeviceSwitchStatus(DeviceInfoVO device, RoomVO roomVO) {
 
-        DeviceInfo.getValueByName(device.getDeviceInfo(), "count", Integer.class)
-                .ifPresent(count -> {
+        DeviceInfo.getValueByName(device.getDeviceInfo(), "count", Integer.class).ifPresent(count -> {
 
-                    for (int i = 0; i < count; i++) {
-                        String switchName = "switch" + (i + 1);
-                        Optional<String> switchStatus = DeviceInfo.getValueByName(
-                                device.getDeviceInfo(),
-                                switchName,
-                                String.class
-                        );
-                        if (switchStatus.isPresent() && "ON".equals(switchStatus.get())) {
-                            //有插座
-                            roomVO.setPlug(true);
-                            //开
-                            roomVO.setIsOpen(true);
-                            //插座路数
-                            roomVO.setPlugNum(roomVO.getPlugNum() + 1); // 设置开启数量
-                        }
-                    }
-                });
+            for (int i = 0; i < count; i++) {
+                String switchName = "switch" + (i + 1);
+                Optional<String> switchStatus = DeviceInfo.getValueByName(device.getDeviceInfo(), switchName, String.class);
+                if (switchStatus.isPresent() && "ON".equals(switchStatus.get())) {
+                    //有插座
+                    roomVO.setPlug(true);
+                    //开
+                    roomVO.setIsOpen(true);
+                    //插座路数
+                    roomVO.setPlugNum(roomVO.getPlugNum() + 1); // 设置开启数量
+                }
+            }
+        });
     }
 
 
@@ -257,8 +245,7 @@ public class RoomController {
         String fileClassPath = "templates" + File.separator + "excel" + File.separator + fileName;
         InputStream inputStream = this.getClass().getClassLoader().getResourceAsStream(fileClassPath);
 
-        try (ServletOutputStream outputStream = response.getOutputStream();
-             ExcelWriter excelWriter = EasyExcel.write(outputStream).withTemplate(inputStream).build()) {
+        try (ServletOutputStream outputStream = response.getOutputStream(); ExcelWriter excelWriter = EasyExcel.write(outputStream).withTemplate(inputStream).build()) {
             excelWriter.finish();
         } catch (IOException e) {
             throw new RuntimeException("房间导入模板下载失败", e);
