@@ -9,6 +9,7 @@ import com.youlai.boot.common.result.PageResult;
 import com.youlai.boot.common.util.InfluxQueryBuilder;
 import com.youlai.boot.common.util.MathUtils;
 import com.youlai.boot.config.property.InfluxDBProperties;
+import com.youlai.boot.dashBoard.model.vo.CategoryElectricityData;
 import com.youlai.boot.dashBoard.model.vo.RoomsElectricityVO;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.influx.InfluxMqttPlug;
@@ -26,10 +27,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -69,6 +67,24 @@ public class ElectricityCalculationService {
             return 0.0;
         }
     }
+
+    /**
+     * 根据时间单位查询用电量数据，适配CategoryElectricityVO格式
+     * @param deviceList 设备对象集合
+     * @param timeUnit 时间单位 (d-日, w-周, mo-月, y-年)
+     * @param roomIds 房间ID列表
+     * @return 包含时间和用电量值的列表，适配CategoryElectricityVO格式
+     */
+    public CategoryElectricityData getElectricityDataForCategory(List<Device> deviceList, String timeUnit, String roomIds) {
+        return switch (timeUnit) {
+            case "d" -> getDailyElectricityDataForCategory(deviceList, roomIds);
+            case "w" -> getWeeklyElectricityDataForCategory(deviceList, roomIds);
+            case "mo" -> getMonthlyElectricityDataForCategory(deviceList, roomIds);
+            case "y" -> getYearlyElectricityDataForCategory(deviceList, roomIds);
+            default -> getWeeklyElectricityDataForCategory(deviceList, roomIds);
+        };
+    }
+
 
     /**
      * 计算房间的用电量
@@ -741,5 +757,598 @@ public class ElectricityCalculationService {
 
         return 0.0;
     }
+    /**
+     * 查询最近7天的每日用电量数据
+     * @param device 设备对象
+     * @param roomIds 房间ID列表
+     * @return 包含每日用电量和对应星期几的列表
+     */
+//    public List<DailyElectricityData> getWeeklyElectricityData(Device device, String roomIds) {
+//        List<DailyElectricityData> dailyDataList = new ArrayList<>();
+//
+//        try {
+//            // 获取当前日期和一周前的日期
+//            LocalDate today = LocalDate.now();
+//
+//            // 获取本周周一和上周周一
+//            LocalDate thisMonday = today.with(java.time.DayOfWeek.MONDAY);
+//            LocalDate lastMonday = thisMonday.minusWeeks(1);
+//
+//            // 计算每天的用电量（与昨日用电量方法保持一致的计算方式）
+//            for (int i = 6; i >= 0; i--) {
+//                LocalDate targetDate = today.minusDays(i);
+//
+//                // 构造当天的开始和结束时间
+//                Instant startOfDay = targetDate.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+//                Instant endOfDay = targetDate.atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant();
+//
+//                // 查询当天的数据
+//                InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
+//                        .bucket(influxDBProperties.getBucket())
+//                        .measurement("device")
+//                        .fields("Total")
+//                        .tag("deviceCode", device.getDeviceCode())
+//                        .tag("categoryId", device.getCategoryId().toString())
+//                        .pivot()
+//                        .window("1d", "last")
+//                        .sort("_time", InfluxQueryBuilder.SORT_ASC)
+//                        .range(startOfDay, endOfDay);
+//
+//                if (StringUtils.isNotBlank(roomIds)) {
+//                    List<String> roomIdList = Arrays.stream(roomIds.split(","))
+//                            .map(String::trim)
+//                            .filter(StringUtils::isNotBlank)
+//                            .toList();
+//
+//                    if (!roomIdList.isEmpty()) {
+//                        String roomFilter = roomIdList.stream()
+//                                .map(id -> String.format("r.roomId == \"%s\"", id))
+//                                .collect(Collectors.joining(" or "));
+//                        builder.filter("(" + roomFilter + ")");
+//                    }
+//                } else {
+//                    builder.tag("roomId", device.getDeviceRoom().toString());
+//                }
+//
+//                String fluxQuery = builder.build();
+//                log.debug("查询{}用电量数据 - 设备编码: {}, 查询语句: {}", targetDate, device.getDeviceCode(), fluxQuery);
+//
+//                List<InfluxMqttPlug> results = influxDBClient.getQueryApi()
+//                        .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
+//
+//                // 使用与calculateYesterdayElectricity相同的方法计算当天用电量
+//                Double dailyElectricity = calculateElectricityWithNullHandling(results);
+//
+//                DailyElectricityData dailyData = new DailyElectricityData();
+//                dailyData.setDate(targetDate);
+//                dailyData.setDayOfWeek(getDayOfWeekWithPrefix(targetDate, lastMonday, thisMonday));
+//                dailyData.setElectricity(dailyElectricity);
+//
+//                dailyDataList.add(dailyData);
+//            }
+//
+//        } catch (Exception e) {
+//            log.error("查询近7天用电量数据失败 - 设备编码: {}", device.getDeviceCode(), e);
+//        }
+//
+//        return dailyDataList;
+//    }
 
+    /**
+     * 查询最近7天的每日用电量数据，适配CategoryElectricityVO格式
+     * @param device 设备对象
+     * @param roomIds 房间ID列表
+     * @return 包含时间和用电量值的列表，适配CategoryElectricityVO格式
+     */
+    public CategoryElectricityData getWeeklyElectricityDataForCategory(Device device, String roomIds) {
+        CategoryElectricityData categoryData = new CategoryElectricityData();
+        List<String> times = new ArrayList<>();
+        List<Double> values = new ArrayList<>();
+
+        try {
+            // 获取当前日期
+            LocalDate today = LocalDate.now();
+
+            // 获取本周周一和上周周一
+            LocalDate thisMonday = today.with(java.time.DayOfWeek.MONDAY);
+            LocalDate lastMonday = thisMonday.minusWeeks(1);
+
+            // 计算每天的用电量（与昨日用电量方法保持一致的计算方式）
+            for (int i = 6; i >= 0; i--) {
+                LocalDate targetDate = today.minusDays(i);
+
+                // 构造当天的开始和结束时间
+                Instant startOfDay = targetDate.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+                Instant endOfDay = targetDate.atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant();
+
+                // 查询当天的数据
+                InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
+                        .bucket(influxDBProperties.getBucket())
+                        .measurement("device")
+                        .fields("Total")
+                        .tag("deviceCode", device.getDeviceCode())
+                        .tag("categoryId", device.getCategoryId().toString())
+                        .pivot()
+                        .window("1d", "last")
+                        .sort("_time", InfluxQueryBuilder.SORT_ASC)
+                        .range(startOfDay, endOfDay);
+
+                if (StringUtils.isNotBlank(roomIds)) {
+                    List<String> roomIdList = Arrays.stream(roomIds.split(","))
+                            .map(String::trim)
+                            .filter(StringUtils::isNotBlank)
+                            .toList();
+
+                    if (!roomIdList.isEmpty()) {
+                        String roomFilter = roomIdList.stream()
+                                .map(id -> String.format("r.roomId == \"%s\"", id))
+                                .collect(Collectors.joining(" or "));
+                        builder.filter("(" + roomFilter + ")");
+                    }
+                } else {
+                    builder.tag("roomId", device.getDeviceRoom().toString());
+                }
+
+                String fluxQuery = builder.build();
+                log.debug("查询{}用电量数据 - 设备编码: {}, 查询语句: {}", targetDate, device.getDeviceCode(), fluxQuery);
+
+                List<InfluxMqttPlug> results = influxDBClient.getQueryApi()
+                        .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
+
+                // 使用与calculateYesterdayElectricity相同的方法计算当天用电量
+                Double dailyElectricity = calculateElectricityWithNullHandling(results);
+
+                // 添加时间标签和用电量值
+                times.add(getDayOfWeekWithPrefix(targetDate, lastMonday, thisMonday));
+                values.add(dailyElectricity != null ? dailyElectricity : 0.0);
+            }
+
+        } catch (Exception e) {
+            log.error("查询近7天用电量数据失败 - 设备编码: {}", device.getDeviceCode(), e);
+        }
+
+        categoryData.setTime(times);
+        categoryData.setValue(values);
+        return categoryData;
+    }
+
+    /**
+     * 查询多个设备最近7天的每日用电量数据，适配CategoryElectricityVO格式
+     * @param deviceList 设备对象列表
+     * @param roomIds 房间ID列表
+     * @return 包含时间和用电量值的列表，适配CategoryElectricityVO格式
+     */
+    public CategoryElectricityData getWeeklyElectricityDataForCategory(List<Device> deviceList, String roomIds) {
+        CategoryElectricityData categoryData = new CategoryElectricityData();
+        List<String> times = new ArrayList<>();
+        List<Double> values = new ArrayList<>();
+
+        try {
+            // 获取当前日期
+            LocalDate today = LocalDate.now();
+
+            // 获取本周周一和上周周一
+            LocalDate thisMonday = today.with(java.time.DayOfWeek.MONDAY);
+            LocalDate lastMonday = thisMonday.minusWeeks(1);
+
+            // 用于累计每天的用电量
+            Map<String, Double> dailyValues = new LinkedHashMap<>();
+
+            // 遍历所有设备
+            for (Device device : deviceList) {
+                try {
+                    // 计算每天的用电量
+                    for (int i = 6; i >= 0; i--) {
+                        LocalDate targetDate = today.minusDays(i);
+
+                        // 构造当天的开始和结束时间
+                        Instant startOfDay = targetDate.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+                        Instant endOfDay = targetDate.atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant();
+
+                        // 查询当天的数据
+                        InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
+                                .bucket(influxDBProperties.getBucket())
+                                .measurement("device")
+                                .fields("Total")
+                                .tag("deviceCode", device.getDeviceCode())
+                                .tag("categoryId", device.getCategoryId().toString())
+                                .pivot()
+                                .window("1d", "last")
+                                .sort("_time", InfluxQueryBuilder.SORT_ASC)
+                                .range(startOfDay, endOfDay);
+
+                        if (StringUtils.isNotBlank(roomIds)) {
+                            List<String> roomIdList = Arrays.stream(roomIds.split(","))
+                                    .map(String::trim)
+                                    .filter(StringUtils::isNotBlank)
+                                    .toList();
+
+                            if (!roomIdList.isEmpty()) {
+                                String roomFilter = roomIdList.stream()
+                                        .map(id -> String.format("r.roomId == \"%s\"", id))
+                                        .collect(Collectors.joining(" or "));
+                                builder.filter("(" + roomFilter + ")");
+                            }
+                        } else {
+                            builder.tag("roomId", device.getDeviceRoom().toString());
+                        }
+
+                        String fluxQuery = builder.build();
+                        log.debug("查询{}用电量数据 - 设备编码: {}, 查询语句: {}", targetDate, device.getDeviceCode(), fluxQuery);
+
+                        List<InfluxMqttPlug> results = influxDBClient.getQueryApi()
+                                .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
+
+                        // 使用与calculateYesterdayElectricity相同的方法计算当天用电量
+                        Double dailyElectricity = calculateElectricityWithNullHandling(results);
+
+                        // 获取日期标签
+                        String dayLabel = getDayOfWeekWithPrefix(targetDate, lastMonday, thisMonday);
+
+                        // 累加用电量
+                        if (dailyElectricity != null) {
+                            dailyValues.merge(dayLabel, dailyElectricity, Double::sum);
+                        }
+                    }
+                } catch (Exception e) {
+                    log.error("查询设备近7天用电量数据失败 - 设备编码: {}", device.getDeviceCode(), e);
+                    // 继续处理其他设备
+                }
+            }
+
+            // 将累计结果转换为列表
+            times.addAll(dailyValues.keySet());
+            values.addAll(dailyValues.values().stream()
+                    .map(MathUtils::formatDouble)
+                    .toList());
+
+        } catch (Exception e) {
+            log.error("查询多个设备近7天用电量数据失败", e);
+        }
+
+        categoryData.setTime(times);
+        categoryData.setValue(values);
+        return categoryData;
+    }
+
+    /**
+     * 将LocalDate转换为带前缀的中文星期几（区分上周和本周）
+     * @param date 日期
+     * @param lastMonday 上周周一
+     * @param thisMonday 本周周一
+     * @return 带前缀的中文星期几
+     */
+    private String getDayOfWeekWithPrefix(LocalDate date, LocalDate lastMonday, LocalDate thisMonday) {
+        String dayOfWeek = switch (date.getDayOfWeek()) {
+            case MONDAY -> "周一";
+            case TUESDAY -> "周二";
+            case WEDNESDAY -> "周三";
+            case THURSDAY -> "周四";
+            case FRIDAY -> "周五";
+            case SATURDAY -> "周六";
+            case SUNDAY -> "周日";
+            default -> "";
+        };
+
+        // 判断是上周还是本周
+        if (!date.isBefore(lastMonday) && date.isBefore(thisMonday)) {
+            return "上" + dayOfWeek;
+        } else if (!date.isBefore(thisMonday)) {
+            return "本" + dayOfWeek;
+        }
+
+        return dayOfWeek;
+    }
+
+    /**
+     * 查询多个设备当日每小时用电量数据，适配CategoryElectricityVO格式
+     * @param deviceList 设备对象列表
+     * @param roomIds 房间ID列表
+     * @return 包含时间和用电量值的列表，适配CategoryElectricityVO格式
+     */
+    public CategoryElectricityData getDailyElectricityDataForCategory(List<Device> deviceList, String roomIds) {
+        CategoryElectricityData categoryData = new CategoryElectricityData();
+        List<String> times = new ArrayList<>();
+        List<Double> values = new ArrayList<>();
+
+        try {
+            LocalDate today = LocalDate.now();
+            Instant startOfDay = today.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+            Instant endOfDay = today.atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant();
+
+            // 初始化累计值数组
+            Map<String, Double> hourlyValues = new LinkedHashMap<>();
+
+            // 遍历所有设备
+            for (Device device : deviceList) {
+                try {
+                    // 查询当日每小时的数据
+                    InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
+                            .bucket(influxDBProperties.getBucket())
+                            .measurement("device")
+                            .fields("Total")
+                            .tag("deviceCode", device.getDeviceCode())
+                            .tag("categoryId", device.getCategoryId().toString())
+                            .pivot()
+                            .window("1h", "last")
+                            .sort("_time", InfluxQueryBuilder.SORT_ASC)
+                            .range(startOfDay, endOfDay);
+
+                    if (StringUtils.isNotBlank(roomIds)) {
+                        List<String> roomIdList = Arrays.stream(roomIds.split(","))
+                                .map(String::trim)
+                                .filter(StringUtils::isNotBlank)
+                                .toList();
+
+                        if (!roomIdList.isEmpty()) {
+                            String roomFilter = roomIdList.stream()
+                                    .map(id -> String.format("r.roomId == \"%s\"", id))
+                                    .collect(Collectors.joining(" or "));
+                            builder.filter("(" + roomFilter + ")");
+                        }
+                    } else {
+                        builder.tag("roomId", device.getDeviceRoom().toString());
+                    }
+
+                    String fluxQuery = builder.build();
+                    log.debug("查询当日每小时用电量数据 - 设备编码: {}, 查询语句: {}", device.getDeviceCode(), fluxQuery);
+
+                    List<InfluxMqttPlug> results = influxDBClient.getQueryApi()
+                            .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
+
+                    // 处理每个设备的小时数据
+                    for (int i = 1; i < results.size(); i++) {
+                        InfluxMqttPlug current = results.get(i);
+                        InfluxMqttPlug previous = results.get(i - 1);
+
+                        if (current.getTotal() != null && previous.getTotal() != null) {
+                            // 格式化时间为小时
+                            String hour = current.getTime().atZone(ZoneId.systemDefault()).getHour() + ":00";
+
+                            // 计算该小时的用电量
+                            double hourlyConsumption = Math.max(0, current.getTotal() - previous.getTotal());
+
+                            // 累加到对应小时的总值中
+                            hourlyValues.merge(hour, hourlyConsumption, Double::sum);
+                        }
+                    }
+                } catch (Exception e) {
+                    log.error("查询设备当日每小时用电量数据失败 - 设备编码: {}", device.getDeviceCode(), e);
+                    // 继续处理其他设备
+                }
+            }
+
+            // 将累计结果转换为列表
+            times.addAll(hourlyValues.keySet());
+            values.addAll(hourlyValues.values().stream()
+                    .map(MathUtils::formatDouble)
+                    .toList());
+
+        } catch (Exception e) {
+            log.error("查询多个设备当日每小时用电量数据失败", e);
+        }
+
+        categoryData.setTime(times);
+        categoryData.setValue(values);
+        return categoryData;
+    }
+
+
+    /**
+     * 查询多个设备最近30天的每日用电量数据，适配CategoryElectricityVO格式
+     * @param deviceList 设备对象列表
+     * @param roomIds 房间ID列表
+     * @return 包含时间和用电量值的列表，适配CategoryElectricityVO格式
+     */
+    public CategoryElectricityData getMonthlyElectricityDataForCategory(List<Device> deviceList, String roomIds) {
+        CategoryElectricityData categoryData = new CategoryElectricityData();
+        List<String> times = new ArrayList<>();
+        List<Double> values = new ArrayList<>();
+
+        try {
+            LocalDate today = LocalDate.now();
+            LocalDate thirtyDaysAgo = today.minusDays(29); // 30天前（包含今天）
+
+            // 获取本月1号和上个月1号
+            LocalDate firstDayOfThisMonth = today.withDayOfMonth(1);
+            LocalDate firstDayOfLastMonth = firstDayOfThisMonth.minusMonths(1);
+
+            // 用于累计每天的用电量
+            Map<String, Double> dailyValues = new LinkedHashMap<>();
+
+            // 遍历所有设备
+            for (Device device : deviceList) {
+                try {
+                    // 计算每天的用电量
+                    for (int i = 0; i < 30; i++) {
+                        LocalDate targetDate = thirtyDaysAgo.plusDays(i);
+
+                        // 构造当天的开始和结束时间
+                        Instant startOfDay = targetDate.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+                        Instant endOfDay = targetDate.atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant();
+
+                        // 查询当天的数据
+                        InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
+                                .bucket(influxDBProperties.getBucket())
+                                .measurement("device")
+                                .fields("Total")
+                                .tag("deviceCode", device.getDeviceCode())
+                                .tag("categoryId", device.getCategoryId().toString())
+                                .pivot()
+                                .window("1d", "last")
+                                .sort("_time", InfluxQueryBuilder.SORT_ASC)
+                                .range(startOfDay, endOfDay);
+
+                        if (StringUtils.isNotBlank(roomIds)) {
+                            List<String> roomIdList = Arrays.stream(roomIds.split(","))
+                                    .map(String::trim)
+                                    .filter(StringUtils::isNotBlank)
+                                    .toList();
+
+                            if (!roomIdList.isEmpty()) {
+                                String roomFilter = roomIdList.stream()
+                                        .map(id -> String.format("r.roomId == \"%s\"", id))
+                                        .collect(Collectors.joining(" or "));
+                                builder.filter("(" + roomFilter + ")");
+                            }
+                        } else {
+                            builder.tag("roomId", device.getDeviceRoom().toString());
+                        }
+
+                        String fluxQuery = builder.build();
+                        log.info("查询{}用电量数据 - 设备编码: {}, 查询语句: {}", targetDate, device.getDeviceCode(), fluxQuery);
+
+                        List<InfluxMqttPlug> results = influxDBClient.getQueryApi()
+                                .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
+
+                        // 使用与calculateYesterdayElectricity相同的方法计算当天用电量
+                        Double dailyElectricity = calculateElectricityWithNullHandling(results);
+
+                        // 获取日期标签
+                        String dayLabel;
+                        if (!targetDate.isBefore(firstDayOfLastMonth) && targetDate.isBefore(firstDayOfThisMonth)) {
+                            dayLabel = targetDate.getMonth().getValue() + "-" + targetDate.getDayOfMonth();
+                        } else if (!targetDate.isBefore(firstDayOfThisMonth)) {
+                            dayLabel = targetDate.getMonth().getValue() + "-" + targetDate.getDayOfMonth();
+                        } else {
+                            dayLabel = targetDate.getMonth().getValue() + "-" + targetDate.getDayOfMonth();
+                        }
+
+                        // 累加用电量
+                        if (dailyElectricity != null) {
+                            dailyValues.merge(dayLabel, dailyElectricity, Double::sum);
+                        }
+                    }
+                } catch (Exception e) {
+                    log.error("查询设备近30天用电量数据失败 - 设备编码: {}", device.getDeviceCode(), e);
+                    // 继续处理其他设备
+                }
+            }
+
+            // 将累计结果转换为列表
+            times.addAll(dailyValues.keySet());
+            values.addAll(dailyValues.values().stream()
+                    .map(MathUtils::formatDouble)
+                    .toList());
+
+        } catch (Exception e) {
+            log.error("查询多个设备近30天用电量数据失败", e);
+        }
+
+        categoryData.setTime(times);
+        categoryData.setValue(values);
+        return categoryData;
+    }
+
+    /**
+     * 查询多个设备最近12个月的每月用电量数据，适配CategoryElectricityVO格式
+     * @param deviceList 设备对象列表
+     * @param roomIds 房间ID列表
+     * @return 包含时间和用电量值的列表，适配CategoryElectricityVO格式
+     */
+    public CategoryElectricityData getYearlyElectricityDataForCategory(List<Device> deviceList, String roomIds) {
+        CategoryElectricityData categoryData = new CategoryElectricityData();
+        List<String> times = new ArrayList<>();
+        List<Double> values = new ArrayList<>();
+
+        try {
+            LocalDate today = LocalDate.now();
+            LocalDate twelveMonthsAgo = today.minusMonths(11); // 12个月前（包含本月）
+
+            // 获取当前年份
+            int currentYear = today.getYear();
+
+            // 用于累计每月的用电量
+            Map<String, Double> monthlyValues = new LinkedHashMap<>();
+
+            // 遍历所有设备
+            for (Device device : deviceList) {
+                try {
+                    // 计算每个月的用电量
+                    for (int i = 0; i < 12; i++) {
+                        LocalDate targetMonth = twelveMonthsAgo.plusMonths(i);
+
+                        // 构造当月的开始和结束时间
+                        LocalDate firstDayOfMonth = targetMonth.withDayOfMonth(1);
+                        LocalDate firstDayOfNextMonth = targetMonth.plusMonths(1).withDayOfMonth(1);
+
+                        Instant startOfMonth = firstDayOfMonth.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
+                        Instant endOfMonth = firstDayOfNextMonth.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant()
+                                .minusSeconds(1); // 减去1秒得到月末时间
+
+                        // 查询当月的数据
+                        InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder()
+                                .bucket(influxDBProperties.getBucket())
+                                .measurement("device")
+                                .fields("Total")
+                                .tag("deviceCode", device.getDeviceCode())
+//                                .tag("categoryId", device.getCategoryId().toString())
+                                .pivot()
+                                .window("1mo", "last")
+                                .sort("_time", InfluxQueryBuilder.SORT_ASC)
+                                .range(startOfMonth, endOfMonth);
+
+                        if (StringUtils.isNotBlank(roomIds)) {
+                            List<String> roomIdList = Arrays.stream(roomIds.split(","))
+                                    .map(String::trim)
+                                    .filter(StringUtils::isNotBlank)
+                                    .toList();
+
+                            if (!roomIdList.isEmpty()) {
+                                String roomFilter = roomIdList.stream()
+                                        .map(id -> String.format("r.roomId == \"%s\"", id))
+                                        .collect(Collectors.joining(" or "));
+                                builder.filter("(" + roomFilter + ")");
+                            }
+                        } else {
+                            builder.tag("roomId", device.getDeviceRoom().toString());
+                        }
+
+                        String fluxQuery = builder.build();
+                        log.info("查询{}年{}月用电量数据 - 设备编码: {}, 查询语句: {}",
+                                targetMonth.getYear(), targetMonth.getMonthValue(), device.getDeviceCode(), fluxQuery);
+
+                        List<InfluxMqttPlug> results = influxDBClient.getQueryApi()
+                                .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
+                        if (ObjectUtils.isNotEmpty(results)) {
+                            log.info("查询设备{}{}年{}月的数据为{}", device.getDeviceCode(), targetMonth.getYear(), targetMonth.getMonthValue(), results);
+                        }
+                        // 使用与calculateLastMonthElectricity相同的方法计算当月用电量
+                        Double monthlyElectricity = calculateElectricityWithNullHandling(results);
+
+                        // 获取月份标签
+                        String monthLabel;
+                        if (targetMonth.getYear() < currentYear) {
+                            monthLabel = targetMonth.getYear() + "-" + targetMonth.getMonthValue();
+                        } else if (targetMonth.getYear() == currentYear) {
+                            monthLabel = targetMonth.getYear() + "-" + targetMonth.getMonthValue();
+                        } else {
+                            monthLabel = targetMonth.getYear() + "-" + targetMonth.getMonthValue();
+                        }
+
+                        // 累加用电量
+                        if (monthlyElectricity != null) {
+                            monthlyValues.merge(monthLabel, monthlyElectricity, Double::sum);
+                        }
+                    }
+                } catch (Exception e) {
+                    log.error("查询设备近12个月用电量数据失败 - 设备编码: {}", device.getDeviceCode(), e);
+                    // 继续处理其他设备
+                }
+            }
+
+            // 将累计结果转换为列表
+            times.addAll(monthlyValues.keySet());
+            values.addAll(monthlyValues.values().stream()
+                    .map(MathUtils::formatDouble)
+                    .toList());
+
+        } catch (Exception e) {
+            log.error("查询多个设备近12个月用电量数据失败", e);
+        }
+
+        categoryData.setTime(times);
+        categoryData.setValue(values);
+        return categoryData;
+    }
 }
