@@ -782,9 +782,6 @@ public class DashBoardController {
 
     ) {
         try {
-            // 1. 根据时间单位确定窗口大小（用于聚合计算）
-            String windowSize = getWindowSizeByTimeUnit(timeUnit);
-
             // 2. 根据传入的参数查询设备列表
             List<Device> deviceList;
             LambdaQueryWrapper<Device> queryWrapper = new LambdaQueryWrapper<>();
@@ -797,23 +794,8 @@ public class DashBoardController {
                 queryWrapper.eq(Device::getDeviceRoom, roomId);
             }
             deviceList = deviceService.list(queryWrapper);
-//            List<CategoryElectricityData> result;
-//            result = Collections.singletonList(electricityCalculationService.getElectricityDataForCategory(deviceList, timeUnit, roomId));
             CategoryElectricityData electricityDataForCategory = electricityCalculationService.getElectricityDataForCategory(deviceList, timeUnit, roomId);
-            List<CategoryElectricityData> electricityDataForCategory1 = List.of(electricityDataForCategory);
-            // 多设备数据累加
-//                result = queryMultipleDevices(deviceList, timeAmount, timeUnit, windowSize, roomId);
-//            } else if (deviceList.size() == 1) {
-//                // 单设备查询
-//                result = querySingleDevice(
-//                        deviceList.get(0),
-//                        timeAmount,
-//                        timeUnit,
-//                        windowSize
-//                );
-
-            return Result.success(electricityDataForCategory1);
-
+            return Result.success(List.of(electricityDataForCategory));
         } catch (InfluxException e) {
             log.error("InfluxDB查询异常", e);
             return Result.failed("数据查询失败: " + e.getMessage());

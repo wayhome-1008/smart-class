@@ -59,8 +59,6 @@ public class ElectricityCalculationService {
                 case "lastMonth" -> calculateLastMonthElectricity(device, roomIds);
                 default -> calculateCustomElectricity(device, startTime, endTime, roomIds);
             };
-
-            log.info("设备用电量计算 - 设备编码: {}, 范围: {}, 用电量: {}", device, range, totalElectricity);
             return MathUtils.formatDouble(totalElectricity);
         } catch (Exception e) {
             log.error("计算设备用电量失败 - 设备编码: {}, 范围: {}, 异常信息: ", device, range, e);
@@ -148,15 +146,6 @@ public class ElectricityCalculationService {
 
             List<InfluxMqttPlug> results = influxDBClient.getQueryApi()
                     .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
-
-//            if (results.size() >= 2) {
-//                // 用最后一个点减去倒数第二个点
-//                Double current = results.get(results.size() - 1).getTotal();
-//                Double start = results.get(results.size() - 2).getTotal();
-//                if (current != null && start != null) {
-//                    return MathUtils.formatDouble(Math.max(0, current - start));
-//                }
-//            }
             return calculateElectricityWithNullHandling(results);
         } catch (Exception e) {
             log.error("计算今日用电量失败 - 设备编码: {}", device.getDeviceCode(), e);
@@ -1050,11 +1039,9 @@ public class ElectricityCalculationService {
         CategoryElectricityData categoryData = new CategoryElectricityData();
         List<String> times = new ArrayList<>();
         List<Double> values = new ArrayList<>();
-
         try {
-            LocalDate today = LocalDate.now();
-            Instant startOfDay = today.atStartOfDay().atZone(ZoneId.systemDefault()).toInstant();
-            Instant endOfDay = today.atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant();
+            Instant now = Instant.now();
+            Instant twentyFourHoursAgo = now.minusSeconds(24 * 60 * 60); // 24小时前
 
             // 初始化累计值数组
             Map<String, Double> hourlyValues = new LinkedHashMap<>();
@@ -1072,7 +1059,7 @@ public class ElectricityCalculationService {
                             .pivot()
                             .window("1h", "last")
                             .sort("_time", InfluxQueryBuilder.SORT_ASC)
-                            .range(startOfDay, endOfDay);
+                            .range(twentyFourHoursAgo, now);
 
                     if (StringUtils.isNotBlank(roomIds)) {
                         List<String> roomIdList = Arrays.stream(roomIds.split(","))
@@ -1091,7 +1078,7 @@ public class ElectricityCalculationService {
                     }
 
                     String fluxQuery = builder.build();
-                    log.debug("查询当日每小时用电量数据 - 设备编码: {}, 查询语句: {}", device.getDeviceCode(), fluxQuery);
+                    log.info("查询当日每小时用电量数据 - 设备编码: {}, 查询语句: {}", device.getDeviceCode(), fluxQuery);
 
                     List<InfluxMqttPlug> results = influxDBClient.getQueryApi()
                             .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
