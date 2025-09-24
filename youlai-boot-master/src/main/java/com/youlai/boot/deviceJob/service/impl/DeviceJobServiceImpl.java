@@ -18,6 +18,8 @@ import com.youlai.boot.deviceJob.util.ScheduleUtils;
 import com.youlai.boot.scene.model.entity.Scene;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
 import org.quartz.JobDataMap;
 import org.quartz.JobKey;
 import org.quartz.Scheduler;
@@ -38,6 +40,7 @@ import static com.youlai.boot.deviceJob.util.ScheduleUtils.createScheduleJob;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DeviceJobServiceImpl extends ServiceImpl<DeviceJobMapper, DeviceJob> implements DeviceJobService {
     private final Scheduler scheduler;
     private final DeviceJobConverter deviceJobConverter;
@@ -177,13 +180,18 @@ public class DeviceJobServiceImpl extends ServiceImpl<DeviceJobMapper, DeviceJob
 
     public boolean pauseJob(DeviceJob job) throws SchedulerException {
         Long jobId = job.getId();
-        String jobGroup = job.getJobGroup();
-        job.setStatus(Integer.valueOf(ScheduleConstants.Status.PAUSE.getValue()));
-        boolean updated = this.updateById(job);
-        if (updated) {
-            scheduler.pauseJob(ScheduleUtils.getJobKey(jobId, jobGroup));
+        DeviceJob deviceJob = this.getById(jobId);
+        if (ObjectUtils.isNotEmpty(deviceJob)) {
+            String jobGroup = job.getJobGroup();
+            job.setStatus(Integer.valueOf(ScheduleConstants.Status.PAUSE.getValue()));
+            boolean updated = this.updateById(job);
+            if (updated) {
+                log.info("任务暂停成功，任务ID：{}", jobId);
+                scheduler.pauseJob(ScheduleUtils.getJobKey(jobId, jobGroup));
+            }
+            return updated;
         }
-        return updated;
+        return false;
     }
 
     public Boolean resumeJob(DeviceJob job) throws SchedulerException {

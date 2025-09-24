@@ -64,7 +64,6 @@ public class DeviceExecuteComponent extends NodeComponent {
                     if (parameters != null && !parameters.isEmpty()) {
                         List<DeviceOperate> deviceOperates = JSON.parseArray(parameters, DeviceOperate.class);
                         log.info("准备执行动作，涉及 {} 个设备", deviceCodes.size());
-
                         for (DeviceOperate deviceOperate : deviceOperates) {
                             for (String deviceCode : deviceCodes) {
                                 try {

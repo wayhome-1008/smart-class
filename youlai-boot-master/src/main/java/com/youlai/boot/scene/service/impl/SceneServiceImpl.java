@@ -413,13 +413,17 @@ public class SceneServiceImpl extends ServiceImpl<SceneMapper, Scene> implements
                     DeviceJob addJob = new DeviceJob();
                     BeanUtils.copyProperties(job, addJob);
                     addJob.setActions(action.getParameters());
+                    addJob.setStatus(scene.getEnable());
                     needSaveJobs.add(addJob);
                 }
             }
         }
         if (ObjectUtils.isNotEmpty(needSaveJobs)) {
+            //当禁用时 任务也禁用
             for (DeviceJob deviceJob : needSaveJobs) {
-                deviceJobService.saveDeviceJobForScene(deviceJob);
+                if (scene.getEnable() != 0) {
+                    deviceJobService.saveDeviceJobForScene(deviceJob);
+                }
             }
         }
     }

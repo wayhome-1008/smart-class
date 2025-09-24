@@ -93,7 +93,7 @@ public class DeviceTriggerComponent extends NodeComponent {
      */
     private boolean checkAnyTrigger(List<Trigger> triggers, Device triggerDevice, Scene scene, ObjectNode metrics) throws SchedulerException {
         for (Trigger trigger : triggers) {
-            if (trigger.getType().equals("TIMER_TRIGGER")) {
+            if (trigger.getType().equals("TIMER_TRIGGER")&&scene.getEnable()==1) {
                 //如果有定时触发 那么这里新增 因为新增有重复会删除旧的 所以无所谓
                 // 1.创建任务
                 deviceJobService.createScheduleJobForScene(scene);
