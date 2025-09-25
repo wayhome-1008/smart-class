@@ -131,5 +131,13 @@ public class DeviceOperateController {
         return deviceOperation.operate(id, deviceOperate, mqttProducer);
     }
 
+    @Operation(summary = "多设备操作(用于设备批量操作)")
+    @PostMapping(value = "/batch")
+    @Log(value = "多设备操作", module = LogModuleEnum.OPERATION)
+    public Result<Void> operateSocket(@RequestBody @Validated DeviceOperate deviceOperate) {
+
+        return Result.success();
+    }
+
 
 }
