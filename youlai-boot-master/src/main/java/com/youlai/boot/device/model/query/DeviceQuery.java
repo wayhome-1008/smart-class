@@ -31,6 +31,8 @@ public class DeviceQuery extends BasePageQuery {
     private Integer isLock;
     @Schema(description = "网关")
     private String deviceMac;
+    @Schema(description = "是否仅保留存在开关功能的设备 0-不保留 1-保留")
+    private Integer isOpen;
     @Schema(description = "设备类型")
     private String deviceTypeIds;
     @Schema(description = "通讯方式")

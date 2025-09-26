@@ -210,8 +210,9 @@ public class SubUpdateHandler implements MsgHandler {
             ObjectNode allSwitchStates = JsonNodeFactory.instance.objectNode();
             // 2. 遍历switches数组
             if (switchesArray.isArray()) {
+                int outletNum = 0;
                 for (JsonNode switchNode : switchesArray) {
-                    int outletNum = switchNode.get("outlet").asInt() + 1; // 转为1-based编号
+                    outletNum = switchNode.get("outlet").asInt() + 1; // 转为1-based编号
                     String switchState = switchNode.get("switch").asText();
                     //大小写转换
                     if (switchState.equals("on")) {
@@ -222,7 +223,13 @@ public class SubUpdateHandler implements MsgHandler {
                     // 3. 存储每个开关状态
                     allSwitchStates.put("switch" + outletNum, switchState);
                 }
+                int count = 0;
+                if (device.getDeviceInfo() != null && device.getDeviceInfo().has("count")) {
+                    count = device.getDeviceInfo().get("count").asInt();
+                }
+                allSwitchStates.put("count", Math.max(outletNum, count));
             }
+            log.info("allSwitchStates:{}", allSwitchStates);
             //allSwitchStates:数据{"outlet1":1,"switch1":"ON"}
             if (device != null) {
                 //场景
