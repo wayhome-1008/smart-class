@@ -38,8 +38,6 @@ import static com.youlai.boot.common.util.MacUtils.getCodeByTopic;
 public class StateHandler implements MsgHandler {
     private final RedisTemplate<String, Object> redisTemplate;
     private final DeviceService deviceService;
-    private final InfluxDBClient influxDBClient;
-    private final InfluxDBProperties influxProperties;
 
     @Override
     public void process(String topic, String jsonMsg, MqttClient mqttClient) {
@@ -64,7 +62,6 @@ public class StateHandler implements MsgHandler {
             JsonNode jsonNode = stringToJsonNode(jsonMsg);
             String deviceCode = getCodeByTopic(topic);
             Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
-            boolean isSwitch = false;
             if (ObjectUtils.isNotEmpty(device)) {
                 String power = jsonNode.get("POWER").asText();
                 ObjectNode metrics = JsonNodeFactory.instance.objectNode();
@@ -98,26 +95,9 @@ public class StateHandler implements MsgHandler {
                 if (device.getDeviceInfo().has("switch1")) {
                     String lastSwitchState = device.getDeviceInfo().get("switch1").asText();
                     if (!Objects.equals(lastSwitchState, power)) {
-                        isSwitch = true;
                     }
                 }
                 metrics.put("switch1", power);
-                //创建influx数据
-                InfluxMqttPlug influxPlug = new InfluxMqttPlug();
-                influxPlug.setCategoryId(device.getCategoryId().toString());
-                //tag为设备编号
-                influxPlug.setDeviceCode(device.getDeviceCode());
-                influxPlug.setRoomId(device.getDeviceRoom().toString());
-                influxPlug.setDeviceType(String.valueOf(device.getDeviceTypeId()));
-                if (isSwitch) {
-                    influxPlug.setSwitchState(power);
-                }
-                influxDBClient.getWriteApiBlocking().writeMeasurement(
-                        influxProperties.getBucket(),
-                        influxProperties.getOrg(),
-                        WritePrecision.MS,
-                        influxPlug
-                );
                 JsonNode mergeJson = mergeJson(Optional.of(device).map(Device::getDeviceInfo).orElse(null), metrics);
                 device.setDeviceInfo(mergeJson);
                 device.setStatus(1);
