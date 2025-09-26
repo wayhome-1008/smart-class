@@ -13,7 +13,6 @@ public class ThresholdComparator {
     public static boolean compare(ThresholdCondition condition, String actualStr) {
         String operator = condition.getOperator();
         Object thresholdValue = condition.getValue();
-        String property = condition.getProperty();
 
         // 统一转为字符串比较
         String thresholdStr = thresholdValue.toString();
@@ -36,7 +35,7 @@ public class ThresholdComparator {
     }
 
     private static boolean compareNumber(String operator, double actual, double threshold) {
-        boolean result = switch (operator) {
+        return switch (operator) {
             case "=" -> actual == threshold;
             case "!=" -> actual != threshold;
             case ">" -> actual > threshold;
@@ -45,15 +44,10 @@ public class ThresholdComparator {
             case "<=" -> actual <= threshold;
             default -> throw new IllegalArgumentException("不支持的操作符: " + operator);
         };
-
-//        log.info("执行数值比较 - 操作符: {}, 实际值: {}, 阈值: {}, 结果: {}",
-//                operator, actual, threshold, result);
-
-        return result;
     }
 
     private static boolean compareString(String operator, String actual, String threshold) {
-        boolean result = switch (operator) {
+        return switch (operator) {
             case "=" -> actual.equals(threshold);
             case "!=" -> !actual.equals(threshold);
             case ">" -> actual.compareTo(threshold) > 0;
@@ -62,10 +56,5 @@ public class ThresholdComparator {
             case "<=" -> actual.compareTo(threshold) <= 0;
             default -> throw new IllegalArgumentException("字符串不支持的操作符: " + operator);
         };
-//
-//        log.info("执行字符串比较 - 操作符: {}, 实际值: '{}', 阈值: '{}', 结果: {}",
-//                operator, actual, threshold, result);
-
-        return result;
     }
 }

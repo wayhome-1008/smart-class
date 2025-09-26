@@ -94,13 +94,13 @@ public class AlertRuleEngine {
                     default -> false;
                 };
 
-                if ("range".equals(compareType)) {
-//                    log.info("范围值比较 - 规则ID: {}, 当前值: {}, 比较类型: {}, 最小值: {}, 最大值: {}, 结果: {}",
-//                            rule.getId(), currentValue, compareType, rule.getMinValue(), rule.getMaxValue(), result);
-                } else {
-//                    log.info("数值比较 - 规则ID: {}, 当前值: {}, 比较类型: {}, 阈值: {}, 结果: {}",
-//                            rule.getId(), currentValue, compareType, rule.getThresholdValue(), result);
-                }
+//                if ("range".equals(compareType)) {
+////                    log.info("范围值比较 - 规则ID: {}, 当前值: {}, 比较类型: {}, 最小值: {}, 最大值: {}, 结果: {}",
+////                            rule.getId(), currentValue, compareType, rule.getMinValue(), rule.getMaxValue(), result);
+//                } else {
+////                    log.info("数值比较 - 规则ID: {}, 当前值: {}, 比较类型: {}, 阈值: {}, 结果: {}",
+////                            rule.getId(), currentValue, compareType, rule.getThresholdValue(), result);
+//                }
             } catch (NumberFormatException e) {
                 log.error("数值转换错误 - 规则ID: {}, 当前值: {}, 阈值: {}", rule.getId(), currentValue, rule.getThresholdValue(), e);
                 result = false;
