@@ -92,7 +92,10 @@ public class RoomController {
                 for (DeviceInfoVO roomDevice : roomDevices) {
                     Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, roomDevice.getDeviceCode());
                     if (ObjectUtils.isNotEmpty(device)) {
+                        if (device.getIsMaster()==1)
+                        {
                         todayElectricity = todayElectricity + electricityCalculationService.calculateTodayElectricity(device, String.valueOf(roomVO.getId()));
+                        }
                     }
                 }
                 roomVO.setTodayElectricity(MathUtils.formatDouble(todayElectricity));
