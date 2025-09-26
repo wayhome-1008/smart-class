@@ -109,6 +109,10 @@
             <if test="queryParams.showGateway != null and !queryParams.showGateway">
                 AND (d.device_type_id != 1 OR d.device_type_id IS NULL)
             </if>
+            <!-- 新增开关设备显示控制 -->
+            <if test="queryParams.isOpen != null and queryParams.isOpen">
+                AND JSON_EXTRACT(d.device_info, '$.count') IS NOT NULL
+            </if>
         </where>
     </select>
 

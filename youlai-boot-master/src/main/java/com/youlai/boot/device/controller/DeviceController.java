@@ -122,10 +122,6 @@ public class DeviceController {
                 }
             }
         });
-        //如果查询参数对isOpen做了条件则过滤掉isOpen属性为null得
-        if (queryParams.getIsOpen() != null) {
-            result.getRecords().removeIf(item -> item.getIsOpen() == null);
-        }
         return PageResult.success(result);
     }
 
