@@ -7,6 +7,7 @@ import com.youlai.boot.common.result.Result;
 import com.youlai.boot.config.mqtt.MqttProducer;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.form.DeviceOperate;
+import com.youlai.boot.device.model.form.DeviceOperateBatch;
 import com.youlai.boot.device.model.form.SerialData;
 import com.youlai.boot.device.model.form.SerialDataDown;
 import com.youlai.boot.device.model.vo.DeviceInfo;
@@ -134,10 +135,20 @@ public class DeviceOperateController {
     @Operation(summary = "多设备操作(用于设备批量操作)")
     @PostMapping(value = "/batch")
     @Log(value = "多设备操作", module = LogModuleEnum.OPERATION)
-    public Result<Void> operateSocket(@RequestBody @Validated DeviceOperate deviceOperate) {
-
+    public Result<Void> operateSocket(@RequestBody @Validated List<DeviceOperateBatch> deviceOperate) {
+        for (DeviceOperateBatch deviceOperateBatch : deviceOperate) {
+            DeviceOperate convert = convert(deviceOperateBatch);
+            deviceOperation.operate(deviceOperateBatch.getDeviceId(), convert, mqttProducer);
+        }
         return Result.success();
     }
 
+    public DeviceOperate convert(DeviceOperateBatch deviceOperateBatch) {
+        DeviceOperate deviceOperate = new DeviceOperate();
+        deviceOperate.setOperate(deviceOperateBatch.getOperate());
+        deviceOperate.setWay(deviceOperateBatch.getWay());
+        deviceOperate.setCount(deviceOperateBatch.getCount());
+        return deviceOperate;
+    }
 
 }
