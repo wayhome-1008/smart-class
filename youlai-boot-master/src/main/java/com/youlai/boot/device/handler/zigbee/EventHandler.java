@@ -40,7 +40,7 @@ public class EventHandler implements MsgHandler {
     @Override
     public void process(String topic, String jsonMsg, MqttClient mqttClient) throws MqttException {
         //目前仅对子设备在线离线做处理
-        log.info("[接收到网关转发子设备事件:{}]", jsonMsg);
+//        log.info("[接收到网关转发子设备事件:{}]", jsonMsg);
         DeviceEvent deviceEvent = JSON.parseObject(jsonMsg, DeviceEvent.class);
         if (deviceEvent != null) {
             String event = Optional.of(deviceEvent).map(DeviceEvent::getEvent).orElse(null);

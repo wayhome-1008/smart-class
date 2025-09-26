@@ -73,7 +73,7 @@ public class SensorHandler implements MsgHandler {
 
     private void handlerPlug(String jsonMsg, Device device, MqttClient mqttClient) throws JsonProcessingException {
         JsonNode jsonNode = stringToJsonNode(jsonMsg);
-        log.info("MQTT传感器{}", jsonNode);
+//        log.info("MQTT传感器{}", jsonNode);
             /*
        {
   "Time" : "2025-07-21T10:18:16",
@@ -137,7 +137,7 @@ public class SensorHandler implements MsgHandler {
                     influxPlug
             );
         }
-        log.info("MQTT计量插座{}", influxPlug);
+//        log.info("MQTT计量插座{}", influxPlug);
         redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
 
     }
@@ -155,7 +155,7 @@ public class SensorHandler implements MsgHandler {
             // 1. 处理设备信息更新
             JsonNode jsonNode = stringToJsonNode(jsonMsg);
             ObjectNode metrics = extractSensorData(jsonNode);
-            log.info("MQTT三合一传感器{}", metrics);
+//            log.info("MQTT三合一传感器{}", metrics);
             device.setDeviceInfo(metrics);
             //场景
             List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(device.getDeviceCode());

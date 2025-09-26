@@ -125,7 +125,7 @@ public class AirSwitchHandler implements MsgHandler {
             influxPlug.setPower((int) metrics.get("power").asDouble());
             //总用电量
             influxPlug.setTotal(metrics.get("total").asDouble());
-            log.info("插座数据:{}", influxPlug);
+//            log.info("插座数据:{}", influxPlug);
             if (device.getIsMaster() == 1) {
                 influxDBClient.getWriteApiBlocking().writeMeasurement(
                         influxProperties.getBucket(),

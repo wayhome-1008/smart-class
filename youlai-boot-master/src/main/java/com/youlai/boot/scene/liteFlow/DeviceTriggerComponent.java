@@ -16,7 +16,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.quartz.SchedulerException;
 import org.springframework.data.redis.core.RedisTemplate;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
 
 /**
  *@Author: way
@@ -45,7 +48,7 @@ public class DeviceTriggerComponent extends NodeComponent {
         // 直接从scene中获取Trigger列表
         List<Trigger> triggers = scene.getTriggers();
         if (triggers == null || triggers.isEmpty()) {
-            log.warn("场景 {} 未配置触发器", scene.getId());
+            log.info("场景 {} 未配置触发器", scene.getId());
             this.setIsEnd(true);
             return;
         }
@@ -70,7 +73,6 @@ public class DeviceTriggerComponent extends NodeComponent {
 
         // 如果没有触发条件满足，则结束流程
         if (!sceneTriggered) {
-            log.info("场景 {} 未触发，条件类型: {}", scene.getId(), conditionType);
             this.setIsEnd(true);
         }
     }
@@ -93,7 +95,7 @@ public class DeviceTriggerComponent extends NodeComponent {
      */
     private boolean checkAnyTrigger(List<Trigger> triggers, Device triggerDevice, Scene scene, ObjectNode metrics) throws SchedulerException {
         for (Trigger trigger : triggers) {
-            if (trigger.getType().equals("TIMER_TRIGGER")&&scene.getEnable()==1) {
+            if (trigger.getType().equals("TIMER_TRIGGER") && scene.getEnable() == 1) {
                 //如果有定时触发 那么这里新增 因为新增有重复会删除旧的 所以无所谓
                 // 1.创建任务
                 deviceJobService.createScheduleJobForScene(scene);
@@ -136,8 +138,9 @@ public class DeviceTriggerComponent extends NodeComponent {
             //只在value存了时间范围
             ThresholdCondition thresholdCondition = conditions.get(0);
             String timeRange = (String) thresholdCondition.getValue();
-            log.info("时间范围触发: {}", timeRange);
-            return DateUtils.checkTimeRangeTrigger(timeRange);
+            boolean checkTimeRangeTrigger = DateUtils.checkTimeRangeTrigger(timeRange);
+            log.info("时间范围触发结果: {}", checkTimeRangeTrigger);
+            return checkTimeRangeTrigger;
         } else {
             // 修改为AND逻辑：触发器内所有条件都必须满足
             for (ThresholdCondition condition : conditions) {
@@ -151,12 +154,15 @@ public class DeviceTriggerComponent extends NodeComponent {
                 }
                 // 如果有任何一个条件没有被满足，则整个触发器不满足
                 if (!conditionMet) {
+                    this.setIsEnd(true);
+                    log.info("场景 {} 未被设备 {} 触发", trigger.getSceneId(), triggerDevice.getDeviceCode());
                     return false;
+                } else {
+                    return true; // 所有条件都被满足
                 }
             }
         }
-
-        log.info("触发器满足条件: 触发器内所有条件都满足");
+        log.info("场景 {} 被设备 {} 触发", trigger.getSceneId(), triggerDevice.getDeviceCode());
         return true; // 所有条件都被满足
     }
 
@@ -180,13 +186,12 @@ public class DeviceTriggerComponent extends NodeComponent {
                     JsonNode nowMetricNode = metrics.get(fieldName);
                     //上次设备属性值
                     JsonNode propertyValueNode = deviceInfo.get(condition.getProperty());
-
                     // 添加空值检查
                     if (nowMetricNode == null || propertyValueNode == null) {
                         // 根据业务需求处理空值情况，例如跳过或记录日志
-                        log.warn("设备属性值为空，设备: {}, 属性: {}", device.getDeviceName(), condition.getProperty());
+                        log.info("设备属性值为空，设备: {}, 属性: {}", device.getDeviceName(), condition.getProperty());
                         this.setIsEnd(true);
-                        return false; // 或根据业务需求返回合适的值
+                        return false;
                     }
 
                     String nowMetric = nowMetricNode.asText();
@@ -194,17 +199,18 @@ public class DeviceTriggerComponent extends NodeComponent {
 
                     if (nowMetric.equals(propertyValue)) {
                         //说明这次的属性值和上次的属性值相同 不进行后续
+                        log.info("属性值相同,则场景不执行,原值为{},新值为{}", propertyValue, nowMetric);
                         this.setIsEnd(true);
+                        return false;
                     }
                     boolean result = ThresholdComparator.compare(condition, nowMetric);
                     log.info("设备 {} 属性 {} 值为 {}，条件 {} {}，结果: {}",
                             device.getDeviceName(), condition.getProperty(), propertyValue,
                             condition.getOperator(), condition.getValue(), result);
-                    return result;
+                    return !result;
                 }
 
             }
-
 
         } catch (Exception e) {
             log.error("检查设备 {} 条件时出错", device.getDeviceName(), e);

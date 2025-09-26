@@ -229,8 +229,6 @@ public class SubUpdateHandler implements MsgHandler {
                 }
                 allSwitchStates.put("count", Math.max(outletNum, count));
             }
-            log.info("allSwitchStates:{}", allSwitchStates);
-            //allSwitchStates:数据{"outlet1":1,"switch1":"ON"}
             if (device != null) {
                 //场景
                 List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(device.getDeviceCode());
@@ -263,7 +261,7 @@ public class SubUpdateHandler implements MsgHandler {
                         WritePrecision.MS,
                         influxSwitch
                 );
-                log.info("开关状态{}", influxSwitch);
+//                log.info("开关状态{}", influxSwitch);
                 redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
             }
         }
@@ -429,7 +427,7 @@ public class SubUpdateHandler implements MsgHandler {
 //            if (mergeParams.has("RMS_CurrentC") && mergeParams.get("RMS_CurrentC").isInt()) {
 //                influxPlug.setRMS_CurrentC(mergeParams.get("RMS_CurrentC").asInt());
 //            }
-            log.info("插座数据:{}", influxPlug);
+//            log.info("插座数据:{}", influxPlug);
             RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
             if (device.getIsMaster() == 1) {
                 influxDBClient.getWriteApiBlocking().writeMeasurement(

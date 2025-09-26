@@ -103,7 +103,7 @@ public class ManageStatusHandler implements MsgHandler {
 
     @Log(value = "网关设备为在线", module = LogModuleEnum.WARNING)
     public static void deviceOnline(Device device) {
-        log.info("{}网关设备为在线", device.getDeviceName());
+//        log.info("{}网关设备为在线", device.getDeviceName());
         //重置 时间
         device.setDeviceLastDate(new Date());
         deviceRequestTimeMap.put(device.getDeviceCode(), device);

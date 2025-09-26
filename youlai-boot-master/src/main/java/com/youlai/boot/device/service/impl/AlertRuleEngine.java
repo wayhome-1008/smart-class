@@ -71,8 +71,8 @@ public class AlertRuleEngine {
                 case "!=" -> currentValue.compareTo(rule.getThresholdValue()) != 0;
                 default -> false;
             };
-            log.info("开关状态比较 - 规则ID: {}, 当前值: {}, 比较类型: {}, 阈值: {}, 结果: {}",
-                    rule.getId(), currentValue, compareType, rule.getThresholdValue(), result);
+//            log.info("开关状态比较 - 规则ID: {}, 当前值: {}, 比较类型: {}, 阈值: {}, 结果: {}",
+//                    rule.getId(), currentValue, compareType, rule.getThresholdValue(), result);
         } else {
             try {
                 // 使用 BigDecimal 进行精确的数值比较，支持整数和小数
@@ -95,11 +95,11 @@ public class AlertRuleEngine {
                 };
 
                 if ("range".equals(compareType)) {
-                    log.info("范围值比较 - 规则ID: {}, 当前值: {}, 比较类型: {}, 最小值: {}, 最大值: {}, 结果: {}",
-                            rule.getId(), currentValue, compareType, rule.getMinValue(), rule.getMaxValue(), result);
+//                    log.info("范围值比较 - 规则ID: {}, 当前值: {}, 比较类型: {}, 最小值: {}, 最大值: {}, 结果: {}",
+//                            rule.getId(), currentValue, compareType, rule.getMinValue(), rule.getMaxValue(), result);
                 } else {
-                    log.info("数值比较 - 规则ID: {}, 当前值: {}, 比较类型: {}, 阈值: {}, 结果: {}",
-                            rule.getId(), currentValue, compareType, rule.getThresholdValue(), result);
+//                    log.info("数值比较 - 规则ID: {}, 当前值: {}, 比较类型: {}, 阈值: {}, 结果: {}",
+//                            rule.getId(), currentValue, compareType, rule.getThresholdValue(), result);
                 }
             } catch (NumberFormatException e) {
                 log.error("数值转换错误 - 规则ID: {}, 当前值: {}, 阈值: {}", rule.getId(), currentValue, rule.getThresholdValue(), e);

@@ -38,7 +38,6 @@ public class BatchUpdate {
             Device deviceObj = (Device) entry.getValue();
             threeWay.add(deviceObj);
         }
-        log.info("批量更新设备状态到数据库");
         deviceService.updateBatchById(threeWay);
     }
 }

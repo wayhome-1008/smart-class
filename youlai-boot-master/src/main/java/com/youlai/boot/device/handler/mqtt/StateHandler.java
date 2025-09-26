@@ -158,7 +158,7 @@ public class StateHandler implements MsgHandler {
                 if (deviceCache != null) {
                     redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
                 }
-                log.info("设备 {} 灯光状态更新完成", deviceCode);
+//                log.info("设备 {} 灯光状态更新完成", deviceCode);
             }
         } catch (Exception e) {
             log.error("设备 {} 处理失败: {}", topic, e.getMessage(), e);
