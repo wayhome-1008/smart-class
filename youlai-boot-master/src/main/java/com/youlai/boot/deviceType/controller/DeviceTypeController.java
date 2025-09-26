@@ -42,7 +42,7 @@ public class DeviceTypeController {
 
     @Operation(summary = "设备类型下拉列表")
     @GetMapping("/options")
-    public Result<List<Option<Long>>> listDeviceTypeOptions(@RequestParam(required = true) Boolean showGateway) {
+    public Result<List<Option<Long>>> listDeviceTypeOptions(@RequestParam Boolean showGateway) {
         List<Option<Long>> list = deviceTypeService.listDeviceTypeOptions();
         if (!showGateway) {
             //删除type==1的数据

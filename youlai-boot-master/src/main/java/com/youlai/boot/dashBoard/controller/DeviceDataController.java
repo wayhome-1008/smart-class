@@ -159,7 +159,7 @@ public class DeviceDataController {
             // 计算部门总用电量
             double departmentTotalElectricity = 0.0;
 
-            // 构建房间用电量列表
+            // 构建房间的用电量列表
             List<RoomElectricityDataVO> roomElectricityList = new ArrayList<>();
 
             // 查询每个房间的用电情况
@@ -411,7 +411,6 @@ public class DeviceDataController {
         List<List<Object>> dataRows = convertRoomElectricityData(list, categoryNames);
         // 标题样式
         WriteCellStyle headWriteCellStyle = DepartmentElectricitySheetWriteHandler.getHeadStyle();
-        //内容
         // 内容的策略
         WriteCellStyle contentWriteCellStyle = new WriteCellStyle();
         // 这里需要指定 FillPatternType 为FillPatternType.SOLID_FOREGROUND 不然无法显示背景颜色.头默认了 FillPatternType所以可以不指定
@@ -447,7 +446,7 @@ public class DeviceDataController {
         Map<Long, Map<String, Double>> roomDataMap = new HashMap<>();
         Map<Long, String> roomNameMap = new HashMap<>();
         Map<Long, Double> roomTotalMap = new HashMap<>();
-        List<Long> roomIds = new ArrayList<>(); // 保持房间顺序
+        List<Long> roomIds = new ArrayList<>(); // 保持房间的顺序
 
         for (DepartmentCategoryElectricityInfoVO item : list) {
             Long roomId = item.getRoomId();
@@ -852,7 +851,7 @@ public class DeviceDataController {
                 //根据categoryId、roomId查询设备
                 List<Device> roomDevices = deviceService.listDevicesByCategoryAndRoomId(category.getId(), roomId);
                 if (!roomDevices.isEmpty()) {
-                    // 计算该分类下该房间设备的总用电量
+                    // 计算该分类下该房间的设备的总用电量
                     double categoryTotalElectricity = 0.0;
                     String categoryEarliestOnTime = null;
                     String categoryLatestOffTime = null;
@@ -1052,9 +1051,7 @@ public class DeviceDataController {
                 }
             }
         }
-
         departmentCategoryElectricityList.addAll(departmentCategoryMap.values());
-
         // 设置房间总用电量
         for (DepartmentCategoryElectricityInfoVO item : departmentCategoryElectricityList) {
             String roomGroupKey = item.getRoomId() + "_" + item.getCategoryId();
@@ -1199,7 +1196,7 @@ public class DeviceDataController {
         Map<Long, Map<String, Double>> roomDataMap = new HashMap<>();
         Map<Long, String> roomNameMap = new HashMap<>();
         Map<Long, Double> roomTotalMap = new HashMap<>();
-        List<Long> roomIds = new ArrayList<>(); // 保持房间顺序
+        List<Long> roomIds = new ArrayList<>(); // 保持房间的顺序
 
         for (RoomsElectricityVO item : list) {
             Long roomId = item.getRoomId();

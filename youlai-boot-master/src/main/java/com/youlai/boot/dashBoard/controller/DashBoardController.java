@@ -77,73 +77,6 @@ public class DashBoardController {
     private final RedisTemplate<String, Object> redisTemplate;
     private final ElectricityCalculationService electricityCalculationService;
 
-//    @Operation(summary = "查询配置分类用电量")
-//    @GetMapping("/category/electricity")
-//    public Result<CategoryElectricityVO> getCategoryElectricityData() {
-//        // 1. 初始化结果对象
-//        CategoryElectricityVO result = new CategoryElectricityVO();
-//        List<CategoryElectricityVO.CategoryData> categoryDataList = new ArrayList<>();
-//        // 2. 获取所有分类
-//        List<Category> categories = categoryService.list();
-//        List<Category> categoriesAll = new ArrayList<>();
-//        if (ObjectUtils.isEmpty(categories)) return Result.success();
-//        List<String> categoryNames = categories.stream().map(Category::getCategoryName).toList();
-//        List<Config> configList = configService.listByKeys(categoryNames);
-//        for (Config config : configList) {
-//            for (String categoryName : categoryNames) {
-//                if (categoryName.equals(config.getConfigKey())) {
-//                    categoriesAll.add(categories.stream()
-//                            .filter(category1 -> category1.getCategoryName().equals(categoryName))
-//                            .findFirst()
-//                            .orElse(null));
-//                }
-//            }
-//        }
-//        // 4. 处理每个分类
-//        for (Category category : categoriesAll) {
-//            //根据categoryId和isMaster查询设备
-//            List<Device> masterDevices = deviceService.listByCategoryId(category);
-//            if (!masterDevices.isEmpty()) {
-//                CategoryElectricityVO.CategoryData data = new CategoryElectricityVO.CategoryData();
-//                data.setCategoryName(category.getCategoryName());
-//                // 初始化总值列表，用于累加所有设备的数据
-//                List<Double> totalValues = null;
-//                // 遍历所有主设备，获取并累加数据
-//                for (Device masterDevice : masterDevices) {
-
-    ////                    List<InfluxMqttPlugVO> deviceDataList = querySingleDevice(masterDevice, 1L, "w", "1d");
-//
-//                    List<InfluxMqttPlug> influxMqttPlugs = calculateCustomElectricity(masterDevice, startTime, endTime, "");
-//                    List<InfluxMqttPlugVO> deviceDataList = convertToVOWithDifferences(influxMqttPlugs, "w");
-//                    if (!deviceDataList.isEmpty()) {
-//                        InfluxMqttPlugVO deviceData = deviceDataList.get(0);
-//
-//                        if (totalValues == null) {
-//                            // 第一个设备的数据作为初始值
-//                            totalValues = new ArrayList<>(deviceData.getValue());
-//                            result.setTimes(deviceData.getTime());
-//                        } else {
-//                            // 确保两个列表长度相同后再累加
-//                            List<Double> deviceValues = deviceData.getValue();
-//                            int minSize = Math.min(totalValues.size(), deviceValues.size());
-//                            for (int i = 0; i < minSize; i++) {
-//                                Double v1 = totalValues.get(i);
-//                                Double v2 = deviceValues.get(i);
-//                                // 处理null值
-//                                if (v1 == null) v1 = 0.0;
-//                                if (v2 == null) v2 = 0.0;
-//                                totalValues.set(i, MathUtils.formatDouble(v1 + v2));
-//                            }
-//                        }
-//                    }
-//                }
-//                data.setValues(totalValues);
-//                categoryDataList.add(data);
-//            }
-//        }
-//        result.setData(categoryDataList);
-//        return Result.success(result);
-//    }
     @Operation(summary = "查询配置分类用电量")
     @GetMapping("/category/electricity")
     public Result<CategoryElectricityVO> getCategoryElectricityData() {
@@ -802,33 +735,6 @@ public class DashBoardController {
             log.error("接口处理异常", e);
             return Result.failed("系统异常");
         }
-    }
-
-    private String getRange(Long timeAmount, String timeUnit) {
-        // timeAmount时间范围值->1,2,3  timeUnit时间单位d,w,m,y
-        switch (timeUnit) {
-            case "h" -> {
-                long range = timeAmount * 60L + 1;
-                return range + "m";
-            }
-            case "d" -> {
-                long range = timeAmount * 24L + 1;
-                return range + "h";
-            }
-            case "w" -> {
-                long range = timeAmount * 7L + 1;
-                return range + "d";
-            }
-            case "mo" -> {
-                long range = timeAmount * 30L + 1;
-                return range + "d";
-            }
-            case "y" -> {
-                long range = timeAmount * 12L + 1;
-                return range + "mo";
-            }
-        }
-        return "1d";
     }
 
     /**
