@@ -206,7 +206,11 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
 
     @Override
     public List<DeviceInfoVO> listDeviceByRoomId(Long roomId, Room room) {
-        List<Device> roomDevices = this.list(new LambdaQueryWrapper<Device>().eq(Device::getDeviceRoom, roomId).eq(Device::getStatus, 1));
+        List<Device> roomDevices = this.list(new LambdaQueryWrapper<Device>()
+                .eq(Device::getDeviceRoom, roomId)
+                .eq(Device::getStatus, 1)
+                .eq(Device::getIsLock, 0)
+        );
         if (ObjectUtils.isNotEmpty(roomDevices)) {
             List<DeviceInfoVO> deviceInfoVOS = new ArrayList<>();
             for (Device roomDevice : roomDevices) {
@@ -232,7 +236,10 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
         //1.查询该楼层有那些roomId
         List<Room> roomList = roomService.list(new LambdaQueryWrapper<Room>().eq(Room::getFloorId, floorId));
         if (ObjectUtils.isNotEmpty(roomList)) {
-            List<Device> floorDevices = this.list(new LambdaQueryWrapper<Device>().in(Device::getDeviceRoom, roomList.stream().map(Room::getId).toList()).eq(Device::getStatus, 1));
+            List<Device> floorDevices = this.list(new LambdaQueryWrapper<Device>().in(Device::getDeviceRoom, roomList.stream().map(Room::getId).toList())
+                    .eq(Device::getStatus, 1)
+                    .eq(Device::getIsLock, 0)
+            );
             List<DeviceInfoVO> deviceInfoVOS = new ArrayList<>();
             for (Device floorDevice : floorDevices) {
                 for (Room room : roomList) {

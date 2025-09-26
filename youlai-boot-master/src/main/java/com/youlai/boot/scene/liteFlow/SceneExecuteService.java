@@ -32,7 +32,6 @@ public class SceneExecuteService {
                     scene,     // 上下文对象
                     device, mqttClient, allSwitchStates
             );
-            log.info("设备上报属性:{}", allSwitchStates);
         } catch (Exception e) {
             log.error("场景[{}:{}]执行抛出异常", scene.getId(), scene.getSceneName(), e);
         }

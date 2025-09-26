@@ -17,8 +17,8 @@ public class ThresholdComparator {
 
         // 统一转为字符串比较
         String thresholdStr = thresholdValue.toString();
-        log.info("比较阈值 - 场景需触发属性: {}, 设备传入属性实际值: {}, 操作符: {}, 阈值: {}",
-                property, actualStr, operator, thresholdStr);
+//        log.info("比较阈值 - 场景需触发属性: {}, 设备传入属性实际值: {}, 操作符: {}, 阈值: {}",
+//                property, actualStr, operator, thresholdStr);
 
         // 数值类型比较
         try {
