@@ -88,6 +88,8 @@ public class DeviceOperation {
             return;
         }
 
+        if (device.getIsLock() == 1) return;
+
         //根据通信协议去发送不同协议报文
         String protocol = CommunicationModeEnum.getNameById(device.getCommunicationModeItemId());
         switch (protocol) {
@@ -149,6 +151,8 @@ public class DeviceOperation {
             return;
         }
 
+        if (device.getIsLock() == 1) return;
+
         // 根据通信协议去发送不同协议报文
         String protocol = CommunicationModeEnum.getNameById(device.getCommunicationModeItemId());
         switch (protocol) {
@@ -209,6 +213,8 @@ public class DeviceOperation {
             log.warn("[接口执行]不支持的设备类型: deviceTypeId={}", device.getDeviceTypeId());
             return Result.failed();
         }
+
+        if (device.getIsLock() == 1) return Result.failed("设备被锁定");
 
         return switch (CommunicationModeEnum.getNameById(device.getCommunicationModeItemId())) {
             case "ZigBee" -> zigBeeDeviceOperate(deviceCode, device.getDeviceGatewayId(), operation, mqttProducer);

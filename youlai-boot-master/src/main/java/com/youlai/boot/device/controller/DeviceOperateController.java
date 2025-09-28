@@ -31,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -135,13 +136,25 @@ public class DeviceOperateController {
     @Operation(summary = "多设备操作(用于设备批量操作)")
     @PostMapping(value = "/batch")
     @Log(value = "多设备操作", module = LogModuleEnum.OPERATION)
-    public Result<Void> operateSocket(@RequestBody @Validated List<DeviceOperateBatch> deviceOperate) {
-        for (DeviceOperateBatch deviceOperateBatch : deviceOperate) {
-            DeviceOperate convert = convert(deviceOperateBatch);
-            deviceOperation.operate(deviceOperateBatch.getDeviceId(), convert, mqttProducer);
+//    public Result<Void> operateSocket(@RequestBody @Validated List<DeviceOperateBatch> deviceOperate) {
+    public Result<Void> operateSocket(@Parameter(description = "设备IDs") String ids) {
+        List<Long> idList = Arrays.stream(ids.split(","))
+                .map(Long::parseLong)
+                .toList();
+        for (Long id : idList) {
+            DeviceOperate deviceOperate = new DeviceOperate();
+            deviceOperate.setOperate("OFF");
+            deviceOperate.setWay("-1");
+            deviceOperate.setCount(1);
+            return deviceOperation.operate(id, deviceOperate, mqttProducer);
         }
+//        for (DeviceOperateBatch deviceOperateBatch : deviceOperate) {
+//            DeviceOperate convert = convert(deviceOperateBatch);
+//            deviceOperation.operate(deviceOperateBatch.getDeviceId(), convert, mqttProducer);
+//        }
         return Result.success();
     }
+
 
     public DeviceOperate convert(DeviceOperateBatch deviceOperateBatch) {
         DeviceOperate deviceOperate = new DeviceOperate();
