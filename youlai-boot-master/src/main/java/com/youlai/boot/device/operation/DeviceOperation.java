@@ -116,7 +116,8 @@ public class DeviceOperation {
         if (device.getIsLock() == 1) return;
 
         String deviceCode = device.getDeviceCode();
-        JsonNode deviceInfo = device.getDeviceInfo();
+        Device deviceCache = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
+        JsonNode deviceInfo = deviceCache.getDeviceInfo();
         if (ObjectUtils.isEmpty(deviceInfo)) {
             log.warn("[任务执行]设备信息为空: deviceCode={}", deviceCode);
             return;
@@ -178,7 +179,8 @@ public class DeviceOperation {
         }
 
         String deviceCode = device.getDeviceCode();
-        JsonNode deviceInfo = device.getDeviceInfo();
+        Device deviceCache = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
+        JsonNode deviceInfo = deviceCache.getDeviceInfo();
         if (ObjectUtils.isEmpty(deviceInfo)) {
             log.warn("[接口执行]设备信息为空: deviceCode={}", deviceCode);
             return Result.failed();

@@ -59,6 +59,9 @@
             <if test="queryParams.status != null">
                 AND d.status = #{queryParams.status}
             </if>
+            <if test="queryParams.isLock != null">
+                AND d.is_lock = #{queryParams.isLock}
+            </if>
             <if test="queryParams.deviceName != null and queryParams.deviceName != ''">
                 AND device_name LIKE CONCAT('%', #{queryParams.deviceName}, '%')
             </if>
