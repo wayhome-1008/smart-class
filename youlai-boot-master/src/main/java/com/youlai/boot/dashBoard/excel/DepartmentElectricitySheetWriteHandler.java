@@ -77,10 +77,6 @@ public class DepartmentElectricitySheetWriteHandler implements SheetWriteHandler
         headWriteCellStyle.setBorderTop(BorderStyle.THIN);//设置顶边框;
         headWriteCellStyle.setTopBorderColor((short) 0); //设置顶边框颜色;
         headWriteCellStyle.setWrapped(true);  //设置自动换行;
-//        headWriteCellStyle.setHorizontalAlignment(HorizontalAlignment.CENTER);//设置水平对齐的样式为居中对齐;
-//        headWriteCellStyle.setVerticalAlignment(VerticalAlignment.CENTER);  //设置垂直对齐的样式为居中对齐;
-        //        headWriteCellStyle.setShrinkToFit(true);//设置文本收缩至合适
-
         return headWriteCellStyle;
     }
 

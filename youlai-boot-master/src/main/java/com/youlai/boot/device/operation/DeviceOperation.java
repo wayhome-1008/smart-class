@@ -117,6 +117,7 @@ public class DeviceOperation {
 
         String deviceCode = device.getDeviceCode();
         Device deviceCache = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
+        assert deviceCache != null;
         JsonNode deviceInfo = deviceCache.getDeviceInfo();
         if (ObjectUtils.isEmpty(deviceInfo)) {
             log.warn("[任务执行]设备信息为空: deviceCode={}", deviceCode);

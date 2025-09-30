@@ -1,6 +1,5 @@
 package com.youlai.boot.device.model.form;
 
-import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
 /**
