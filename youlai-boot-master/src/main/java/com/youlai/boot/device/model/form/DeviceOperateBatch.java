@@ -10,9 +10,9 @@ import lombok.Data;
  */
 @Data
 public class DeviceOperateBatch {
-    private Long deviceId;
-    @Pattern(regexp = "ON|OFF", message = "错误操作")
-    private String operate;
-    private String way;
-    private Integer count;
+    private String deviceId;
+//    @Pattern(regexp = "ON|OFF", message = "错误操作")
+//    private String operate;
+//    private String way;
+//    private Integer count;
 }
