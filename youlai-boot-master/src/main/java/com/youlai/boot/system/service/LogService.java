@@ -36,6 +36,4 @@ public interface LogService extends IService<Log> {
      * 获取访问统计
      */
     VisitStatsVO getVisitStats();
-
-    Long countWarning();
 }

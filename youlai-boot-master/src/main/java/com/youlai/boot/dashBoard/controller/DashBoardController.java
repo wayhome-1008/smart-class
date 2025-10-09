@@ -7,6 +7,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.exceptions.InfluxException;
+import com.youlai.boot.alertEvent.model.entity.AlertEvent;
+import com.youlai.boot.alertEvent.service.AlertEventService;
 import com.youlai.boot.category.model.entity.Category;
 import com.youlai.boot.category.service.CategoryService;
 import com.youlai.boot.common.constant.RedisConstants;
@@ -76,6 +78,7 @@ public class DashBoardController {
     private final CategoryService categoryService;
     private final RedisTemplate<String, Object> redisTemplate;
     private final ElectricityCalculationService electricityCalculationService;
+    private final AlertEventService alertEventService;
 
     @Operation(summary = "查询配置分类用电量")
     @GetMapping("/category/electricity")
@@ -157,8 +160,8 @@ public class DashBoardController {
         dashCount.setUserCount(userService.count());
         dashCount.setLogCount(logService.count());
         dashCount.setRoomCount(roomService.count());
-        dashCount.setDemo1Count(logService.countWarning());
-        dashCount.setDemo2Count((Integer) redisTemplate.opsForValue().get(RedisConstants.MessageCount.MESSAGE_COUNT_KEY));
+        dashCount.setDemo1Count(alertEventService.warningCount());
+        dashCount.setDemo2Count(alertEventService.warningUnhandlerCount());
         return Result.success(dashCount);
     }
 

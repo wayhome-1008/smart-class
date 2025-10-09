@@ -106,13 +106,7 @@ public class LogServiceImpl extends ServiceImpl<LogMapper, Log>
             result.setTotalPvCount(pvStats.getTotalCount());
             result.setPvGrowthRate(pvStats.getGrowthRate());
         }
-
         return result;
-    }
-
-    @Override
-    public Long countWarning() {
-       return this.count(new LambdaQueryWrapper<Log>().eq(Log::getModule, "WARNING"));
     }
 
 }

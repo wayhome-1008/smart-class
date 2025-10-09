@@ -39,7 +39,7 @@ public class MqttCallback implements MqttCallbackExtended {
 
     @Override
     public void messageArrived(String topic, MqttMessage message) throws MqttException {
-//        log.info("【接收到主题{}的消息{}】", topic, message.toString());
+        log.info("【接收到主题{}的消息{}】", topic, message.toString());
         //获取一条消息则redis+1
         // 原子性递增消息计数
         Long count = redisTemplate.opsForValue().increment(RedisConstants.MessageCount.MESSAGE_COUNT_KEY);

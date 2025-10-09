@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.device.handler.service.MsgHandler;
+import com.youlai.boot.device.handler.status.DeviceStatusManager;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.device.topic.HandlerType;
@@ -34,7 +35,7 @@ import static com.youlai.boot.common.util.MacUtils.getCodeByTopic;
 public class StateHandler implements MsgHandler {
     private final RedisTemplate<String, Object> redisTemplate;
     private final DeviceService deviceService;
-
+    private final DeviceStatusManager deviceStatusManager;
     @Override
     public void process(String topic, String jsonMsg, MqttClient mqttClient) {
         //从缓存去设备
@@ -43,6 +44,7 @@ public class StateHandler implements MsgHandler {
         if (device == null) {
             device = deviceService.getByCode(deviceCode);
         }
+        deviceStatusManager.updateDeviceOnlineStatus(deviceCode);
         //计量插座
         if (device.getDeviceTypeId() == 4) {
             handlerPlug(topic, jsonMsg);

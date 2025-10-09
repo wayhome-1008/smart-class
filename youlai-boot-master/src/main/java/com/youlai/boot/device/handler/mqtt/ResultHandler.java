@@ -64,7 +64,7 @@ public class ResultHandler implements MsgHandler {
                 device = deviceService.getByCode(deviceCode);
             }
             // 更新设备在线状态
-            deviceStatusManager.updateDeviceOnlineStatus(deviceCode, device, deviceService);
+            deviceStatusManager.updateDeviceOnlineStatus(deviceCode);
             //计量插座
             if (device.getDeviceTypeId() == 4) {
                 plug(jsonNode, device, deviceCode, mqttClient);

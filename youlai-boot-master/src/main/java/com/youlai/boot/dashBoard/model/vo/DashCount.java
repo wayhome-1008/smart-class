@@ -19,5 +19,5 @@ public class DashCount {
     private Long roomCount;
     //todo
     private Long demo1Count;
-    private Integer demo2Count;
+    private Long demo2Count;
 }

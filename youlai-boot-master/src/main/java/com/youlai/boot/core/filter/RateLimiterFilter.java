@@ -62,7 +62,7 @@ public class RateLimiterFilter extends OncePerRequestFilter {
         Object systemConfig = configService.getSystemConfig(SystemConstants.SYSTEM_CONFIG_IP_QPS_LIMIT_KEY);
         if (systemConfig == null) {
             // 系统未配置限流，跳过限流逻辑
-            log.warn("系统未配置限流阈值，跳过限流");
+//            log.warn("系统未配置限流阈值，跳过限流");
             return false;
         }
 

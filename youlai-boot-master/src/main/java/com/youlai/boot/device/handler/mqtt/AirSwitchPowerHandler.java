@@ -9,6 +9,7 @@ import com.influxdb.client.domain.WritePrecision;
 import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.config.property.InfluxDBProperties;
 import com.youlai.boot.device.handler.service.MsgHandler;
+import com.youlai.boot.device.handler.status.DeviceStatusManager;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.influx.InfluxMqttPlug;
 import com.youlai.boot.device.service.impl.AlertRuleEngine;
@@ -46,7 +47,7 @@ public class AirSwitchPowerHandler implements MsgHandler {
     private final SceneExecuteService sceneExecuteService;
     private final SceneService sceneService;
     private final AlertRuleEngine alertRuleEngine;
-
+    private final DeviceStatusManager deviceStatusManager;
     @Override
     public void process(String topic, String jsonMsg, MqttClient mqttClient) throws MqttException, JsonProcessingException {
         // 1. 转换消息为JSON
@@ -56,6 +57,7 @@ public class AirSwitchPowerHandler implements MsgHandler {
             // 2. 获取设备信息（缓存优先）
             Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
             if (ObjectUtils.isNotEmpty(device)) {
+                deviceStatusManager.updateDeviceOnlineStatus(deviceCode);
                 JsonNode deviceInfo = device.getDeviceInfo();
                 if (ObjectUtils.isNotEmpty(deviceInfo)) {
                     ObjectNode metrics = JsonNodeFactory.instance.objectNode();

@@ -11,11 +11,14 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+
 
 /**
  *@Author: way
@@ -27,7 +30,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 public class ApiMonitorService {
     public static ConcurrentHashMap<String, Device> deviceRequestTimeMap = new ConcurrentHashMap<>();
-    public static ConcurrentHashMap<String, Device> deviceMqttRequestTimeMap = new ConcurrentHashMap<>();
+    public static ConcurrentHashMap<String, Long> deviceLastDataTimeMapWIFI = new ConcurrentHashMap<>();
+//    public static ConcurrentHashMap<String, Device> deviceLastDataTimeMap = new ConcurrentHashMap<>();
     private final DeviceService deviceService;
     private final MqttProducer mqttProducer;
 
@@ -46,7 +50,8 @@ public class ApiMonitorService {
         }
         List<Device> mqttDevicesList = deviceService.listMqttDevices();
         for (Device device : mqttDevicesList) {
-            deviceMqttRequestTimeMap.put(device.getDeviceCode(), device);
+//            device.setStatus(0);
+            deviceLastDataTimeMapWIFI.put(device.getDeviceCode(), Instant.now().toEpochMilli());
         }
     }
 
@@ -67,18 +72,18 @@ public class ApiMonitorService {
         }
     }
 
-    @Scheduled(fixedRate = 45000)
-    public void demo() {
-        //统一发STATE
-        for (Map.Entry<String, Device> stringWashDeviceEntry : deviceMqttRequestTimeMap.entrySet()) {
-            try {
-                stringWashDeviceEntry.getValue().setDeviceLastDate(new Date());
-                String topic = "cmnd/" + stringWashDeviceEntry.getValue().getDeviceCode() + "/STATUS";
-                mqttProducer.send(topic, 0, false, "8");
-                deviceMqttRequestTimeMap.put(stringWashDeviceEntry.getValue().getDeviceCode(), stringWashDeviceEntry.getValue());
-            } catch (MqttException e) {
-                log.error("发失败啦 ~~~~~~~", e);
-            }
-        }
-    }
+//    @Scheduled(fixedRate = 45000)
+//    public void demo() {
+//        //统一发STATE
+//        for (Map.Entry<String, Device> stringWashDeviceEntry : deviceLastDataTimeMap.entrySet()) {
+//            try {
+//                stringWashDeviceEntry.getValue().setDeviceLastDate(new Date());
+//                String topic = "cmnd/" + stringWashDeviceEntry.getValue().getDeviceCode() + "/STATUS";
+//                mqttProducer.send(topic, 0, false, "8");
+//                deviceLastDataTimeMap.put(stringWashDeviceEntry.getValue().getDeviceCode(), stringWashDeviceEntry.getValue());
+//            } catch (MqttException e) {
+//                log.error("发失败啦 ~~~~~~~", e);
+//            }
+//        }
+//    }
 }

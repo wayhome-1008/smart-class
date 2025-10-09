@@ -54,4 +54,15 @@ public class AlertEventServiceImpl extends ServiceImpl<AlertEventMapper, AlertEv
                 new LambdaQueryWrapper<AlertEvent>()
                         .in(AlertEvent::getId, idList));
     }
+
+    @Override
+    public Long warningCount() {
+        return this.count();
+    }
+
+    @Override
+    public Long warningUnhandlerCount() {
+        return this.count(new LambdaQueryWrapper<AlertEvent>()
+                .eq(AlertEvent::getStatus, "0"));
+    }
 }

@@ -12,7 +12,6 @@ import com.youlai.boot.device.handler.service.MsgHandler;
 import com.youlai.boot.device.handler.status.DeviceStatusManager;
 import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.model.influx.InfluxMqttPlug;
-import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.device.service.impl.AlertRuleEngine;
 import com.youlai.boot.device.topic.HandlerType;
 import com.youlai.boot.scene.liteFlow.SceneExecuteService;
@@ -46,7 +45,6 @@ import static com.youlai.boot.common.util.MacUtils.getCodeByTopic;
 @RequiredArgsConstructor
 public class AirSwitchHandler implements MsgHandler {
     private final RedisTemplate<String, Object> redisTemplate;
-    private final DeviceService deviceService;
     private final InfluxDBProperties influxProperties;
     private final InfluxDBClient influxDBClient;
     private final SceneExecuteService sceneExecuteService;
@@ -64,7 +62,7 @@ public class AirSwitchHandler implements MsgHandler {
         boolean isSwitch = false;
         if (ObjectUtils.isNotEmpty(device)) {
             // 更新设备在线状态
-            deviceStatusManager.updateDeviceOnlineStatus(deviceCode, device, deviceService);
+            deviceStatusManager.updateDeviceOnlineStatus(deviceCode);
             ObjectNode metrics = JsonNodeFactory.instance.objectNode();
             int voltageA = jsonNode.get("voltageA").asInt();
             int current = jsonNode.get("current").asInt();
@@ -125,7 +123,7 @@ public class AirSwitchHandler implements MsgHandler {
             influxPlug.setPower((int) metrics.get("power").asDouble());
             //总用电量
             influxPlug.setTotal(metrics.get("total").asDouble());
-//            log.info("插座数据:{}", influxPlug);
+            log.info("插座数据:{}", influxPlug);
             if (device.getIsMaster() == 1) {
                 influxDBClient.getWriteApiBlocking().writeMeasurement(
                         influxProperties.getBucket(),

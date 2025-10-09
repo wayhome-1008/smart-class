@@ -122,7 +122,7 @@ public class ElectricityCalculationService {
                     .tag("deviceCode", device.getDeviceCode())
                     .tag("categoryId", device.getCategoryId().toString())
                     .pivot()
-                    .window("1d", "last")
+//                    .window("1d", "last")
                     .sort("_time", InfluxQueryBuilder.SORT_ASC)
                     .range(startOfDay, now);
 
@@ -170,7 +170,7 @@ public class ElectricityCalculationService {
                     .tag("deviceCode", device.getDeviceCode())
                     .tag("categoryId", device.getCategoryId().toString())
                     .pivot()
-                    .window("1d", "last")
+//                    .window("1d", "last")
                     .sort("_time", InfluxQueryBuilder.SORT_ASC)
                     .range(startOfYesterday, endOfYesterday);
 
@@ -618,7 +618,7 @@ public class ElectricityCalculationService {
     }
 
     /**
-     * 根据时间范围获取房间用电量
+     * 根据时间范围获取房间的用电量
      */
     public List<RoomsElectricityVO> getRoomsElectricity(String startTime, String endTime, String roomIds, String range, Long categoryId) {
         // 查询所有房间
@@ -744,7 +744,7 @@ public class ElectricityCalculationService {
                 }
 
                 String fluxQuery = builder.build();
-                log.debug("查询{}用电量数据 - 设备编码: {}, 查询语句: {}", targetDate, device.getDeviceCode(), fluxQuery);
+                log.info("查询{}用电量数据 - 设备编码: {}, 查询语句: {}", targetDate, device.getDeviceCode(), fluxQuery);
 
                 List<InfluxMqttPlug> results = influxDBClient.getQueryApi()
                         .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);

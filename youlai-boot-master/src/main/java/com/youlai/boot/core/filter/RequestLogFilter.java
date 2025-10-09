@@ -26,7 +26,7 @@ public class RequestLogFilter extends CommonsRequestLoggingFilter {
     protected void beforeRequest(HttpServletRequest request, String message) {
         String requestURI = request.getRequestURI();
         String ip = IPUtils.getIpAddr(request);
-        log.info("request,ip:{}, uri: {}", ip, requestURI);
+//        log.info("request,ip:{}, uri: {}", ip, requestURI);
         super.beforeRequest(request, message);
     }
 
