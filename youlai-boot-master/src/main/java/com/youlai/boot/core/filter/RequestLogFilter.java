@@ -3,6 +3,7 @@ package com.youlai.boot.core.filter;
 import com.youlai.boot.common.util.IPUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.filter.CommonsRequestLoggingFilter;
 
@@ -17,13 +18,13 @@ import org.springframework.web.filter.CommonsRequestLoggingFilter;
 public class RequestLogFilter extends CommonsRequestLoggingFilter {
 
     @Override
-    protected boolean shouldLog(HttpServletRequest request) {
+    protected boolean shouldLog(@NotNull HttpServletRequest request) {
         // 设置日志输出级别，默认debug
         return this.logger.isInfoEnabled();
     }
 
     @Override
-    protected void beforeRequest(HttpServletRequest request, String message) {
+    protected void beforeRequest(HttpServletRequest request, @NotNull String message) {
         String requestURI = request.getRequestURI();
         String ip = IPUtils.getIpAddr(request);
 //        log.info("request,ip:{}, uri: {}", ip, requestURI);

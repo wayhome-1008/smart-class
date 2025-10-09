@@ -17,7 +17,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.Iterator;
-import java.util.Objects;
 import java.util.Optional;
 
 import static com.youlai.boot.common.util.JsonUtils.mergeJson;
@@ -36,6 +35,7 @@ public class StateHandler implements MsgHandler {
     private final RedisTemplate<String, Object> redisTemplate;
     private final DeviceService deviceService;
     private final DeviceStatusManager deviceStatusManager;
+
     @Override
     public void process(String topic, String jsonMsg, MqttClient mqttClient) {
         //从缓存去设备
@@ -89,12 +89,6 @@ public class StateHandler implements MsgHandler {
 }
                  **/
                 metrics.put("count", 1);
-                //此处对开关上次及本次状态进行对比
-                if (device.getDeviceInfo().has("switch1")) {
-                    String lastSwitchState = device.getDeviceInfo().get("switch1").asText();
-                    if (!Objects.equals(lastSwitchState, power)) {
-                    }
-                }
                 metrics.put("switch1", power);
                 JsonNode mergeJson = mergeJson(Optional.of(device).map(Device::getDeviceInfo).orElse(null), metrics);
                 device.setDeviceInfo(mergeJson);

@@ -7,7 +7,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.exceptions.InfluxException;
-import com.youlai.boot.alertEvent.model.entity.AlertEvent;
 import com.youlai.boot.alertEvent.service.AlertEventService;
 import com.youlai.boot.category.model.entity.Category;
 import com.youlai.boot.category.service.CategoryService;
