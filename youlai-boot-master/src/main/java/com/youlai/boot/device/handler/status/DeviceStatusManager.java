@@ -12,6 +12,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -71,18 +72,19 @@ public class DeviceStatusManager {
 
             Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
             if (device == null) continue;
-
-            if (timeDiff > DEVICE_TIMEOUT) {
-                if (device.getStatus() != 0) {
-                    device.setStatus(0);
-                    devicesToUpdate.add(device);
-                    log.info("设备 {} 超时未接收数据，状态已设置为离线", deviceCode);
-                }
-            } else {
-                if (device.getStatus() != 1) {
-                    device.setStatus(1);
-                    devicesToUpdate.add(device);
-                    log.info("设备 {} 接收到数据，状态已设置为在线", deviceCode);
+            if (Objects.equals(device.getCommunicationModeItemName(), "WIFI")) {
+                if (timeDiff > DEVICE_TIMEOUT) {
+                    if (device.getStatus() != 0) {
+                        device.setStatus(0);
+                        devicesToUpdate.add(device);
+                        log.info("设备 {} 超时未接收数据，状态已设置为离线", deviceCode);
+                    }
+                } else {
+                    if (device.getStatus() != 1) {
+                        device.setStatus(1);
+                        devicesToUpdate.add(device);
+                        log.info("设备 {} 接收到数据，状态已设置为在线", deviceCode);
+                    }
                 }
             }
         }
