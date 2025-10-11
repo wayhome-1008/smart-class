@@ -122,7 +122,7 @@ public class ElectricityCalculationService {
                     .tag("deviceCode", device.getDeviceCode())
                     .tag("categoryId", device.getCategoryId().toString())
                     .pivot()
-//                    .window("1d", "last")
+                    .window("1d", "last")
                     .sort("_time", InfluxQueryBuilder.SORT_ASC)
                     .range(startOfDay, now);
 
@@ -170,7 +170,7 @@ public class ElectricityCalculationService {
                     .tag("deviceCode", device.getDeviceCode())
                     .tag("categoryId", device.getCategoryId().toString())
                     .pivot()
-//                    .window("1d", "last")
+                    .window("1d", "last")
                     .sort("_time", InfluxQueryBuilder.SORT_ASC)
                     .range(startOfYesterday, endOfYesterday);
 
