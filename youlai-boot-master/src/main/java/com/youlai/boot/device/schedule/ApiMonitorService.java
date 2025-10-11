@@ -47,6 +47,7 @@ public class ApiMonitorService {
             device.setDeviceLastDate(new Date());
             device.setStatus(0);
             deviceRequestTimeMap.put(device.getDeviceCode(), device);
+            deviceLastDataTimeMapWIFI.put(device.getDeviceCode(), Instant.now().toEpochMilli());
         }
         List<Device> mqttDevicesList = deviceService.listMqttDevices();
         for (Device device : mqttDevicesList) {

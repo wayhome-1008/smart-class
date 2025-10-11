@@ -74,7 +74,7 @@ public class SubUpdateHandler implements MsgHandler {
             if (ObjectUtils.isEmpty(device)) {
                 device = deviceService.getByCode(originalMac);
             }
-            device.setStatus(1);
+//            device.setStatus(1);
             if (ObjectUtil.isNotEmpty(device)) {
                 deviceStatusManager.updateDeviceOnlineStatus(originalMac);
                 //先校验是否是串口的

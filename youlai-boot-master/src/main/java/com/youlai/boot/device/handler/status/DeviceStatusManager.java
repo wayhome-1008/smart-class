@@ -43,6 +43,7 @@ public class DeviceStatusManager {
      *
      */
     public void updateDeviceOnlineStatus(String deviceCode) {
+        log.info("更新设备 {} 在线状态", deviceCode);
         // 更新设备最后接收数据的时间
         updateDeviceLastDataTime(deviceCode);
 
@@ -72,7 +73,7 @@ public class DeviceStatusManager {
 
             Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
             if (device == null) continue;
-            if (Objects.equals(device.getCommunicationModeItemName(), "WIFI")) {
+//            if (Objects.equals(device.getCommunicationModeItemName(), "WIFI")) {
                 if (timeDiff > DEVICE_TIMEOUT) {
                     if (device.getStatus() != 0) {
                         device.setStatus(0);
@@ -86,7 +87,7 @@ public class DeviceStatusManager {
                         log.info("设备 {} 接收到数据，状态已设置为在线", deviceCode);
                     }
                 }
-            }
+//            }
         }
 
         // 批量更新数据库中的设备状态
