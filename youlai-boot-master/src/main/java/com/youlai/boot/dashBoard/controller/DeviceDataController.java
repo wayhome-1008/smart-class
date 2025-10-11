@@ -384,7 +384,7 @@ public class DeviceDataController {
         String firstRow = "楼宇电量汇总.xlsx";
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setHeader("Content-Disposition", "attachment; filename=" + URLEncoder.encode(firstRow, StandardCharsets.UTF_8));
-        PageResult<DepartmentCategoryElectricityInfoVO> departmentElectricityVOPageResult = getDepartmentCategoryElectricityInfoVOPageResult(pageNum, pageSize, range, startTime, endTime, null, roomIds);
+        PageResult<DepartmentCategoryElectricityInfoVO> departmentElectricityVOPageResult = getDepartmentCategoryElectricityInfoVOPageResult(pageNum, 1000, range, startTime, endTime, null, roomIds);
         List<DepartmentCategoryElectricityInfoVO> list = departmentElectricityVOPageResult.getData().getList();
 // 获取所有唯一的分类名称
         List<String> categoryNames = list.stream()
@@ -578,7 +578,7 @@ public class DeviceDataController {
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setHeader("Content-disposition", "attachment;filename=" + URLEncoder.encode(firstRow, StandardCharsets.UTF_8));
         PageResult<DepartmentCategoryElectricityInfoVO> departmentElectricityVOPageResult =
-                getDepartmentCategoryElectricityInfoVOPageResult(pageNum, pageSize, range, startTime, endTime, deptIds, roomIds);
+                getDepartmentCategoryElectricityInfoVOPageResult(pageNum, 1000, range, startTime, endTime, deptIds, roomIds);
 
         List<DepartmentCategoryElectricityInfoVO> list = departmentElectricityVOPageResult.getData().getList();
         // 获取所有唯一的分类名称
@@ -1144,7 +1144,7 @@ public class DeviceDataController {
         String fileName = "楼宇排名";
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setHeader("Content-Disposition", "attachment; filename=" + URLEncoder.encode(fileName, StandardCharsets.UTF_8));
-        PageResult<RoomsElectricityVO> roomsElectricityVOPageResult = electricityCalculationService.getRoomsElectricityVOPageResult(pageNum, pageSize, roomIds, startTime, endTime, range, categoryName, true); // true表示导出
+        PageResult<RoomsElectricityVO> roomsElectricityVOPageResult = electricityCalculationService.getRoomsElectricityVOPageResult(pageNum, 1000, roomIds, startTime, endTime, range, categoryName, true); // true表示导出
         List<RoomsElectricityVO> list = roomsElectricityVOPageResult.getData().getList();
         if (ObjectUtils.isNotEmpty(categoryName)) {
             fileName = fileName + "(" + categoryName + ")";
@@ -1340,7 +1340,7 @@ public class DeviceDataController {
         String fileName = "部门排名";
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setHeader("Content-Disposition", "attachment; filename=" + URLEncoder.encode(fileName, StandardCharsets.UTF_8));
-        PageResult<DepartmentElectricityVO> departmentElectricityVOPageResult = getDepartmentElectricityVOPageResult(pageNum, pageSize, roomIds, startTime, endTime, range, categoryName, true); // true表示导出
+        PageResult<DepartmentElectricityVO> departmentElectricityVOPageResult = getDepartmentElectricityVOPageResult(pageNum, 1000, roomIds, startTime, endTime, range, categoryName, true); // true表示导出
         List<DepartmentElectricityVO> list = departmentElectricityVOPageResult.getData().getList();
         if (ObjectUtils.isNotEmpty(categoryName)) {
             fileName = fileName + "(" + categoryName + ")";
