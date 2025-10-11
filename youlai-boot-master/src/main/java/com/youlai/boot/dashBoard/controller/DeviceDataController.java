@@ -1349,7 +1349,7 @@ public class DeviceDataController {
         String timeRow = "时间：" + startTime + " 至 " + endTime;
         List<String> headerList = new ArrayList<>();
         headerList.add("序号");
-        headerList.add("房间");
+        headerList.add("部门");
         headerList.add("用电量（kWh）");
         String[] topic = headerList.toArray(new String[0]);
         // 添加实际数据
