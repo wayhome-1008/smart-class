@@ -17,10 +17,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 /**
  *@Author: way
@@ -37,7 +36,7 @@ public class WriteInfluxData {
     private static final String BUCKET = "smartClass";
     private static final String ORG = "zjtc";
 
-    @Scheduled(cron = "0 59 16 * * ?") //
+    @Scheduled(cron = "0 59 16 * * ?")
     public void writeInfluxData() {
         log.info("[===========定时写入数据============]");
         //1.查询出所有设备最后存在的数据
@@ -46,59 +45,176 @@ public class WriteInfluxData {
             String deviceCode = (String) entry.getKey();
             Device device = (Device) entry.getValue();
             if (device.getDeviceTypeId() == 4 || device.getDeviceTypeId() == 8) {
-                log.info("设备 {} 类型为 {}", deviceCode, device.getDeviceType());
-                // 2.查询该设备在InfluxDB中的最后一条有效数据
-                InfluxMqttPlug lastDataPoint = getLastDataPointFromInfluxDB(deviceCode, -3);
-                if (lastDataPoint != null) {
-                    // 3.填充空白时间段的数据
-                    fillMissingData(deviceCode, lastDataPoint, device);
-                }
+                log.info("设备 {} 类型为 {}", deviceCode, device.getDeviceTypeId());
+                // 检测并填充数据空白期
+                detectAndFillDataGaps(device);
             }
         }
     }
 
     /**
-     * 从InfluxDB查询设备最后一条有效数据（使用天级窗口聚合）
-     * @param deviceCode 设备编码
-     * @param rangeStart 查询起始时间范围(天数)
-     * @return 最后一条数据点
+     * 检测并填充设备数据空白期
+     * @param device 设备信息
      */
-    private InfluxMqttPlug getLastDataPointFromInfluxDB(String deviceCode, Integer rangeStart) {
+    private void detectAndFillDataGaps(Device device) {
+        // 1. 查询最近7天的数据（包括空白时间段）
+        List<FluxRecord> records = queryDeviceDataWithGaps(device, -30);
+
+        // 2. 检查是否存在数据空白期
+        List<Instant> gapDays = findGapDays(records);
+
+        if (!gapDays.isEmpty()) {
+            log.info("设备 {} 检测到 {} 天的数据空白期", device.getDeviceCode(), gapDays.size());
+
+            // 3. 查找空白期前的最后有效数据
+            InfluxMqttPlug lastValidData = findLastValidDataBeforeGap(device, gapDays.get(0));
+
+            if (lastValidData != null) {
+                // 4. 填充空白期数据
+                fillGapDays(device, lastValidData, gapDays);
+            }
+        }
+    }
+
+    /**
+     * 查询设备数据（包括空白时间段）
+     * @param device 设备信息
+     * @param rangeStart 查询起始时间（天）
+     * @return 数据记录列表
+     */
+    private List<FluxRecord> queryDeviceDataWithGaps(Device device, Integer rangeStart) {
         QueryApi queryApi = influxDBClient.getQueryApi();
 
-        // 使用窗口聚合按天分组，获取每天最后一条记录，然后取整体最后一条
         String flux = String.format(
-                "from(bucket: \"%s\") " +
-                        "|> range(start: %s) " +
-                        "|> filter(fn: (r) => r[\"_measurement\"] == \"device\") " +
-                        "|> filter(fn: (r) => r[\"deviceCode\"] == \"%s\") " +
-                        "|> aggregateWindow(every: 1d, fn: last) " +
-                        "|> last()",
-                BUCKET, rangeStart + "d", deviceCode
-        );
-        log.info("查询语句：{}", flux);
+                "from(bucket: \"%s\") "
+                        + "|> range(start: %s) "
+                        + "|> filter(fn: (r) => r._measurement == \"device\"" +
+                        " and r.deviceCode == \"%s\" " +
+                        "and r.categoryId == \"%s\"" +
+                        " and r.roomId == \"%s\"" +
+                        " and r._field == \"Total\") " +
+                        "|> aggregateWindow(every: 1d, fn: last, createEmpty: true) " +
+                        "|> fill(column: \"_value\", value: 0.0) " +
+                        "|> sort(columns: [\"_time\"])", BUCKET, rangeStart + "d", device.getDeviceCode(), device.getCategoryId() != null ? device.getCategoryId().toString() : "", device.getDeviceRoom() != null ? device.getDeviceRoom().toString() : "");
+
+        log.info("查询设备 {} 数据的Flux语句: {}", device.getDeviceCode(), flux);
+
         List<FluxTable> tables = queryApi.query(flux, ORG);
-        if (!tables.isEmpty() && !tables.get(0).getRecords().isEmpty()) {
-            FluxRecord record = tables.get(0).getRecords().get(0);
-            if (record.getValueByKey("_value") != null) {
-                // 构建InfluxMqttPlug对象
-                InfluxMqttPlug plug = new InfluxMqttPlug();
-                plug.setDeviceCode(deviceCode);
-                plug.setTime(record.getTime());
-                // 设置各个字段值
-                plug.setTotal(getDoubleValue(record, "Total"));
-                return plug;
-            } else {
-                // 如果没有找到有效的数据，则进行递归查找
-                // 限制递归深度，避免无限递归
-                if (rangeStart > -365) { // 最多查询一年数据
-                    return getLastDataPointFromInfluxDB(deviceCode, rangeStart - 1); // 每次增加1天查询范围
-                } else {
-                    return null; // 超过一年未找到数据则返回null
+        if (!tables.isEmpty()) {
+            //将返回的数据0索引打印日志
+            log.info("查询设备 {} 数据: {}", device.getDeviceCode(), tables.get(0).getRecords().get(0));
+            return tables.get(0).getRecords();
+        }
+        return new ArrayList<>();
+    }
+
+    /**
+     * 查找数据空白期（值为0的天，排除当天）
+     * @param records 数据记录
+     * @return 空白期时间列表
+     */
+    private List<Instant> findGapDays(List<FluxRecord> records) {
+        List<Instant> gapDays = new ArrayList<>();
+        // 获取今天的开始时间（00:00:00）
+        Instant todayStart = Instant.now().atZone(java.time.ZoneId.systemDefault()).toLocalDate().atStartOfDay(java.time.ZoneId.systemDefault()).toInstant();
+
+        for (FluxRecord record : records) {
+            Object value = record.getValueByKey("_value");
+            Instant recordTime = record.getTime();
+
+            // 排除当天的数据
+            if (recordTime.isBefore(todayStart)) {
+                // 如果值为0，认为是空白期（因为我们用0填充了空白时间段）
+                if (value instanceof Number && ((Number) value).doubleValue() == 0.0) {
+                    gapDays.add(recordTime);
                 }
             }
         }
-        return null;
+
+        log.info("检测到 {} 天的数据空白期（排除当天）", gapDays.size());
+        return gapDays;
+    }
+
+    /**
+     * 查找空白期前的最后有效数据
+     * @param device 设备信息
+     * @param gapStartTime 空白期开始时间
+     * @return 最后有效数据点
+     */
+    private InfluxMqttPlug findLastValidDataBeforeGap(Device device, Instant gapStartTime) {
+        QueryApi queryApi = influxDBClient.getQueryApi();
+
+        String flux = String.format(
+                "from(bucket: \"%s\") " +
+                        "|> range(start: -365d, stop: %s) " +
+                        "|> filter(fn: (r) => r._measurement == \"device\" and r.deviceCode == \"%s\" and r.categoryId == \"%s\" and r.roomId == \"%s\" and r._field == \"Total\") " +
+                        "|> filter(fn: (r) => exists r._value) " +  // 只获取有值的记录
+                        "|> last()",
+                BUCKET,
+                gapStartTime.toString(),
+                device.getDeviceCode(),
+                device.getCategoryId() != null ? device.getCategoryId().toString() : "",
+                device.getDeviceRoom() != null ? device.getDeviceRoom().toString() : ""
+        );
+
+        log.info("设备 {} 查询空白期前最后有效数据的Flux语句: {}", device.getDeviceCode(), flux);
+        log.info("设备 {} 空白期开始时间: {}", device.getDeviceCode(), gapStartTime);
+
+        List<FluxTable> tables = queryApi.query(flux, ORG);
+
+        if (!tables.isEmpty() && !tables.get(0).getRecords().isEmpty()) {
+            FluxRecord record = tables.get(0).getRecords().get(0);
+            InfluxMqttPlug plug = new InfluxMqttPlug();
+            plug.setDeviceCode(device.getDeviceCode());
+            plug.setTime(record.getTime());
+            plug.setTotal(getDoubleValue(record, "_value"));
+
+            log.info("设备 {} 找到最后有效数据: 时间={}, Total值={}",
+                    device.getDeviceCode(), record.getTime(), plug.getTotal());
+            return plug;
+        } else {
+            log.info("设备 {} 在空白期前未找到有效数据", device.getDeviceCode());
+            return null;
+        }
+    }
+
+
+    /**
+     * 填充空白期数据（按小时填充）
+     * @param device 设备信息
+     * @param validData 有效数据点
+     * @param gapDays 空白期时间列表
+     */
+    private void fillGapDays(Device device, InfluxMqttPlug validData, List<Instant> gapDays) {
+        WriteApi writeApi = influxDBClient.getWriteApi();
+        int totalFilledCount = 0;
+
+        for (Instant gapDay : gapDays) {
+            // 为每一天填充24小时的数据
+            int filledCount = 0;
+            for (int hour = 0; hour < 24; hour++) {
+                // 计算每个小时的时间点
+                Instant hourTime = gapDay.plusSeconds(hour * 3600L); // 每小时3600秒
+
+                // 创建填充数据
+                InfluxMqttPlug fillData = createFillData(validData, hourTime, device);
+
+                // 转换为Point并写入InfluxDB
+                Point point = Point.measurement("device")
+                        .addTag("deviceCode", fillData.getDeviceCode())
+                        .addTag("roomId", fillData.getRoomId())
+                        .addTag("deviceType", fillData.getDeviceType())
+                        .addTag("categoryId", fillData.getCategoryId())
+                        .addField("Total", fillData.getTotal())
+                        .time(hourTime, WritePrecision.MS);
+
+//                writeApi.writePoint(BUCKET, ORG, point);
+                filledCount++;
+                totalFilledCount++;
+            }
+            log.info("设备 {} 填充空白日期 {} 的 {} 条小时数据并且值为{}", device.getDeviceCode(), gapDay, filledCount, validData.getTotal());
+        }
+        writeApi.close();
     }
 
 
@@ -111,74 +227,6 @@ public class WriteInfluxData {
             return ((Number) value).doubleValue();
         }
         return null;
-    }
-
-    /**
-     * 从记录中获取Integer类型的值
-     */
-    private Integer getIntegerValue(FluxRecord record, String fieldName) {
-        Object value = record.getValueByKey(fieldName);
-        if (value instanceof Number) {
-            return ((Number) value).intValue();
-        }
-        return null;
-    }
-
-    /**
-     * 从记录中获取String类型的值
-     */
-    private String getStringValue(FluxRecord record, String fieldName) {
-        Object value = record.getValueByKey(fieldName);
-        return value != null ? value.toString() : null;
-    }
-
-    /**
-     * 填充设备的空白数据
-     * @param deviceCode 设备编码
-     * @param lastDataPoint 最后一条有效数据
-     * @param device 设备信息
-     */
-    private void fillMissingData(String deviceCode, InfluxMqttPlug lastDataPoint, Device device) {
-        Instant lastTime = lastDataPoint.getTime();
-        Instant now = Instant.now();
-
-        // 计算需要填充的小时数
-        long hoursBetween = ChronoUnit.HOURS.between(lastTime, now);
-
-        if (hoursBetween > 1) {
-            log.info("设备 {} 需要填充 {} 小时的数据", deviceCode, hoursBetween);
-
-            WriteApi writeApi = influxDBClient.getWriteApi();
-
-            // 按小时间隔填充数据
-            for (int i = 1; i <= hoursBetween; i++) {
-                Instant fillTime = lastTime.plus(i, ChronoUnit.HOURS);
-
-                // 创建新的InfluxMqttPlug对象，使用最后一条记录的数据填充
-                InfluxMqttPlug fillData = createFillData(lastDataPoint, fillTime, device);
-
-                // 转换为Point并写入InfluxDB
-                Point point = Point.measurement("device")
-                        .addTag("deviceCode", fillData.getDeviceCode())
-                        .addTag("roomId", fillData.getRoomId())
-                        .addTag("deviceType", fillData.getDeviceType())
-                        .addTag("categoryId", fillData.getCategoryId())
-                        .addField("Total", fillData.getTotal())
-                        .time(fillTime, WritePrecision.MS);
-
-                writeApi.writePoint(BUCKET, ORG, point);
-
-                // 控制写入频率，避免对InfluxDB造成过大压力
-                try {
-                    TimeUnit.MILLISECONDS.sleep(10);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-            }
-            writeApi.close();
-            log.info("设备 {} 成功填充 {} 条数据", deviceCode, hoursBetween);
-        }
     }
 
     /**
