@@ -1141,7 +1141,7 @@ public class DeviceDataController {
             @RequestParam(required = false) String endTime,
             HttpServletResponse response
     ) throws IOException {
-        String fileName = "楼宇排名";
+        String fileName = "楼宇用电排名";
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setHeader("Content-Disposition", "attachment; filename=" + URLEncoder.encode(fileName, StandardCharsets.UTF_8));
         PageResult<RoomsElectricityVO> roomsElectricityVOPageResult = electricityCalculationService.getRoomsElectricityVOPageResult(pageNum, 1000, roomIds, startTime, endTime, range, categoryName, true); // true表示导出
@@ -1337,7 +1337,7 @@ public class DeviceDataController {
             @RequestParam(required = false) String endTime,
             HttpServletResponse response
     ) throws IOException {
-        String fileName = "部门排名";
+        String fileName = "部门用电排名";
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setHeader("Content-Disposition", "attachment; filename=" + URLEncoder.encode(fileName, StandardCharsets.UTF_8));
         PageResult<DepartmentElectricityVO> departmentElectricityVOPageResult = getDepartmentElectricityVOPageResult(pageNum, 1000, roomIds, startTime, endTime, range, categoryName, true); // true表示导出
