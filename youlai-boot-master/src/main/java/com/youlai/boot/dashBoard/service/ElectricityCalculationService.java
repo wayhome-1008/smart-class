@@ -122,7 +122,7 @@ public class ElectricityCalculationService {
                     .tag("deviceCode", device.getDeviceCode())
                     .tag("categoryId", device.getCategoryId().toString())
                     .pivot()
-                    .window("1d", "last")
+//                    .window("1d", "last")
                     .sort("_time", InfluxQueryBuilder.SORT_ASC)
                     .range(startOfDay, now);
 
@@ -170,7 +170,7 @@ public class ElectricityCalculationService {
                     .tag("deviceCode", device.getDeviceCode())
                     .tag("categoryId", device.getCategoryId().toString())
                     .pivot()
-                    .window("1d", "last")
+//                    .window("1d", "last")
                     .sort("_time", InfluxQueryBuilder.SORT_ASC)
                     .range(startOfYesterday, endOfYesterday);
 
@@ -662,6 +662,7 @@ public class ElectricityCalculationService {
             return 0.0;
         }
 
+
         // 查找最后一个有效的数据点
         Double end = null;
         for (int i = results.size() - 1; i >= 0; i--) {
@@ -744,7 +745,7 @@ public class ElectricityCalculationService {
                 }
 
                 String fluxQuery = builder.build();
-                log.info("查询{}用电量数据 - 设备编码: {}, 查询语句: {}", targetDate, device.getDeviceCode(), fluxQuery);
+                log.info("查询一周{}用电量数据 - 设备编码: {}, 查询语句: {}", targetDate, device.getDeviceCode(), fluxQuery);
 
                 List<InfluxMqttPlug> results = influxDBClient.getQueryApi()
                         .query(fluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
