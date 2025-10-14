@@ -5,6 +5,7 @@ import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.service.DeviceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -70,6 +71,10 @@ public class DeviceStatusManager {
             long timeDiff = currentTime - lastDataTime;
 
             Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
+            if (device == null || ObjectUtils.isEmpty(device.getStatus())) {
+                continue;
+            }
+
             if (timeDiff > DEVICE_TIMEOUT) {
                 if (device.getStatus() != 0) {
                     device.setStatus(0);
