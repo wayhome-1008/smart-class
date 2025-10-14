@@ -44,7 +44,6 @@ import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -479,7 +478,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
 
     @Override
     public List<Device> listZigbeeDevices() {
-        return deviceMapper.selectList(new LambdaQueryWrapper<Device>().in(Device::getCommunicationModeItemId, 1,5));
+        return deviceMapper.selectList(new LambdaQueryWrapper<Device>().in(Device::getCommunicationModeItemId, 1, 5));
     }
 
     @Override

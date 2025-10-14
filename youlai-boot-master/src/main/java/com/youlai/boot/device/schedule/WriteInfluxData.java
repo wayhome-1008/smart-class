@@ -42,7 +42,6 @@ public class WriteInfluxData {
         //1.查询出所有设备最后存在的数据
         Map<Object, Object> deviceMap = redisTemplate.opsForHash().entries(RedisConstants.Device.DEVICE);
         for (Map.Entry<Object, Object> entry : deviceMap.entrySet()) {
-            String deviceCode = (String) entry.getKey();
             Device device = (Device) entry.getValue();
             if (device.getDeviceTypeId() == 4 || device.getDeviceTypeId() == 8) {
                 // 检测并填充数据空白期
@@ -166,9 +165,7 @@ public class WriteInfluxData {
         if (gapPeriods.isEmpty()) {
             log.info("未检测到数据空白期区间");
         } else {
-            gapPeriods.forEach(gapPeriod -> {
-                log.info("检测到空白期区间: {} 至 {}", gapPeriod.getStart(), gapPeriod.getEnd());
-            });
+            gapPeriods.forEach(gapPeriod -> log.info("检测到空白期区间: {} 至 {}", gapPeriod.getStart(), gapPeriod.getEnd()));
         }
 
         return gapPeriods;

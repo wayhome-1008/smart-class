@@ -1,24 +1,15 @@
 package com.youlai.boot.device.handler.zigbee;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.youlai.boot.common.annotation.Log;
-import com.youlai.boot.common.enums.LogModuleEnum;
 import com.youlai.boot.core.log.LogHelper;
 import com.youlai.boot.device.handler.service.MsgHandler;
-import com.youlai.boot.device.model.entity.Device;
 import com.youlai.boot.device.service.DeviceService;
 import com.youlai.boot.device.topic.HandlerType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.ObjectUtils;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.stereotype.Component;
-
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 
 import static com.youlai.boot.common.util.MacUtils.extractFromTopic;
 
@@ -100,12 +91,12 @@ public class ManageStatusHandler implements MsgHandler {
 //    }
 //
 //    public static void deviceOnline(Device device) {
-////        log.info("{}网关设备为在线", device.getDeviceName());
+
+    ////        log.info("{}网关设备为在线", device.getDeviceName());
 //        //重置 时间
 //        device.setDeviceLastDate(new Date());
 //        deviceRequestTimeMap.put(device.getDeviceCode(), device);
 //    }
-
     @Override
     public HandlerType getType() {
         return HandlerType.MANAGE_RSP;
