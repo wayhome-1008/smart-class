@@ -137,8 +137,11 @@ public class DeviceTriggerComponent extends NodeComponent {
         if ("TIME_RANGE".equals(trigger.getType())) {
             //只在value存了时间范围
             ThresholdCondition thresholdCondition = conditions.get(0);
+            //时间范围在json的value中
             String timeRange = (String) thresholdCondition.getValue();
-            boolean checkTimeRangeTrigger = DateUtils.checkTimeRangeTrigger(timeRange);
+            //改时间段或非该时间段在json的operator  =  !=
+            String operator = thresholdCondition.getOperator();
+            boolean checkTimeRangeTrigger = DateUtils.checkTimeRangeTrigger(timeRange,operator);
             log.info("时间范围触发结果: {}", checkTimeRangeTrigger);
             return checkTimeRangeTrigger;
         } else {

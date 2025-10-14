@@ -259,13 +259,18 @@ public class DateUtils extends org.apache.commons.lang3.time.DateUtils {
     /**
      * 检查时间范围触发器是否满足条件
      * @param timeRange 时间范围字符串，格式为 HH:mm-HH:mm
-     * @return 如果当前时间在指定范围内返回true，否则返回false
+     * @param operator 操作符，"=" 表示在时间范围内返回true，"!=" 表示不在时间范围内返回true
+     * @return 如果满足条件返回true，否则返回false
      */
-    public static boolean checkTimeRangeTrigger(String timeRange) {
+    public static boolean checkTimeRangeTrigger(String timeRange, String operator) {
         // 参数校验
         if (timeRange == null || timeRange.isEmpty()) {
             return false;
         }
+
+        // 操作符校验，默认为"="
+        String op = (operator == null || operator.isEmpty()) ? "=" : operator;
+
         try {
             // 解析时间范围字符串
             String[] times = timeRange.split("-");
@@ -277,6 +282,7 @@ public class DateUtils extends org.apache.commons.lang3.time.DateUtils {
             LocalTime endTime = LocalTime.parse(times[1].trim(), formatter);
             LocalTime now = LocalTime.now();
             boolean isSatisfied;
+
             // 处理跨天情况（例如 22:00-06:00）
             if (startTime.isAfter(endTime)) {
                 // 跨天情况：当前时间大于等于开始时间 或者 小于等于结束时间
@@ -285,10 +291,17 @@ public class DateUtils extends org.apache.commons.lang3.time.DateUtils {
                 // 正常情况：当前时间在开始时间和结束时间之间（包含边界）
                 isSatisfied = !now.isBefore(startTime) && !now.isAfter(endTime);
             }
-            return isSatisfied;
+
+            // 根据操作符决定返回结果
+            if ("!=".equals(op)) {
+                return !isSatisfied;
+            } else {
+                return isSatisfied;
+            }
         } catch (Exception e) {
             return false;
         }
     }
+
 
 }

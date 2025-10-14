@@ -50,9 +50,14 @@ public class AlertRuleEngine {
         }
 
         //2. 时间范围检查
+        //若timeRange首位是!则反
         String timeRange = rule.getTimeRange();
-        if (StringUtils.isEmpty(timeRange)) {
-            boolean checkTimeRange = DateUtils.checkTimeRangeTrigger(timeRange);
+        if (StringUtils.isNotEmpty(timeRange)) {
+            String operator="=";
+            if (timeRange.startsWith("!")) {
+                operator="!=";
+            }
+            boolean checkTimeRange = DateUtils.checkTimeRangeTrigger(timeRange,operator);
             if (!checkTimeRange) {
                 return false;
             }
