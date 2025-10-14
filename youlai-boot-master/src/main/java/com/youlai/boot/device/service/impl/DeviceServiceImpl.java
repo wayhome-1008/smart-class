@@ -478,6 +478,11 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
     }
 
     @Override
+    public List<Device> listZigbeeDevices() {
+        return deviceMapper.selectList(new LambdaQueryWrapper<Device>().in(Device::getCommunicationModeItemId, 1,5));
+    }
+
+    @Override
     public List<Option<Long>> listDeviceOptions() {
         List<Device> list = this.list(new LambdaQueryWrapper<Device>().eq(Device::getStatus, 1));
         return deviceConverter.toOptions(list);

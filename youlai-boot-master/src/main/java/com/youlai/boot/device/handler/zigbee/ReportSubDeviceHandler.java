@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.youlai.boot.common.util.MacUtils.extractFromTopic;
-import static com.youlai.boot.device.schedule.ApiMonitorService.deviceRequestTimeMap;
+import static com.youlai.boot.device.schedule.ApiMonitorService.gateWay;
 
 /**
  *@Author: way
@@ -52,7 +52,7 @@ public class ReportSubDeviceHandler implements MsgHandler {
                 gateway.setStatus(1);
                 redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, gateway);
                 gateway.setDeviceLastDate(new java.util.Date());
-                deviceRequestTimeMap.put(deviceCode, gateway);
+                gateWay.put(deviceCode, gateway);
                 //还要根据网关查询出来该网关在子设备先全部离线后续再修改
                 List<Device> devices = deviceService.listGatewaySubDevices(gateway.getId());
                 for (Device device : devices) {

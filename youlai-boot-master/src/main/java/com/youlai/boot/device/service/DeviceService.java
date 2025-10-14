@@ -110,4 +110,6 @@ public interface DeviceService extends IService<Device> {
     List<Device> listByCategoryId(Category category);
 
     List<Device> listDevicesByCategoryAndRoomId(Long categoryId, Long roomId);
+
+    List<Device> listZigbeeDevices();
 }

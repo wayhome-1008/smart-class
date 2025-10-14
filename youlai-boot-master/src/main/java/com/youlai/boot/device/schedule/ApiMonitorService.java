@@ -12,12 +12,12 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static com.youlai.boot.device.handler.status.DeviceStatusManager.deviceStatusMap;
 
 
 /**
@@ -29,9 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 @Slf4j
 public class ApiMonitorService {
-    public static ConcurrentHashMap<String, Device> deviceRequestTimeMap = new ConcurrentHashMap<>();
-    public static ConcurrentHashMap<String, Long> deviceLastDataTimeMapWIFI = new ConcurrentHashMap<>();
-//    public static ConcurrentHashMap<String, Device> deviceLastDataTimeMap = new ConcurrentHashMap<>();
+    public static ConcurrentHashMap<String, Device> gateWay = new ConcurrentHashMap<>();
     private final DeviceService deviceService;
     private final MqttProducer mqttProducer;
 
@@ -42,23 +40,27 @@ public class ApiMonitorService {
     }
 
     private void mapInit() {
+        //1.zigbee网关设备
         List<Device> devicesList = deviceService.getGateway();
         for (Device device : devicesList) {
-            device.setDeviceLastDate(new Date());
-            device.setStatus(0);
-            deviceRequestTimeMap.put(device.getDeviceCode(), device);
-            deviceLastDataTimeMapWIFI.put(device.getDeviceCode(), Instant.now().toEpochMilli());
+            gateWay.put(device.getDeviceCode(), device);
+            deviceStatusMap.put(device.getDeviceCode(), Instant.now().toEpochMilli());
         }
+        //2.mqtt设备
         List<Device> mqttDevicesList = deviceService.listMqttDevices();
         for (Device device : mqttDevicesList) {
-//            device.setStatus(0);
-            deviceLastDataTimeMapWIFI.put(device.getDeviceCode(), Instant.now().toEpochMilli());
+            deviceStatusMap.put(device.getDeviceCode(), Instant.now().toEpochMilli());
+        }
+        //3.zigbee设备
+        List<Device> zigbeeDevicesList = deviceService.listZigbeeDevices();
+        for (Device device : zigbeeDevicesList) {
+            deviceStatusMap.put(device.getDeviceCode(), Instant.now().toEpochMilli());
         }
     }
 
     @Scheduled(fixedRate = 45000)
     public void offLine() {
-        for (Map.Entry<String, Device> stringWashDeviceEntry : deviceRequestTimeMap.entrySet()) {
+        for (Map.Entry<String, Device> stringWashDeviceEntry : gateWay.entrySet()) {
             //定时去发manage
             HashMap<String, Object> backup = new HashMap<>();
             backup.put("sequence", (int) System.currentTimeMillis());
@@ -72,19 +74,4 @@ public class ApiMonitorService {
             }
         }
     }
-
-//    @Scheduled(fixedRate = 45000)
-//    public void demo() {
-//        //统一发STATE
-//        for (Map.Entry<String, Device> stringWashDeviceEntry : deviceLastDataTimeMap.entrySet()) {
-//            try {
-//                stringWashDeviceEntry.getValue().setDeviceLastDate(new Date());
-//                String topic = "cmnd/" + stringWashDeviceEntry.getValue().getDeviceCode() + "/STATUS";
-//                mqttProducer.send(topic, 0, false, "8");
-//                deviceLastDataTimeMap.put(stringWashDeviceEntry.getValue().getDeviceCode(), stringWashDeviceEntry.getValue());
-//            } catch (MqttException e) {
-//                log.error("发失败啦 ~~~~~~~", e);
-//            }
-//        }
-//    }
 }
