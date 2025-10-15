@@ -228,7 +228,6 @@ public class SubUpdateHandler implements MsgHandler {
                 }
                 allSwitchStates.put("count", Math.max(outletNum, count));
             }
-            if (device != null) {
                 //场景
                 List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(device.getDeviceCode());
                 for (Scene scene : scenesByDeviceId) {
@@ -261,7 +260,7 @@ public class SubUpdateHandler implements MsgHandler {
                 );
 //                log.info("开关状态{}", influxSwitch);
                 redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
-            }
+
         }
     }
 
