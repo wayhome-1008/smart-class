@@ -27,7 +27,7 @@ public class BatchUpdate {
     private final DeviceService deviceService;
 
     // 定时任务：从Redis读取设备状态并更新到数据库
-    @Scheduled(fixedDelay = 120000) // 每50秒执行一次
+    @Scheduled(fixedDelay = 120000, initialDelay = 120000)  // 延迟2分钟执行首次
     @Transactional
     public void batchUpdateToDatabase() {
         // 获取所有的设备
