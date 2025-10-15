@@ -74,9 +74,8 @@ public class SubUpdateHandler implements MsgHandler {
             if (ObjectUtils.isEmpty(device)) {
                 device = deviceService.getByCode(originalMac);
             }
-//            device.setStatus(1);
             if (ObjectUtil.isNotEmpty(device)) {
-                deviceStatusManager.updateDeviceOnlineStatus(originalMac);
+                deviceStatusManager.updateDeviceOnlineStatus(device.getDeviceCode());
                 //先校验是否是串口的
                 //串口透传设备
                 if (device.getCommunicationModeItemId() == 5) {
@@ -178,7 +177,6 @@ public class SubUpdateHandler implements MsgHandler {
                 }
             }
             device.setDeviceInfo(mergeJson);
-            device.setStatus(1);
             redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
             InfluxSwitch influxSwitch = new InfluxSwitch();
             influxSwitch.setDeviceCode(device.getDeviceCode());
@@ -206,6 +204,7 @@ public class SubUpdateHandler implements MsgHandler {
             //获取params
             JsonNode params = jsonNode.get("params");
             JsonNode switchesArray = params.get("switches");
+            log.info("========================================================设备{},数据{}", device.getDeviceCode(),params);
             // 1. 准备存储所有开关状态的对象
             ObjectNode allSwitchStates = JsonNodeFactory.instance.objectNode();
             // 2. 遍历switches数组
@@ -248,7 +247,6 @@ public class SubUpdateHandler implements MsgHandler {
                     }
                 }
                 device.setDeviceInfo(mergeJson);
-                device.setStatus(1);
                 //todo 将开关状态存influxdb
                 RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
                 InfluxSwitch influxSwitch = new InfluxSwitch();
@@ -438,7 +436,6 @@ public class SubUpdateHandler implements MsgHandler {
                 );
             }
         }
-        device.setStatus(1);
         redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
     }
 
@@ -494,7 +491,6 @@ public class SubUpdateHandler implements MsgHandler {
                 point
         );
         log.info("人体传感器数据:{}", point);
-        device.setStatus(1);
         redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
         RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
     }
@@ -580,7 +576,6 @@ public class SubUpdateHandler implements MsgHandler {
                     WritePrecision.MS,
                     point
             );
-            device.setStatus(1);
             redisTemplate.opsForHash().put(
                     RedisConstants.Device.DEVICE,
                     device.getDeviceCode(),

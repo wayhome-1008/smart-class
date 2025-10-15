@@ -75,25 +75,6 @@ public class SensorHandler implements MsgHandler {
 
     private void handlerPlug(String jsonMsg, Device device, MqttClient mqttClient) throws JsonProcessingException {
         JsonNode jsonNode = stringToJsonNode(jsonMsg);
-//        log.info("MQTT传感器{}", jsonNode);
-            /*
-       {
-  "Time" : "2025-07-21T10:18:16",
-  "ENERGY" : {
-    "TotalStartTime" : "2025-06-18T11:16:04",
-    "Total" : 1.95,
-    "Yesterday" : 0.079,
-    "Today" : 0.004,
-    "Period" : 2,
-    "Power" : 20,
-    "ApparentPower" : 33,
-    "ReactivePower" : 26,
-    "Factor" : 0.61,
-    "Voltage" : 225,
-    "Current" : 0.147
-  }
-}
-             */
         //只获取需要的数据merge
         ObjectNode metrics = JsonNodeFactory.instance.objectNode();
         //接受得数据与旧数据合并)
@@ -114,7 +95,6 @@ public class SensorHandler implements MsgHandler {
                 alertRuleEngine.constructAlertEvent(device, alertRule, metrics);
             }
         }
-        device.setStatus(1);
         //创建influx数据
         InfluxMqttPlug influxPlug = new InfluxMqttPlug();
         influxPlug.setCategoryId(device.getCategoryId().toString());
@@ -139,7 +119,6 @@ public class SensorHandler implements MsgHandler {
                     influxPlug
             );
         }
-//        log.info("MQTT计量插座{}", influxPlug);
         redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
 
     }
@@ -157,7 +136,6 @@ public class SensorHandler implements MsgHandler {
             // 1. 处理设备信息更新
             JsonNode jsonNode = stringToJsonNode(jsonMsg);
             ObjectNode metrics = extractSensorData(jsonNode);
-//            log.info("MQTT三合一传感器{}", metrics);
             device.setDeviceInfo(metrics);
             //场景
             List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(device.getDeviceCode());
@@ -180,7 +158,6 @@ public class SensorHandler implements MsgHandler {
             point.setDeviceCode(device.getDeviceCode());
             point.setRoomId(device.getDeviceRoom().toString());
             JsonNode deviceInfo = device.getDeviceInfo();
-            device.setStatus(1);
             // 更新缓存
             redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
             // 处理温湿度数据

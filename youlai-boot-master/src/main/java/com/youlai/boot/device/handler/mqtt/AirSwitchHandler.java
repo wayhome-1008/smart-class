@@ -132,7 +132,6 @@ public class AirSwitchHandler implements MsgHandler {
                         influxPlug
                 );
             }
-            device.setStatus(1);
             // 更新设备信息到缓存
             redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
         }
@@ -143,11 +142,11 @@ public class AirSwitchHandler implements MsgHandler {
         return HandlerType.status;
     }
 
-    /**
-     * 定时清理过期的设备时间记录（每10分钟执行一次）
-     */
-    @Scheduled(fixedRate = 10 * 60 * 1000) // 10分钟
-    public void cleanExpiredDeviceRecords() {
-        deviceStatusManager.cleanExpiredDeviceRecords();
-    }
+//    /**
+//     * 定时清理过期的设备时间记录（每10分钟执行一次）
+//     */
+//    @Scheduled(fixedRate = 10 * 60 * 1000) // 10分钟
+//    public void cleanExpiredDeviceRecords() {
+//        deviceStatusManager.cleanExpiredDeviceRecords();
+//    }
 }

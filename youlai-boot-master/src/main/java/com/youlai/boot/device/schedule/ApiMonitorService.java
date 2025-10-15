@@ -11,13 +11,10 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import static com.youlai.boot.device.handler.status.DeviceStatusManager.deviceStatusMap;
 
 
 /**
@@ -44,17 +41,6 @@ public class ApiMonitorService {
         List<Device> devicesList = deviceService.getGateway();
         for (Device device : devicesList) {
             gateWay.put(device.getDeviceCode(), device);
-            deviceStatusMap.put(device.getDeviceCode(), Instant.now().toEpochMilli());
-        }
-        //2.mqtt设备
-        List<Device> mqttDevicesList = deviceService.listMqttDevices();
-        for (Device device : mqttDevicesList) {
-            deviceStatusMap.put(device.getDeviceCode(), Instant.now().toEpochMilli());
-        }
-        //3.zigbee设备
-        List<Device> zigbeeDevicesList = deviceService.listZigbeeDevices();
-        for (Device device : zigbeeDevicesList) {
-            deviceStatusMap.put(device.getDeviceCode(), Instant.now().toEpochMilli());
         }
     }
 

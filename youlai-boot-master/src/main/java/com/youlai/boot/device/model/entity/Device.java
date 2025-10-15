@@ -8,7 +8,9 @@ import com.youlai.boot.common.base.BaseEntity;
 import com.youlai.boot.config.handler.JsonTypeHandler;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
+import java.time.Instant;
 import java.util.Date;
 
 /**
@@ -20,6 +22,7 @@ import java.util.Date;
 @Getter
 @Setter
 @TableName(value = "device", autoResultMap = true)// autoResultMap 启用自动结果映射
+@ToString
 public class Device extends BaseEntity {
 
     /**
@@ -102,4 +105,6 @@ public class Device extends BaseEntity {
 
     @TableField(exist = false)
     private Date deviceLastDate;
+
+    private Long lastOnlineTime;
 }

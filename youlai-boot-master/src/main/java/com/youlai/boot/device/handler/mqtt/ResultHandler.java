@@ -129,7 +129,6 @@ public class ResultHandler implements MsgHandler {
             }
         }
         device.setDeviceInfo(mergedInfo);
-        device.setStatus(1);
         redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
     }
 
@@ -192,7 +191,6 @@ public class ResultHandler implements MsgHandler {
             JsonNode mergedInfo = mergeJson(device.getDeviceInfo(), metrics);
             device.setDeviceInfo(mergedInfo);
             // 双写：Redis缓存 + 数据库
-            device.setStatus(1);
             redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
             log.info("设备 {} 灯光状态更新完成", deviceCode);
         }

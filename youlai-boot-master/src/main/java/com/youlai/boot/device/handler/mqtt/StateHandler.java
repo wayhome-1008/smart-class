@@ -64,30 +64,6 @@ public class StateHandler implements MsgHandler {
                 String power = jsonNode.get("POWER").asText();
                 ObjectNode metrics = JsonNodeFactory.instance.objectNode();
                 //接受得数据与旧数据合并)
-                /*
-           {
-    "Time": "2025-08-25T05:17:48",
-    "Uptime": "0T02:45:10",
-    "UptimeSec": 9910,
-    "Heap": 26,
-    "SleepMode": "Dynamic",
-    "Sleep": 50,
-    "LoadAvg": 19,
-    "MqttCount": 1,
-    "POWER": "ON",
-    "Wifi": {
-        "AP": 1,
-        "SSId": "SmartHome",
-        "BSSId": "0E:9B:4B:9D:29:81",
-        "Channel": 11,
-        "Mode": "11n",
-        "RSSI": 100,
-        "Signal": -47,
-        "LinkCount": 1,
-        "Downtime": "0T00:00:04"
-    }
-}
-                 **/
                 metrics.put("count", 1);
                 metrics.put("switch1", power);
                 JsonNode mergeJson = mergeJson(Optional.of(device).map(Device::getDeviceInfo).orElse(null), metrics);
@@ -126,7 +102,6 @@ public class StateHandler implements MsgHandler {
                 JsonNode mergedInfo = mergeJson(device.getDeviceInfo(), metrics);
                 device.setDeviceInfo(mergedInfo);
                 Device deviceCache = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
-                device.setStatus(1);
                 if (deviceCache != null) {
                     redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
                 }

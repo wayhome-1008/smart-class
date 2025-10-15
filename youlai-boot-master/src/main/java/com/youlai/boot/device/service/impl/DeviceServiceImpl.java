@@ -78,12 +78,6 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
         redisTemplate.delete(RedisConstants.Device.DEVICE);
         List<Device> list = this.list();
         if (list != null) {
-            //强制把mqtt设备初始为离线
-//            list.forEach(device -> {
-//                if (device.getCommunicationModeItemId() == 2) {
-//                    device.setStatus(0);
-//                }
-//            });
             Map<String, Device> map = list.stream().collect(Collectors.toMap(Device::getDeviceCode, device -> device));
             redisTemplate.opsForHash().putAll(RedisConstants.Device.DEVICE, map);
         }
@@ -393,7 +387,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
 
     @Override
     public List<Device> listMqttDevices() {
-        return deviceMapper.selectList(new LambdaQueryWrapper<Device>().eq(Device::getCommunicationModeItemId, 4));
+        return deviceMapper.selectList(new LambdaQueryWrapper<Device>().eq(Device::getCommunicationModeItemId, 2));
     }
 
     @Override
