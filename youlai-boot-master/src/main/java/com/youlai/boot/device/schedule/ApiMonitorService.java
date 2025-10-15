@@ -44,7 +44,7 @@ public class ApiMonitorService {
         }
     }
 
-    @Scheduled(fixedRate = 45000)
+    @Scheduled(fixedRate = 300000, initialDelay = 120000)
     public void offLine() {
         for (Map.Entry<String, Device> stringWashDeviceEntry : gateWay.entrySet()) {
             //定时去发manage
