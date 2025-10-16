@@ -121,6 +121,10 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
                 form.setCategoryName(category.getCategoryName());
             }
         }
+        Device cache = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, form.getDeviceCode());
+        if (ObjectUtils.isNotEmpty(cache)) {
+            form.setStatus(cache.getStatus());
+        }
         return form;
     }
 

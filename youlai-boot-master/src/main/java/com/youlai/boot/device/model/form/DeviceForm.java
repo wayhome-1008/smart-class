@@ -6,6 +6,7 @@ import com.youlai.boot.config.handler.JsonTypeHandler;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -19,6 +20,7 @@ import java.io.Serializable;
 @Getter
 @Setter
 @Schema(description = "设备管理表单对象")
+@ToString
 public class DeviceForm implements Serializable {
 
     @Serial
