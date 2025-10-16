@@ -458,6 +458,24 @@ public class SceneServiceImpl extends ServiceImpl<SceneMapper, Scene> implements
             }
             // 再插入新的
             saveOrUpdate(formData, entity);
+            // 重新加载完整场景数据并注册到LiteFlow
+            Scene updatedScene = this.getById(entity.getId());
+            if (updatedScene != null) {
+                // 加载关联的触发器
+                List<Trigger> triggers = triggerMapper.selectList(
+                        new LambdaQueryWrapper<Trigger>().eq(Trigger::getSceneId, updatedScene.getId())
+                );
+                updatedScene.setTriggers(triggers);
+
+                // 加载关联的动作
+                List<Action> actions = actionMapper.selectList(
+                        new LambdaQueryWrapper<Action>().eq(Action::getSceneId, updatedScene.getId())
+                );
+                updatedScene.setActions(actions);
+
+                // 重新注册到LiteFlow
+                flowBuilder.registerFlow(updatedScene);
+            }
             // 同步到Redis
             syncSceneToRedis(entity);
         }
