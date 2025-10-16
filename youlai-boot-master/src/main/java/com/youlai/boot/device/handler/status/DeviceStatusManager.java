@@ -139,9 +139,9 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class DeviceStatusManager {
     // 设备超时时间（毫秒）- 1分钟
-    private static final long DEVICE_TIMEOUT = 5 * 60 * 1000;
+    private static final long DEVICE_TIMEOUT = 10 * 60 * 1000;
     // 人体传感的超时时间多一些
-    private static final long BODY_SENSOR_TIMEOUT = 10 * 60 * 1000;
+    private static final long BODY_SENSOR_TIMEOUT = 30 * 60 * 1000;
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final DeviceService deviceService;
@@ -165,6 +165,11 @@ public class DeviceStatusManager {
     private void updateDeviceLastDataTime(String deviceCode) {
         Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
         if (ObjectUtils.isNotEmpty(device)) {
+            log.info("设备{},进入状态校验,当前状态是{}", device.getDeviceName(), device.getStatus());
+            //状态为禁用则跳出方法
+            if (device.getStatus() == 3) {
+                return;
+            }
             device.setLastOnlineTime(Instant.now().toEpochMilli());
             // 将设备最后在线时间存储到Redis中
             redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
@@ -188,6 +193,9 @@ public class DeviceStatusManager {
             if (ObjectUtils.isEmpty(device.getStatus())) {
                 continue;
             }
+            if (device.getStatus() == 3) {
+                continue;
+            }
 
             // 从Redis中获取设备最后在线时间
             Long lastDataTime = device.getLastOnlineTime();
@@ -202,10 +210,9 @@ public class DeviceStatusManager {
             device.setLastOnlineTime(lastDataTime);
 
             long timeout = DEVICE_TIMEOUT;
-            if (device.getDeviceTypeId() == 6) {
+            if (device.getDeviceTypeId() == 6 || device.getDeviceTypeId() == 5) {
                 timeout = BODY_SENSOR_TIMEOUT;
             }
-
             if (timeDiff > timeout) {
                 if (device.getStatus() != 0) {
                     device.setStatus(0);
