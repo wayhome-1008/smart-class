@@ -74,6 +74,10 @@ public class SubUpdateHandler implements MsgHandler {
             if (ObjectUtils.isEmpty(device)) {
                 device = deviceService.getByCode(originalMac);
             }
+            //禁用设备不进逻辑
+            if (device.getStatus()==3){
+                return;
+            }
             if (ObjectUtil.isNotEmpty(device)) {
                 //先校验是否是串口的
                 //串口透传设备

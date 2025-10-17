@@ -61,6 +61,10 @@ public class SensorHandler implements MsgHandler {
         if (device == null) {
             device = deviceService.getByCode(deviceCode);
         }
+        //禁用设备不进逻辑
+        if (device.getStatus()==3){
+            return;
+        }
 //        deviceStatusManager.updateDeviceOnlineStatus(deviceCode);
         //计量插座
         if (device.getDeviceTypeId() == 4) {

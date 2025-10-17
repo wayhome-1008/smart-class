@@ -57,7 +57,10 @@ public class AirSwitchPowerHandler implements MsgHandler {
             // 2. 获取设备信息（缓存优先）
             Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
             if (ObjectUtils.isNotEmpty(device)) {
-
+                //禁用设备不进逻辑
+                if (device.getStatus()==3){
+                    return;
+                }
                 JsonNode deviceInfo = device.getDeviceInfo();
                 if (ObjectUtils.isNotEmpty(deviceInfo)) {
                     ObjectNode metrics = JsonNodeFactory.instance.objectNode();

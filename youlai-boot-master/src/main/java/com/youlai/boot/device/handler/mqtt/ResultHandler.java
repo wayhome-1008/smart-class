@@ -63,6 +63,10 @@ public class ResultHandler implements MsgHandler {
             if (ObjectUtils.isEmpty(device)) {
                 device = deviceService.getByCode(deviceCode);
             }
+            //禁用设备不进逻辑
+            if (device.getStatus()==3){
+                return;
+            }
             // 更新设备在线状态
 //            deviceStatusManager.updateDeviceOnlineStatus(deviceCode);
             //计量插座
