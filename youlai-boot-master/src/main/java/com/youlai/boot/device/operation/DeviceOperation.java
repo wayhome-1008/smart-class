@@ -169,14 +169,14 @@ public class DeviceOperation {
     public Result<Void> operate(Long deviceId, DeviceOperate operation, MqttProducer mqttProducer) {
         if (operation == null || deviceId == null) {
             log.warn("[接口执行]operateForSchedule 参数非法: operation={}, deviceId={}", operation, deviceId);
-            return Result.failed();
+            return Result.failed("参数非法");
         }
 
         // 根据设备ID获取设备信息
         Device device = deviceService.getById(deviceId);
         if (ObjectUtils.isEmpty(device)) {
             log.warn("[接口执行]设备未找到: deviceId={}", deviceId);
-            return Result.failed();
+            return Result.failed("设备未找到");
         }
 
         String deviceCode = device.getDeviceCode();
@@ -184,37 +184,37 @@ public class DeviceOperation {
         JsonNode deviceInfo = deviceCache.getDeviceInfo();
         if (ObjectUtils.isEmpty(deviceInfo)) {
             log.warn("[接口执行]设备信息为空: deviceCode={}", deviceCode);
-            return Result.failed();
+            return Result.failed("设备信息为空");
         }
         String way = operation.getWay();
         if (StringUtils.isEmpty(way)) {
             log.warn("[接口执行]操作路数为空: deviceCode={}", deviceCode);
-            return Result.failed();
+            return Result.failed("操作路数为空");
         }
 
         if (!way.equals("-1")) {
             JsonNode wayNode = deviceInfo.get("switch" + way);
             if (wayNode == null) {
                 log.warn("[接口执行]设备路数信息不存在: deviceCode={}, way={}", deviceCode, way);
-                return Result.failed();
+                return Result.failed("设备路数信息不存在");
             }
 
             String wayStatus = wayNode.asText();
             String operate = operation.getOperate();
             if (StringUtils.isEmpty(operate)) {
                 log.warn("[接口执行]操作指令为空: deviceCode={}", deviceCode);
-                return Result.failed();
+                return Result.failed("操作指令为空");
             }
 
             if (Objects.equals(wayStatus, operate)) {
                 log.info("[接口执行]设备状态一致，无需操作: deviceCode={}, way={}, status={}", deviceCode, way, operate);
-                return Result.failed();
+                return Result.failed("设备状态一致，无需操作");
             }
         }
 
         if (isUnSupportedDeviceType(device.getDeviceTypeId())) {
             log.warn("[接口执行]不支持的设备类型: deviceTypeId={}", device.getDeviceTypeId());
-            return Result.failed();
+            return Result.failed("不支持的设备类型");
         }
 
         if (device.getIsLock() == 1) return Result.failed("设备被锁定");
