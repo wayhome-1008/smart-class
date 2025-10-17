@@ -60,8 +60,6 @@ public class AirSwitchHandler implements MsgHandler {
         Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
         boolean isSwitch = false;
         if (ObjectUtils.isNotEmpty(device)) {
-            // 更新设备在线状态
-            deviceStatusManager.updateDeviceOnlineStatus(deviceCode);
             ObjectNode metrics = JsonNodeFactory.instance.objectNode();
             int voltageA = jsonNode.get("voltageA").asInt();
             int current = jsonNode.get("current").asInt();
@@ -132,7 +130,9 @@ public class AirSwitchHandler implements MsgHandler {
                 );
             }
             // 更新设备信息到缓存
-            redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
+//            redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
+            // 更新设备在线状态
+            deviceStatusManager.updateDeviceOnlineStatus(deviceCode, device);
         }
     }
 

@@ -64,7 +64,7 @@ public class ResultHandler implements MsgHandler {
                 device = deviceService.getByCode(deviceCode);
             }
             // 更新设备在线状态
-            deviceStatusManager.updateDeviceOnlineStatus(deviceCode);
+//            deviceStatusManager.updateDeviceOnlineStatus(deviceCode);
             //计量插座
             if (device.getDeviceTypeId() == 4) {
                 plug(jsonNode, device, deviceCode, mqttClient);
@@ -129,7 +129,8 @@ public class ResultHandler implements MsgHandler {
             }
         }
         device.setDeviceInfo(mergedInfo);
-        redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
+//        redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);\
+        deviceStatusManager.updateDeviceOnlineStatus(device.getDeviceCode(), device);
     }
 
     private void light(JsonNode jsonNode, Device device, String deviceCode, MqttClient mqttClient) {

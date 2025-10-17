@@ -208,7 +208,7 @@ public class WriteInfluxData {
 
 
     /**
-     * 填充空白期数据（按小时填充）
+     * 填充空白期数据（按整点和半点填充）
      *
      * @param device      设备信息
      * @param validData   有效数据点
@@ -221,49 +221,52 @@ public class WriteInfluxData {
         // 获取当前时间，用于避免写入未来数据
         Instant now = Instant.now();
 
-        Instant currentDay = gapPeriod.getStart();
-        while (!currentDay.isAfter(gapPeriod.getEnd())) {
-            // 跳过未来日期的数据写入
-            if (currentDay.isAfter(now)) {
-                log.info("设备 {} 跳过未来日期 {} 的数据填充", device.getDeviceCode(), currentDay);
+        // 从空白期开始时间到结束时间，按小时遍历
+        Instant currentTime = gapPeriod.getStart();
+        while (!currentTime.isAfter(gapPeriod.getEnd())) {
+            // 跳过未来时间点的数据写入
+            if (currentTime.isAfter(now)) {
+                log.info("设备 {} 跳过未来时间点 {} 的数据填充", device.getDeviceCode(), currentTime);
                 break;
             }
 
-            // 为每一天填充24小时的数据
-            int filledCount = 0;
-            for (int hour = 0; hour < 24; hour++) {
-                // 计算每个小时的时间点
-                Instant hourTime = currentDay.plusSeconds(hour * 3600L); // 每小时3600秒
+            // 填充整点数据
+            InfluxMqttPlug fillDataHour = createFillData(validData, currentTime, device);
+            Point pointHour = Point.measurement("device")
+                    .addTag("deviceCode", fillDataHour.getDeviceCode())
+                    .addTag("roomId", fillDataHour.getRoomId())
+                    .addTag("deviceType", fillDataHour.getDeviceType())
+                    .addTag("categoryId", fillDataHour.getCategoryId())
+                    .addField("Total", fillDataHour.getTotal())
+                    .time(currentTime, WritePrecision.MS);
+//        writeApi.writePoint(BUCKET, ORG, pointHour);
+            totalFilledCount++;
+            log.info("填充设备{}编号{}整点数据{}", device.getDeviceName(), device.getDeviceCode(), fillDataHour);
 
-                // 跳过未来时间点的数据写入
-                if (hourTime.isAfter(now)) {
-                    log.debug("设备 {} 跳过未来时间点 {} 的数据填充", device.getDeviceCode(), hourTime);
-                    break;
-                }
-
-                // 创建填充数据
-                InfluxMqttPlug fillData = createFillData(validData, hourTime, device);
-
-                // 转换为Point并写入InfluxDB
-                Point point = Point.measurement("device")
-                        .addTag("deviceCode", fillData.getDeviceCode())
-                        .addTag("roomId", fillData.getRoomId())
-                        .addTag("deviceType", fillData.getDeviceType())
-                        .addTag("categoryId", fillData.getCategoryId())
-                        .addField("Total", fillData.getTotal())
-                        .time(hourTime, WritePrecision.MS);
-
-                writeApi.writePoint(BUCKET, ORG, point);
-                filledCount++;
+            // 填充半点数据（当前时间+30分钟）
+            Instant halfHourTime = currentTime.plusSeconds(30 * 60L);
+            if (!halfHourTime.isAfter(gapPeriod.getEnd()) && !halfHourTime.isAfter(now)) {
+                InfluxMqttPlug fillDataHalfHour = createFillData(validData, halfHourTime, device);
+                Point pointHalfHour = Point.measurement("device")
+                        .addTag("deviceCode", fillDataHalfHour.getDeviceCode())
+                        .addTag("roomId", fillDataHalfHour.getRoomId())
+                        .addTag("deviceType", fillDataHalfHour.getDeviceType())
+                        .addTag("categoryId", fillDataHalfHour.getCategoryId())
+                        .addField("Total", fillDataHalfHour.getTotal())
+                        .time(halfHourTime, WritePrecision.MS);
+            writeApi.writePoint(BUCKET, ORG, pointHalfHour);
                 totalFilledCount++;
+                log.info("填充设备{}编号{}半点数据{}", device.getDeviceName(), device.getDeviceCode(), fillDataHalfHour);
             }
-            log.info("设备 {} 填充空白日期 {} 的 {} 条小时数据并且值为{}", device.getDeviceCode(), currentDay, filledCount, validData.getTotal());
-            currentDay = currentDay.plusSeconds(24 * 3600L); // 移动到下一天
+
+            // 移动到下一个整点（+1小时）
+            currentTime = currentTime.plusSeconds(60 * 60L);
         }
 
         log.info("设备 {} 总共填充了 {} 条空白数据", device.getDeviceCode(), totalFilledCount);
         writeApi.close();
     }
+
 
 
     /**

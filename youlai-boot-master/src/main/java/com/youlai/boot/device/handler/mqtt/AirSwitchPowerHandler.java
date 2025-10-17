@@ -57,7 +57,7 @@ public class AirSwitchPowerHandler implements MsgHandler {
             // 2. 获取设备信息（缓存优先）
             Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
             if (ObjectUtils.isNotEmpty(device)) {
-                deviceStatusManager.updateDeviceOnlineStatus(deviceCode);
+
                 JsonNode deviceInfo = device.getDeviceInfo();
                 if (ObjectUtils.isNotEmpty(deviceInfo)) {
                     ObjectNode metrics = JsonNodeFactory.instance.objectNode();
@@ -110,7 +110,8 @@ public class AirSwitchPowerHandler implements MsgHandler {
                     }
                 }
                 // 更新设备信息到缓存
-                redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
+//                redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
+                deviceStatusManager.updateDeviceOnlineStatus(deviceCode, device);
             }
         }
     }

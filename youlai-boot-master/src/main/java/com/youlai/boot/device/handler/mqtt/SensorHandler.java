@@ -61,7 +61,7 @@ public class SensorHandler implements MsgHandler {
         if (device == null) {
             device = deviceService.getByCode(deviceCode);
         }
-        deviceStatusManager.updateDeviceOnlineStatus(deviceCode);
+//        deviceStatusManager.updateDeviceOnlineStatus(deviceCode);
         //计量插座
         if (device.getDeviceTypeId() == 4) {
             handlerPlug(jsonMsg, device, mqttClient);
@@ -119,7 +119,8 @@ public class SensorHandler implements MsgHandler {
                     influxPlug
             );
         }
-        redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
+//        redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
+        deviceStatusManager.updateDeviceOnlineStatus(device.getDeviceCode(), device);
 
     }
 
@@ -181,6 +182,7 @@ public class SensorHandler implements MsgHandler {
                     WritePrecision.MS,
                     point
             );
+            deviceStatusManager.updateDeviceOnlineStatus(device.getDeviceCode(), device);
         } catch (Exception e) {
             log.error("处理三合一传感器数据失败: {}", e.getMessage(), e);
             throw new RuntimeException("三合一传感器处理异常", e);

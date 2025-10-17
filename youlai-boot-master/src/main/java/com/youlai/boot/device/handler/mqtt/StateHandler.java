@@ -44,7 +44,7 @@ public class StateHandler implements MsgHandler {
         if (device == null) {
             device = deviceService.getByCode(deviceCode);
         }
-        deviceStatusManager.updateDeviceOnlineStatus(deviceCode);
+//        deviceStatusManager.updateDeviceOnlineStatus(deviceCode);
         //计量插座
         if (device.getDeviceTypeId() == 4) {
             handlerPlug(topic, jsonMsg);
@@ -69,7 +69,8 @@ public class StateHandler implements MsgHandler {
                 JsonNode mergeJson = mergeJson(Optional.of(device).map(Device::getDeviceInfo).orElse(null), metrics);
                 device.setDeviceInfo(mergeJson);
                 device.setStatus(1);
-                redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
+//                redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
+                deviceStatusManager.updateDeviceOnlineStatus(device.getDeviceCode(), device);
             }
         } catch (Exception e) {
             log.error("设备 {} 处理失败: {}", topic, e.getMessage(), e);
@@ -103,7 +104,8 @@ public class StateHandler implements MsgHandler {
                 device.setDeviceInfo(mergedInfo);
                 Device deviceCache = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
                 if (deviceCache != null) {
-                    redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
+//                    redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, deviceCode, device);
+                    deviceStatusManager.updateDeviceOnlineStatus(device.getDeviceCode(), device);
                 }
 //                log.info("设备 {} 灯光状态更新完成", deviceCode);
             }

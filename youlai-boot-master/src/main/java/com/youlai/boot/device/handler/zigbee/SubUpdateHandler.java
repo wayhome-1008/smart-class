@@ -75,7 +75,6 @@ public class SubUpdateHandler implements MsgHandler {
                 device = deviceService.getByCode(originalMac);
             }
             if (ObjectUtil.isNotEmpty(device)) {
-                deviceStatusManager.updateDeviceOnlineStatus(device.getDeviceCode());
                 //先校验是否是串口的
                 //串口透传设备
                 if (device.getCommunicationModeItemId() == 5) {
@@ -133,6 +132,7 @@ public class SubUpdateHandler implements MsgHandler {
                 alertRuleEngine.constructAlertEvent(device, alertRule, null);
             }
         }
+        deviceStatusManager.updateDeviceOnlineStatus(device.getDeviceCode(), device);
     }
 
     private void processSocket(String topic, MqttClient mqttClient, Device device, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
@@ -189,6 +189,7 @@ public class SubUpdateHandler implements MsgHandler {
                     influxSwitch
             );
             RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
+            deviceStatusManager.updateDeviceOnlineStatus(device.getDeviceCode(), device);
         }
 
     }
@@ -259,7 +260,8 @@ public class SubUpdateHandler implements MsgHandler {
                         influxSwitch
                 );
 //                log.info("开关状态{}", influxSwitch);
-                redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
+//                redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
+            deviceStatusManager.updateDeviceOnlineStatus(device.getDeviceCode(), device);
 
         }
     }
@@ -302,8 +304,9 @@ public class SubUpdateHandler implements MsgHandler {
             }
         }
         device.setDeviceInfo(mergeJson);
-        redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
+//        redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
         RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
+        deviceStatusManager.updateDeviceOnlineStatus(device.getDeviceCode(), device);
     }
 
     private void processPlug(String topic, MqttClient mqttClient, Device device, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
@@ -435,7 +438,8 @@ public class SubUpdateHandler implements MsgHandler {
                 );
             }
         }
-        redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
+//        redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
+        deviceStatusManager.updateDeviceOnlineStatus(device.getDeviceCode(), device);
     }
 
     private void processHumanRadarSensor(String topic, MqttClient mqttClient, Device device, String jsonMsg, int sequence) throws JsonProcessingException, MqttException {
@@ -490,7 +494,8 @@ public class SubUpdateHandler implements MsgHandler {
                 point
         );
         log.info("人体传感器数据:{}", point);
-        redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
+//        redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
+        deviceStatusManager.updateDeviceOnlineStatus(device.getDeviceCode(), device);
         RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
     }
 
@@ -575,11 +580,12 @@ public class SubUpdateHandler implements MsgHandler {
                     WritePrecision.MS,
                     point
             );
-            redisTemplate.opsForHash().put(
-                    RedisConstants.Device.DEVICE,
-                    device.getDeviceCode(),
-                    device
-            );
+//            redisTemplate.opsForHash().put(
+//                    RedisConstants.Device.DEVICE,
+//                    device.getDeviceCode(),
+//                    device
+//            );
+            deviceStatusManager.updateDeviceOnlineStatus(device.getDeviceCode(), device);
         }
     }
 

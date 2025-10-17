@@ -37,7 +37,8 @@ public class ManageStatusHandler implements MsgHandler {
         String deviceCode = extractFromTopic(topic);
         Device gateWay = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
         if (ObjectUtils.isNotEmpty(gateWay)) {
-            deviceStatusManager.updateDeviceOnlineStatus(gateWay.getDeviceCode());
+//            deviceStatusManager.updateDeviceOnlineStatus(gateWay.getDeviceCode());
+            deviceStatusManager.updateDeviceOnlineStatus(gateWay.getDeviceCode(), gateWay);
         }
 //        //从map获取
 //        Device device = deviceRequestTimeMap.get(deviceCode);
