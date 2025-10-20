@@ -292,7 +292,16 @@ public class ElectricityCalculationService {
             Instant endOfToday = today.atTime(23, 59, 59).atZone(ZoneId.systemDefault()).toInstant();
 
             // 查询本月1号0点到今天23:59:59的数据
-            InfluxQueryBuilder builder = InfluxQueryBuilder.newBuilder().bucket(influxDBProperties.getBucket()).measurement("device").fields("Total").tag("deviceCode", device.getDeviceCode()).tag("categoryId", device.getCategoryId().toString()).pivot().window("1d", "last").sort("_time", InfluxQueryBuilder.SORT_ASC).range(startOfMonth, endOfToday);
+            InfluxQueryBuilder builder = InfluxQueryBuilder
+                    .newBuilder()
+                    .bucket(influxDBProperties.getBucket())
+                    .measurement("device")
+                    .fields("Total")
+                    .tag("deviceCode", device.getDeviceCode())
+                    .tag("categoryId", device.getCategoryId().toString())
+                    .pivot().window("1d", "last")
+                    .sort("_time", InfluxQueryBuilder.SORT_ASC)
+                    .range(startOfMonth, endOfToday);
 
             if (StringUtils.isNotBlank(roomIds)) {
                 List<String> roomIdList = Arrays.stream(roomIds.split(",")).map(String::trim).filter(StringUtils::isNotBlank).toList();
@@ -835,22 +844,43 @@ public class ElectricityCalculationService {
 
                         // 检查是否已经处理过这个小时的数据点（仅针对当前设备）
                         if (deviceHourlyValues.containsKey(hour)) {
-                            log.info("设备{}跳过重复的时间点: {}", device.getDeviceCode(), hour);
-                            continue;
-                        }
+                            // 发现重复时间点，比较两个数据点的用电量，保留较大的值
+                            log.info("设备{}发现重复的时间点: {}", device.getDeviceCode(), hour);
 
-                        // 如果current.getTotal为空，说明该时间用电量数据是没有的，按0算
-                        if (current.getTotal() == null || previous.getTotal() == null) {
-                            log.info("设备{}在{}时段用电量数据为空，按0计算", device.getDeviceCode(), hour);
-                            // 累加0到对应小时的总值中
-                            deviceHourlyValues.put(hour, 0.0);
+                            // 如果current.getTotal为空，说明该时间用电量数据是没有的，按0算
+                            if (current.getTotal() == null || previous.getTotal() == null) {
+                                log.info("设备{}在{}时段新数据为空，保留原有数据", device.getDeviceCode(), hour);
+                            } else {
+                                // 计算新数据的用电量
+                                double newHourlyConsumption = Math.max(0, current.getTotal() - previous.getTotal());
+                                // 获取已存储的用电量
+                                Double existingConsumption = deviceHourlyValues.get(hour);
+
+                                log.info("设备{}在{}时段发现重复时间点，现有值:{}，新值:{}",
+                                        device.getDeviceCode(), hour, existingConsumption, newHourlyConsumption);
+
+                                // 比较并保留较大的用电量值
+                                if (newHourlyConsumption > (existingConsumption != null ? existingConsumption : 0.0)) {
+                                    log.info("设备{}在{}时段新数据较大，使用新值: {}", device.getDeviceCode(), hour, newHourlyConsumption);
+                                    deviceHourlyValues.put(hour, newHourlyConsumption);
+                                } else {
+                                    log.info("设备{}在{}时段现有数据较大或相等，保留现有值: {}", device.getDeviceCode(), hour, existingConsumption);
+                                }
+                            }
                         } else {
-                            // 计算该小时的用电量
-                            double hourlyConsumption = Math.max(0, current.getTotal() - previous.getTotal());
-                            log.info("设备{}在{}时段用电量: {} - {} = {}",
-                                    device.getDeviceCode(), hour, current.getTotal(), previous.getTotal(), hourlyConsumption);
-                            // 累加到当前设备的时间点中
-                            deviceHourlyValues.put(hour, hourlyConsumption);
+                            // 如果current.getTotal为空，说明该时间用电量数据是没有的，按0算
+                            if (current.getTotal() == null || previous.getTotal() == null) {
+                                log.info("设备{}在{}时段用电量数据为空，按0计算", device.getDeviceCode(), hour);
+                                // 累加0到对应小时的总值中
+                                deviceHourlyValues.put(hour, 0.0);
+                            } else {
+                                // 计算该小时的用电量
+                                double hourlyConsumption = Math.max(0, current.getTotal() - previous.getTotal());
+                                log.info("设备{}在{}时段用电量: {} - {} = {}",
+                                        device.getDeviceCode(), hour, current.getTotal(), previous.getTotal(), hourlyConsumption);
+                                // 累加到当前设备的时间点中
+                                deviceHourlyValues.put(hour, hourlyConsumption);
+                            }
                         }
                     }
 
@@ -878,6 +908,7 @@ public class ElectricityCalculationService {
         categoryData.setValue(values);
         return categoryData;
     }
+
 
 
 
