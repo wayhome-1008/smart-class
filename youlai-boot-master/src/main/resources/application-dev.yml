@@ -14,10 +14,10 @@ spring:
   data:
     redis:
       database: 0
-      host: localhost
+      host: 192.168.80.185
       port: 6379
       # 如果Redis 服务未设置密码，需要将password删掉或注释，而不是设置为空字符串
-      #      password: 123456
+      password: bjzjtc2024
       timeout: 10s
       lettuce:
         pool:
