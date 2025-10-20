@@ -65,7 +65,7 @@ public class SubUpdateHandler implements MsgHandler {
      * @author: way
      **/
     @Override
-    public void process(String topic, String jsonMsg, MqttClient mqttClient) {
+    public  synchronized void process(String topic, String jsonMsg, MqttClient mqttClient) {
         try {
             JSONObject deviceInfo = JSON.parseObject(jsonMsg);
             int sequence = deviceInfo.getIntValue("sequence");

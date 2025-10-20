@@ -1,6 +1,7 @@
 package com.youlai.boot.scene.model.form;
 
 import lombok.Data;
+import lombok.ToString;
 
 /**
  *@Author: way
@@ -8,6 +9,7 @@ import lombok.Data;
  *@Description: 阈值条件（属性 + 操作符 + 阈值）
  */
 @Data
+@ToString
 public class ThresholdCondition {
     private String property; // 设备属性（如：temperature）
     private String operator; // 操作符（=、!=、>、<、>=、<=）

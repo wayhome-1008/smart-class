@@ -141,7 +141,7 @@ public class DeviceTriggerComponent extends NodeComponent {
             String timeRange = (String) thresholdCondition.getValue();
             //改时间段或非该时间段在json的operator  =  !=
             String operator = thresholdCondition.getOperator();
-            boolean checkTimeRangeTrigger = DateUtils.checkTimeRangeTrigger(timeRange,operator);
+            boolean checkTimeRangeTrigger = DateUtils.checkTimeRangeTrigger(timeRange, operator);
             log.info("时间范围触发结果: {}", checkTimeRangeTrigger);
             return checkTimeRangeTrigger;
         } else {
@@ -175,46 +175,44 @@ public class DeviceTriggerComponent extends NodeComponent {
      * @param condition 条件
      * @return 是否满足条件
      */
-    private boolean checkConditionForDevice(Device device, ThresholdCondition condition, ObjectNode metrics) {
+    private boolean checkConditionForDevice(Device device, ThresholdCondition condition, ObjectNode sendMetrics) {
         try {
-            JsonNode deviceInfo = device.getDeviceInfo();
+            //设备上次存储json信息
+            JsonNode lastDeviceInfo = device.getDeviceInfo();
             //校验metrics是否和condition的条件相同 才进行下边逻辑
-            Iterator<String> fieldNames = metrics.fieldNames();
+            Iterator<String> fieldNames = sendMetrics.fieldNames();
             while (fieldNames.hasNext()) {
-                //校验当前属性值和上次这个属性值是否相同
-                String fieldName = fieldNames.next();
-                //当前设备属性和触发的属性相同
-                if (fieldName.equals(condition.getProperty())) {
+                //当前设备传入属性
+                String nowFieldName = fieldNames.next();
+                //触发器中需要校验的属性
+                String triggerPropertyName = condition.getProperty();
+                //当前设备传入属性名称需要和触发器的属性名称相同
+                if (nowFieldName.equals(triggerPropertyName)) {
                     //设备属性值
-                    JsonNode nowMetricNode = metrics.get(fieldName);
-                    //上次设备属性值
-                    JsonNode propertyValueNode = deviceInfo.get(condition.getProperty());
+                    JsonNode nowMetricNode = sendMetrics.get(nowFieldName);
+                    //设备上次存储json中获取触发器属性值
+                    JsonNode lastMetricNode = lastDeviceInfo.get(triggerPropertyName);
                     // 添加空值检查
-                    if (nowMetricNode == null || propertyValueNode == null) {
+                    if (nowMetricNode == null || lastMetricNode == null) {
                         // 根据业务需求处理空值情况，例如跳过或记录日志
-                        log.info("设备属性值为空，设备: {}, 属性: {}", device.getDeviceName(), condition.getProperty());
                         this.setIsEnd(true);
                         return false;
                     }
-
-                    String nowMetric = nowMetricNode.asText();
-                    String propertyValue = propertyValueNode.asText();
-
-                    if (nowMetric.equals(propertyValue)) {
+                    //触发器该属性上次值
+                    String lastTriggerMetricValue = lastMetricNode.asText();
+                    //触发器该属性本次传入值
+                    String nowTriggerMetricValue = nowMetricNode.asText();
+                    if (nowTriggerMetricValue.equals(lastTriggerMetricValue)) {
                         //说明这次的属性值和上次的属性值相同 不进行后续
-                        log.info("属性值相同,则场景不执行,原值为{},新值为{}", propertyValue, nowMetric);
                         this.setIsEnd(true);
                         return false;
+                    } else {
+                        boolean result = ThresholdComparator.compare(condition, nowTriggerMetricValue);
+                        log.info("原值为{},新值为{},判断条件{},结果{}", lastTriggerMetricValue, nowTriggerMetricValue, condition, result);
+                        return result;
                     }
-                    boolean result = ThresholdComparator.compare(condition, nowMetric);
-                    log.info("设备 {} 属性 {} 值为 {}，条件 {} {}，结果: {}",
-                            device.getDeviceName(), condition.getProperty(), propertyValue,
-                            condition.getOperator(), condition.getValue(), result);
-                    return !result;
                 }
-
             }
-
         } catch (Exception e) {
             log.error("检查设备 {} 条件时出错", device.getDeviceName(), e);
         }
