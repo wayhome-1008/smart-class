@@ -219,6 +219,11 @@ public class DeviceOperation {
 
         if (device.getIsLock() == 1) return Result.failed("设备被锁定");
 
+        //对count为=0 表示批量
+        if (operation.getCount() == 0) {
+            int count = deviceInfo.get("count").asInt();
+            operation.setCount(count);
+        }
         return switch (CommunicationModeEnum.getNameById(device.getCommunicationModeItemId())) {
             case "ZigBee" -> zigBeeDeviceOperate(deviceCode, device.getDeviceGatewayId(), operation, mqttProducer);
             case "WiFi" -> wifiDeviceOperate(deviceCode, operation, mqttProducer);

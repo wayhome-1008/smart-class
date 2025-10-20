@@ -136,16 +136,18 @@ public class DeviceOperateController {
     @Operation(summary = "多设备操作(用于设备批量操作)")
     @PostMapping(value = "/batch")
     @Log(value = "多设备操作", module = LogModuleEnum.OPERATION)
-    public Result<Void> operateSocket(@RequestBody @Validated DeviceOperateBatch ids) {
-        List<Long> idList = Arrays.stream(ids.getDeviceId().split(","))
+    public Result<Void> operateSocket(@RequestBody @Validated DeviceOperateBatch deviceOperate) {
+        List<Long> idList = Arrays.stream(deviceOperate.getDeviceId().split(","))
                 .map(Long::parseLong)
                 .toList();
         for (Long id : idList) {
-            DeviceOperate deviceOperate = new DeviceOperate();
-            deviceOperate.setOperate("OFF");
-            deviceOperate.setWay("-1");
-            deviceOperate.setCount(1);
-            deviceOperation.operate(id, deviceOperate, mqttProducer);
+//            DeviceOperate deviceOperate = new DeviceOperate();
+//            deviceOperate.setOperate("OFF");
+//            deviceOperate.setWay("-1");
+//            deviceOperate.setCount(1);
+//            deviceOperation.operate(id, deviceOperate, mqttProducer);
+            DeviceOperate convert = convert(deviceOperate);
+            deviceOperation.operate(id, convert, mqttProducer);
         }
 //        for (DeviceOperateBatch deviceOperateBatch : deviceOperate) {
 //            DeviceOperate convert = convert(deviceOperateBatch);
@@ -155,12 +157,12 @@ public class DeviceOperateController {
     }
 
 
-//    public DeviceOperate convert(DeviceOperateBatch deviceOperateBatch) {
-//        DeviceOperate deviceOperate = new DeviceOperate();
-//        deviceOperate.setOperate(deviceOperateBatch.getOperate());
-//        deviceOperate.setWay(deviceOperateBatch.getWay());
-//        deviceOperate.setCount(deviceOperateBatch.getCount());
-//        return deviceOperate;
-//    }
+    public DeviceOperate convert(DeviceOperateBatch deviceOperateBatch) {
+        DeviceOperate deviceOperate = new DeviceOperate();
+        deviceOperate.setOperate(deviceOperateBatch.getOperate());
+        deviceOperate.setWay(deviceOperateBatch.getWay());
+        deviceOperate.setCount(deviceOperateBatch.getCount());
+        return deviceOperate;
+    }
 
 }

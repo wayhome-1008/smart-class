@@ -1,5 +1,6 @@
 package com.youlai.boot.device.model.form;
 
+import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
 /**
@@ -10,8 +11,8 @@ import lombok.Data;
 @Data
 public class DeviceOperateBatch {
     private String deviceId;
-//    @Pattern(regexp = "ON|OFF", message = "错误操作")
-//    private String operate;
-//    private String way;
-//    private Integer count;
+    @Pattern(regexp = "ON|OFF", message = "错误操作")
+    private String operate;
+    private String way;
+    private Integer count;
 }
