@@ -1356,8 +1356,7 @@ public class DeviceDataController {
         List<List<Object>> dataRows = convertDepartmentRankData(list);
         // 标题样式
         WriteCellStyle headWriteCellStyle = DepartmentElectricitySheetWriteHandler.getHeadStyle();
-        //内容
-        // 内容的策略
+        //内容的策略
         WriteCellStyle contentWriteCellStyle = new WriteCellStyle();
         // 这里需要指定 FillPatternType 为FillPatternType.SOLID_FOREGROUND 不然无法显示背景颜色.头默认了 FillPatternType所以可以不指定
         contentWriteCellStyle.setFillPatternType(FillPatternType.SOLID_FOREGROUND);

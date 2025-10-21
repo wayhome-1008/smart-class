@@ -16,20 +16,13 @@ public class ThresholdComparator {
 
         // 统一转为字符串比较
         String thresholdStr = thresholdValue.toString();
-//        log.info("比较阈值 - 场景需触发属性: {}, 设备传入属性实际值: {}, 操作符: {}, 阈值: {}",
-//                property, actualStr, operator, thresholdStr);
-
         // 数值类型比较
         try {
             double actualNum = Double.parseDouble(actualStr);
             double thresholdNum = Double.parseDouble(thresholdStr);
-            //            log.info("数值比较结果 - 实际值: {}, 阈值: {}, 操作符: {}, 结果: {}",
-//                    actualNum, thresholdNum, operator, result);
             return compareNumber(operator, actualNum, thresholdNum);
         } catch (NumberFormatException e) {
             // 字符串类型比较
-            //            log.info("字符串比较结果 - 实际值: {}, 阈值: {}, 操作符: {}, 结果: {}",
-//                    actualStr, thresholdStr, operator, result);
             return compareString(operator, actualStr, thresholdStr);
         }
     }

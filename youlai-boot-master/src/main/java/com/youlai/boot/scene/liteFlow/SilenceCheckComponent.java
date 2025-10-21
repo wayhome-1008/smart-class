@@ -33,7 +33,6 @@ public class SilenceCheckComponent extends NodeComponent {
         long currentTime = System.currentTimeMillis();
         long lastTime = lastExecuteTime.getOrDefault(scene.getId(), 0L);
         boolean canExecute = currentTime - lastTime > silenceTime * 60 * 1000L;
-
         if (canExecute) {
             lastExecuteTime.put(scene.getId(), currentTime); // 更新最后执行时间
         } else {

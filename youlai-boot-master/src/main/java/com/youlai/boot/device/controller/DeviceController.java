@@ -195,7 +195,7 @@ public class DeviceController {
             categoryMap.putAll(categoryService.listByIds(categoryIds).stream()
                     .collect(Collectors.toMap(Category::getId, category -> category)));
         }
-        // 5. 查询房间信息
+        // 5. 查询房间的信息
         List<Long> finalRoomIds = filteredDevices.stream()
                 .map(Device::getDeviceRoom)
                 .filter(Objects::nonNull)
@@ -212,7 +212,7 @@ public class DeviceController {
             vo.setDeviceName(masterDevice.getDeviceName());
             vo.setDeviceId(masterDevice.getId());
             vo.setDeviceCode(masterDevice.getDeviceCode());
-            // 设置房间信息
+            // 设置房间的信息
             if (masterDevice.getDeviceRoom() != null) {
                 Room room = roomMap.get(masterDevice.getDeviceRoom());
                 if (room != null) {

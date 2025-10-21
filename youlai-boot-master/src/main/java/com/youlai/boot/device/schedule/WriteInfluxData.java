@@ -229,7 +229,6 @@ public class WriteInfluxData {
                 log.info("设备 {} 跳过未来时间点 {} 的数据填充", device.getDeviceCode(), currentTime);
                 break;
             }
-
             // 填充整点数据
             InfluxMqttPlug fillDataHour = createFillData(validData, currentTime, device);
             Point pointHour = Point.measurement("device")
@@ -254,7 +253,7 @@ public class WriteInfluxData {
                         .addTag("categoryId", fillDataHalfHour.getCategoryId())
                         .addField("Total", fillDataHalfHour.getTotal())
                         .time(halfHourTime, WritePrecision.MS);
-            writeApi.writePoint(BUCKET, ORG, pointHalfHour);
+                writeApi.writePoint(BUCKET, ORG, pointHalfHour);
                 totalFilledCount++;
                 log.info("填充设备{}编号{}半点数据{}", device.getDeviceName(), device.getDeviceCode(), fillDataHalfHour);
             }
@@ -266,7 +265,6 @@ public class WriteInfluxData {
         log.info("设备 {} 总共填充了 {} 条空白数据", device.getDeviceCode(), totalFilledCount);
         writeApi.close();
     }
-
 
 
     /**

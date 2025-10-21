@@ -141,21 +141,11 @@ public class DeviceOperateController {
                 .map(Long::parseLong)
                 .toList();
         for (Long id : idList) {
-//            DeviceOperate deviceOperate = new DeviceOperate();
-//            deviceOperate.setOperate("OFF");
-//            deviceOperate.setWay("-1");
-//            deviceOperate.setCount(1);
-//            deviceOperation.operate(id, deviceOperate, mqttProducer);
             DeviceOperate convert = convert(deviceOperate);
             deviceOperation.operate(id, convert, mqttProducer);
         }
-//        for (DeviceOperateBatch deviceOperateBatch : deviceOperate) {
-//            DeviceOperate convert = convert(deviceOperateBatch);
-//            deviceOperation.operate(deviceOperateBatch.getDeviceId(), convert, mqttProducer);
-//        }
         return Result.success();
     }
-
 
     public DeviceOperate convert(DeviceOperateBatch deviceOperateBatch) {
         DeviceOperate deviceOperate = new DeviceOperate();

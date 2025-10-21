@@ -145,11 +145,4 @@ public class AirSwitchHandler implements MsgHandler {
         return HandlerType.status;
     }
 
-//    /**
-//     * 定时清理过期的设备时间记录（每10分钟执行一次）
-//     */
-//    @Scheduled(fixedRate = 10 * 60 * 1000) // 10分钟
-//    public void cleanExpiredDeviceRecords() {
-//        deviceStatusManager.cleanExpiredDeviceRecords();
-//    }
 }
