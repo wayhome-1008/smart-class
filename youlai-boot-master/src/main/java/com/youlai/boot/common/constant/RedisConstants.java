@@ -58,14 +58,6 @@ public interface RedisConstants {
     }
 
     /**
-     * mqtt数据模块
-     */
-    interface MessageCount {
-        String MESSAGE_COUNT_KEY = "mqtt:message:count";
-    }
-
-
-    /**
      * 设备info模块
      */
     interface Device {
