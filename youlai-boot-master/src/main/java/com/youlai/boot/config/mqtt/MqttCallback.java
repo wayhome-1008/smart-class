@@ -1,7 +1,6 @@
 package com.youlai.boot.config.mqtt;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.youlai.boot.common.constant.RedisConstants;
 import com.youlai.boot.common.util.MacUtils;
 import com.youlai.boot.device.factory.MsgHandlerFactory;
 import com.youlai.boot.device.handler.service.MsgHandler;
@@ -17,7 +16,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import static com.youlai.boot.config.mqtt.TopicConfig.BASE_TOPIC;
 import static com.youlai.boot.config.mqtt.TopicConfig.TOPIC_LIST;
@@ -29,8 +27,6 @@ public class MqttCallback implements MqttCallbackExtended {
     private MsgHandlerFactory factory;
     @Autowired
     private DeviceService deviceService;
-    @Autowired
-    private RedisTemplate<String, Object> redisTemplate;
 
     @Override
     public void connectionLost(Throwable throwable) {
