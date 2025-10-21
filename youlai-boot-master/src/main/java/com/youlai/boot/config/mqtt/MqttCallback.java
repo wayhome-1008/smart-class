@@ -77,7 +77,7 @@ public class MqttCallback implements MqttCallbackExtended {
             case "SENSOR" -> HandlerType.SENSOR;
             case "LIGHT" -> HandlerType.LIGHT;
             case "SENSOR3ON1" -> HandlerType.SENSOR3ON1;
-            case "status"-> HandlerType.status;
+            case "status" -> HandlerType.status;
             case "POWER" -> HandlerType.POWER;
             // 处理通用路径
             case "/register" -> HandlerType.REGISTER;
@@ -169,7 +169,6 @@ public class MqttCallback implements MqttCallbackExtended {
                         mqttClient.subscribe("tele/" + device.getDeviceCode() + "/INFO3", 2);
                         log.info("订阅主题:{}", "tele/" + device.getDeviceCode() + "/STATE");
                         mqttClient.subscribe("tele/" + device.getDeviceCode() + "/STATE", 2);
-//                        mqttClient.subscribe("stat/" + device.getDeviceCode() + "/POWER", 2);
                         log.info("订阅主题:{}", "stat/" + device.getDeviceCode() + "/RESULT");
                         mqttClient.subscribe("stat/" + device.getDeviceCode() + "/RESULT", 2);
                         log.info("订阅主题:{}", "stat/" + device.getDeviceCode() + "/STATUS8");
