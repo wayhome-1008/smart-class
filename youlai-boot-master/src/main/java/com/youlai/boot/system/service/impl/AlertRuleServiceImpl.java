@@ -99,6 +99,14 @@ public class AlertRuleServiceImpl extends ServiceImpl<AlertRuleMapper, AlertRule
      */
     @Override
     public boolean saveAlertRule(AlertRuleForm formData) {
+        String cacheKey = formData.getDeviceId() + ":" + formData.getMetricKey();
+        AlertRule existingRule = (AlertRule) redisTemplate.opsForHash().get(RedisConstants.Alert.Alert, cacheKey);
+
+        // 校验：如果该设备该属性已经有报警配置则不允许新增
+        if (existingRule != null) {
+            log.warn("设备ID:{}的属性:{}已存在报警配置，不允许重复新增", formData.getDeviceId(), formData.getMetricKey());
+            throw new RuntimeException("该设备该属性已有报警配置，不允许重复新增");
+        }
         AlertRule entity = alertRuleConverter.toEntity(formData);
         //同步缓存
         refreshAlertRuleCache();
@@ -114,6 +122,26 @@ public class AlertRuleServiceImpl extends ServiceImpl<AlertRuleMapper, AlertRule
      */
     @Override
     public boolean updateAlertRule(Long id, AlertRuleForm formData) {
+        // 查询原有记录
+        AlertRule oldRule = this.getById(id);
+        if (oldRule == null) {
+            log.warn("报警配置ID:{}不存在", id);
+            return false;
+        }
+
+        // 如果设备ID或指标键有变更，需要校验新组合是否已存在
+        if (!oldRule.getDeviceId().equals(formData.getDeviceId()) ||
+                !oldRule.getMetricKey().equals(formData.getMetricKey())) {
+
+            String newCacheKey = formData.getDeviceId() + ":" + formData.getMetricKey();
+            AlertRule existingRule = (AlertRule) redisTemplate.opsForHash().get(RedisConstants.Alert.Alert, newCacheKey);
+
+            // 校验：如果新设备新属性已经有报警配置则不允许修改为该组合
+            if (existingRule != null && !existingRule.getId().equals(id)) {
+                log.warn("设备ID:{}的属性:{}已存在报警配置，不允许修改为该组合", formData.getDeviceId(), formData.getMetricKey());
+                throw new RuntimeException("目标设备目标属性已有报警配置，不允许重复配置");
+            }
+        }
         AlertRule entity = alertRuleConverter.toEntity(formData);
         //同步缓存
         refreshAlertRuleCache();

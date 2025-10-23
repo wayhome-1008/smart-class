@@ -39,6 +39,9 @@ public class AlertRuleEngine {
     private final AlertEventService alertEventService;
     private final SceneExecuteService sceneExecuteService;
 
+    //todo  看看一条报警规则能不能处理了 能就新增校验
+    //不能的话 就需要换redis的结构了
+
     /**
      * 检查规则是否触发报警（带时间窗口处理）
      */
@@ -95,6 +98,11 @@ public class AlertRuleEngine {
                         java.math.BigDecimal minValue = new java.math.BigDecimal(rule.getMinValue());
                         java.math.BigDecimal maxValue = new java.math.BigDecimal(rule.getMaxValue());
                         yield metricValue.compareTo(minValue) < 0 || metricValue.compareTo(maxValue) > 0;
+                    }
+                    case "!range" -> {
+                        java.math.BigDecimal minValue = new java.math.BigDecimal(rule.getMinValue());
+                        java.math.BigDecimal maxValue = new java.math.BigDecimal(rule.getMaxValue());
+                        yield metricValue.compareTo(minValue) >= 0 && metricValue.compareTo(maxValue) <= 0;
                     }
                     default -> false;
                 };
