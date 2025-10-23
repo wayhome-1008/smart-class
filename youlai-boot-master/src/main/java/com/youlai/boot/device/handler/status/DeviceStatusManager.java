@@ -138,10 +138,10 @@ import java.util.Map;
 @Component
 @RequiredArgsConstructor
 public class DeviceStatusManager {
-    // 设备超时时间（毫秒）- 1分钟
+    // 设备超时时间目前是30分钟
     private static final long DEVICE_TIMEOUT = 30 * 60 * 1000;
-    // 人体传感的超时时间多一些
-    private static final long BODY_SENSOR_TIMEOUT = 60 * 60 * 1000;
+    // 人体传感的超时时间多一些为60分钟
+    private static final long BODY_SENSOR_TIMEOUT = 3 * 60 * 60 * 1000;
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final DeviceService deviceService;
