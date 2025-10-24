@@ -1,6 +1,7 @@
 package com.youlai.boot.device.schedule;
 
 import com.influxdb.client.InfluxDBClient;
+import com.influxdb.client.InfluxDBClientFactory;
 import com.influxdb.client.QueryApi;
 import com.influxdb.client.WriteApi;
 import com.influxdb.client.domain.WritePrecision;
@@ -17,9 +18,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  *@Author: way
@@ -270,7 +269,7 @@ public class WriteInfluxData {
     /**
      * 从记录中获取Double类型的值
      */
-    private Double getDoubleValue(FluxRecord record, String fieldName) {
+    public static Double getDoubleValue(FluxRecord record, String fieldName) {
         Object value = record.getValueByKey(fieldName);
         if (value instanceof Number) {
             return ((Number) value).doubleValue();
@@ -297,4 +296,173 @@ public class WriteInfluxData {
 
         return fillData;
     }
+
+    /**
+     * 导出 smartClass bucket 中的所有数据到另一个服务器
+     */
+    public static void main(String[] args) {
+        // 获取 InfluxDB 客户端实例（需要根据实际配置调整）
+        InfluxDBClient influxDBClient = InfluxDBClientFactory.create("http://192.168.80.216:8086", "ym7N-HBKxQdhPGyjlF91wK1dihW5pfJA4uO_nsA_TBKz8RsRnB8gLQGmW35D5KdsjxjvoOcr2bXUlIBtbSiskA==".toCharArray());
+
+        try {
+            QueryApi queryApi = influxDBClient.getQueryApi();
+
+            // 查询 smartClass bucket 中的所有数据
+            String flux = "from(bucket: \"smartClass\") " +
+                    "|> range(start: -365d) " +
+                    "|> filter(fn: (r) => r._measurement == \"device\") " +
+                    "|> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")" +
+                    "|> sort(columns: [\"_time\"])";
+            log.info("查询语句：{}", flux);
+            System.out.println("开始查询数据...");
+            List<FluxTable> tables = queryApi.query(flux, "zjtc");
+            if (tables.isEmpty()) {
+                System.out.println("未查询到任何数据");
+                return;
+            }
+            System.out.println("共查询到 " + tables.size() + " 个数据表");
+            // 发送数据到远程服务器
+            sendToRemoteServer(tables);
+
+            System.out.println("数据导出完成");
+
+        } catch (Exception e) {
+            System.err.println("导出数据时发生错误: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            influxDBClient.close();
+        }
+    }
+
+    private static void sendToRemoteServer(List<FluxTable> tables) {
+        System.out.println("正在发送 " + tables.size() + " 条数据到远程InfluxDB服务器...");
+
+        // 目标InfluxDB配置
+        String targetUrl = "http://192.168.80.185:8086";
+        String targetBucket = "smartClass";
+        String targetOrg = "zjtc";
+        String targetToken = "RSJWXaagTE2GgH_FSNc0LDtSZkCX6Dc6hFhbQmpELqcKwqjN7Xldwqp68NFf0nUFpTrY9tfMpUzeZKEn-C2x6g=="; // 替换为实际的token
+        InfluxDBClient targetInfluxClient = InfluxDBClientFactory.create(targetUrl, targetToken.toCharArray());
+
+        int batchSize = 1000;
+        try (WriteApi writeApi = targetInfluxClient.makeWriteApi()) {
+            List<Point> batchPoints = new ArrayList<>();
+            for (FluxTable table : tables) {
+                for (FluxRecord record : table.getRecords()) {
+                    Object deviceTypeObj = record.getValueByKey("deviceCode");
+                    if (deviceTypeObj == null) {
+                        continue; // 跳过 deviceType 为空的记录
+                    }
+                    String deviceCode = deviceTypeObj.toString();
+                    makePoint(record, batchPoints, deviceCode);
+                    if (batchPoints.size() >= batchSize) {
+                        writeApi.writePoints(targetBucket, targetOrg, batchPoints);
+                        batchPoints.clear();
+                    }
+                }
+            }
+            // 写入剩余数据
+            if (!batchPoints.isEmpty()) {
+                writeApi.writePoints(targetBucket, targetOrg, batchPoints);
+            }
+        } catch (Exception e) {
+            System.err.println("写入数据到远程InfluxDB时发生错误: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            targetInfluxClient.close();
+        }
+    }
+
+    private static void makePoint(FluxRecord record, List<Point> points, String deviceCode) {
+        Point pointBuilder = Point.measurement("device")
+                .addTag("deviceCode", parseStringValue(record.getValueByKey("deviceCode"), ""))
+                .addTag("roomId", parseStringValue(record.getValueByKey("roomId"), ""))
+                .time(record.getTime(), WritePrecision.MS);
+
+        switch (deviceCode) {
+            case "681f2929004b1200": //motion 传感器
+                pointBuilder.addField("motion", parseIntValue(record.getValueByKey("motion"), 0));
+                break;
+            case "0000d4ed774cb97c": //存在雷达
+                pointBuilder.addField("motion", parseIntValue(record.getValueByKey("motion"), 0))
+                        .addField("battery", parseIntValue(record.getValueByKey("battery"), 0));
+                break;
+            case "cf0bcfdb2538c1a4", "tasmota_592C43", "tasmota_592F35", "tasmota_593136"://三路开关 灯
+                pointBuilder.addField("switch", parseStringValue(record.getValueByKey("switch"), ""));
+                break;
+            case "tasmota_592B72", "93883102004b1200": // 三合一传感器
+                pointBuilder.addField("motion", parseIntValue(record.getValueByKey("motion"), 0))
+                        .addField("humidity", parseDoubleValue(record.getValueByKey("humidity"), 0.0))
+                        .addField("illuminance", parseDoubleValue(record.getValueByKey("illuminance"), 0.0))
+                        .addField("temperature", parseDoubleValue(record.getValueByKey("temperature"), 0.0));
+                break;
+            case "052f38b31238c1a4", "tasmota_592A48", "tasmota_592ED2", "tasmota_592ACC", "SmartLife_592DF6",
+                 "SmartLife_DF44B2", "tasmota_59302C": // 计量插座
+                pointBuilder.addTag("categoryId", parseStringValue(record.getValueByKey("categoryId"), ""))
+                        .addTag("deviceType", parseStringValue(record.getValueByKey("deviceType"), ""))
+                        .addField("Total", parseDoubleValue(record.getValueByKey("Total"), 0.0))
+                        .addField("switch", parseStringValue(record.getValueByKey("switch"), ""))
+                        .addField("Current", parseDoubleValue(record.getValueByKey("Current"), 0.0))
+                        .addField("Power", parseIntValue(record.getValueByKey("Power"), 0))
+                        .addField("Voltage", parseDoubleValue(record.getValueByKey("Voltage"), 0.0));
+                break;
+            default:
+                return; // 未知设备类型，跳过
+        }
+        points.add(pointBuilder);
+    }
+
+    private static int parseIntValue(Object value, int defaultValue) {
+        if (value == null) {
+            return defaultValue;
+        }
+
+        try {
+            if (value instanceof Number) {
+                return ((Number) value).intValue();
+            } else if (value instanceof String) {
+                String strValue = (String) value;
+                if (strValue.isEmpty()) {
+                    return defaultValue;
+                }
+                return Integer.parseInt(strValue);
+            } else {
+                return Integer.parseInt(value.toString());
+            }
+        } catch (NumberFormatException e) {
+            log.warn("无法将值 {} 转换为整数，使用默认值 {}", value, defaultValue);
+            return defaultValue;
+        }
+    }
+
+    private static double parseDoubleValue(Object value, double defaultValue) {
+        if (value == null) {
+            return defaultValue;
+        }
+
+        try {
+            if (value instanceof Number) {
+                return ((Number) value).doubleValue();
+            } else if (value instanceof String) {
+                String strValue = (String) value;
+                if (strValue.isEmpty()) {
+                    return defaultValue;
+                }
+                return Double.parseDouble(strValue);
+            } else {
+                return Double.parseDouble(value.toString());
+            }
+        } catch (NumberFormatException e) {
+            log.warn("无法将值 {} 转换为浮点数，使用默认值 {}", value, defaultValue);
+            return defaultValue;
+        }
+    }
+
+    private static String parseStringValue(Object value, String defaultValue) {
+        if (value == null) {
+            return defaultValue;
+        }
+        return value.toString();
+    }
+
 }

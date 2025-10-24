@@ -41,9 +41,11 @@ spring:
     caffeine:
       spec: initialCapacity=50,maximumSize=1000,expireAfterWrite=600s
 influx:
-  url: http://192.168.80.216:8086
+#  url: http://192.168.80.216:8086
+  url: http://192.168.80.185:8086
   org: zjtc
-  token: ym7N-HBKxQdhPGyjlF91wK1dihW5pfJA4uO_nsA_TBKz8RsRnB8gLQGmW35D5KdsjxjvoOcr2bXUlIBtbSiskA==
+#  token: ym7N-HBKxQdhPGyjlF91wK1dihW5pfJA4uO_nsA_TBKz8RsRnB8gLQGmW35D5KdsjxjvoOcr2bXUlIBtbSiskA==
+  token: RSJWXaagTE2GgH_FSNc0LDtSZkCX6Dc6hFhbQmpELqcKwqjN7Xldwqp68NFf0nUFpTrY9tfMpUzeZKEn-C2x6g==
   bucket: smartClass
   connectTimeout: 10000
   readTimeout: 120000

@@ -39,9 +39,6 @@ public class AlertRuleEngine {
     private final AlertEventService alertEventService;
     private final SceneExecuteService sceneExecuteService;
 
-    //todo  看看一条报警规则能不能处理了 能就新增校验
-    //不能的话 就需要换redis的结构了
-
     /**
      * 检查规则是否触发报警（带时间窗口处理）
      */
@@ -56,11 +53,11 @@ public class AlertRuleEngine {
         //若timeRange首位是!则反
         String timeRange = rule.getTimeRange();
         if (StringUtils.isNotEmpty(timeRange)) {
-            String operator="=";
+            String operator = "=";
             if (timeRange.startsWith("!")) {
-                operator="!=";
+                operator = "!=";
             }
-            boolean checkTimeRange = DateUtils.checkTimeRangeTrigger(timeRange,operator);
+            boolean checkTimeRange = DateUtils.checkTimeRangeTrigger(timeRange, operator);
             if (!checkTimeRange) {
                 return false;
             }
@@ -79,8 +76,6 @@ public class AlertRuleEngine {
                 case "!=" -> currentValue.compareTo(rule.getThresholdValue()) != 0;
                 default -> false;
             };
-//            log.info("开关状态比较 - 规则ID: {}, 当前值: {}, 比较类型: {}, 阈值: {}, 结果: {}",
-//                    rule.getId(), currentValue, compareType, rule.getThresholdValue(), result);
         } else {
             try {
                 // 使用 BigDecimal 进行精确的数值比较，支持整数和小数
@@ -106,14 +101,6 @@ public class AlertRuleEngine {
                     }
                     default -> false;
                 };
-
-//                if ("range".equals(compareType)) {
-////                    log.info("范围值比较 - 规则ID: {}, 当前值: {}, 比较类型: {}, 最小值: {}, 最大值: {}, 结果: {}",
-////                            rule.getId(), currentValue, compareType, rule.getMinValue(), rule.getMaxValue(), result);
-//                } else {
-////                    log.info("数值比较 - 规则ID: {}, 当前值: {}, 比较类型: {}, 阈值: {}, 结果: {}",
-////                            rule.getId(), currentValue, compareType, rule.getThresholdValue(), result);
-//                }
             } catch (NumberFormatException e) {
                 log.error("数值转换错误 - 规则ID: {}, 当前值: {}, 阈值: {}", rule.getId(), currentValue, rule.getThresholdValue(), e);
                 result = false;
