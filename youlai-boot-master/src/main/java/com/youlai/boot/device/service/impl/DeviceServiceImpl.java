@@ -481,7 +481,7 @@ public class DeviceServiceImpl extends ServiceImpl<DeviceMapper, Device> impleme
 
     @Override
     public List<Option<Long>> listDeviceOptions() {
-        List<Device> list = this.list(new LambdaQueryWrapper<Device>().eq(Device::getStatus, 1));
+        List<Device> list = this.list(new LambdaQueryWrapper<Device>().in(Device::getStatus, 0,1));
         return deviceConverter.toOptions(list);
     }
 
