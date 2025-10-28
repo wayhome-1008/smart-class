@@ -28,7 +28,7 @@ public class JobInvokeUtil {
      */
     public static void invokeMethod(DeviceJob deviceJob) throws Exception {
         System.out.println("------------------------执行定时任务-----------------------------");
-        if (deviceJob.getJobType() == 1) {
+        if (deviceJob.getStatus() == 1) {
             // 统一使用 parseArray 处理
             List<DeviceOperate> deviceOperates = JSON.parseArray(deviceJob.getActions(), DeviceOperate.class);
             for (DeviceOperate deviceOperate : deviceOperates) {

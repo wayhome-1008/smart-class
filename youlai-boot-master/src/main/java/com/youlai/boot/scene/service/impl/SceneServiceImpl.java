@@ -391,7 +391,7 @@ public class SceneServiceImpl extends ServiceImpl<SceneMapper, Scene> implements
                             job.setConcurrent(formData.getExecuteMode().equals("SERIAL") ? 0 : 1);
                             job.setConcurrent(0);
                             job.setJobName(scene.getSceneName() + "定时执行");
-                            job.setJobType(1L);
+                            job.setJobType(2L);
                             job.setCron(trigger.getCron());
                             job.setStatus(1);
                             job.setJobGroup("DEFAULT");

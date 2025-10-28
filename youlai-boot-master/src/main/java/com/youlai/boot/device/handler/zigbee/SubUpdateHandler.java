@@ -65,7 +65,7 @@ public class SubUpdateHandler implements MsgHandler {
      * @author: way
      **/
     @Override
-    public  synchronized void process(String topic, String jsonMsg, MqttClient mqttClient) {
+    public synchronized void process(String topic, String jsonMsg, MqttClient mqttClient) {
         try {
             JSONObject deviceInfo = JSON.parseObject(jsonMsg);
             int sequence = deviceInfo.getIntValue("sequence");
@@ -75,7 +75,7 @@ public class SubUpdateHandler implements MsgHandler {
                 device = deviceService.getByCode(originalMac);
             }
             //禁用设备不进逻辑
-            if (device.getStatus()==3){
+            if (device.getStatus() == 3) {
                 return;
             }
             if (ObjectUtil.isNotEmpty(device)) {
@@ -209,7 +209,7 @@ public class SubUpdateHandler implements MsgHandler {
             //获取params
             JsonNode params = jsonNode.get("params");
             JsonNode switchesArray = params.get("switches");
-            log.info("========================================================设备{},数据{}", device.getDeviceCode(),params);
+            log.info("========================================================设备{},数据{}", device.getDeviceCode(), params);
             // 1. 准备存储所有开关状态的对象
             ObjectNode allSwitchStates = JsonNodeFactory.instance.objectNode();
             // 2. 遍历switches数组
@@ -233,36 +233,36 @@ public class SubUpdateHandler implements MsgHandler {
                 }
                 allSwitchStates.put("count", Math.max(outletNum, count));
             }
-                //场景
-                List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(device.getDeviceCode());
-                for (Scene scene : scenesByDeviceId) {
-                    sceneExecuteService.executeScene(scene, device, mqttClient, allSwitchStates);
+            //场景
+            List<Scene> scenesByDeviceId = sceneService.getScenesByDeviceCode(device.getDeviceCode());
+            for (Scene scene : scenesByDeviceId) {
+                sceneExecuteService.executeScene(scene, device, mqttClient, allSwitchStates);
+            }
+            JsonNode mergeJson = mergeJson(Optional.of(device).map(Device::getDeviceInfo).orElse(null), allSwitchStates);
+            //校验警报配置
+            AlertRule alertRule = alertRuleEngine.checkAlertConfig(device.getId(), allSwitchStates);
+            if (ObjectUtils.isNotEmpty(alertRule)) {
+                boolean checkRule = alertRuleEngine.checkRule(alertRule, allSwitchStates.get(alertRule.getMetricKey()).asText());
+                //满足条件
+                if (checkRule) {
+                    alertRuleEngine.runningScene(alertRule.getSceneId(), device, mqttClient, allSwitchStates);
+                    //创建AlertEvent
+                    alertRuleEngine.constructAlertEvent(device, alertRule, allSwitchStates);
                 }
-                JsonNode mergeJson = mergeJson(Optional.of(device).map(Device::getDeviceInfo).orElse(null), allSwitchStates);
-                //校验警报配置
-                AlertRule alertRule = alertRuleEngine.checkAlertConfig(device.getId(), allSwitchStates);
-                if (ObjectUtils.isNotEmpty(alertRule)) {
-                    boolean checkRule = alertRuleEngine.checkRule(alertRule, allSwitchStates.get(alertRule.getMetricKey()).asText());
-                    //满足条件
-                    if (checkRule) {
-                        alertRuleEngine.runningScene(alertRule.getSceneId(), device, mqttClient, allSwitchStates);
-                        //创建AlertEvent
-                        alertRuleEngine.constructAlertEvent(device, alertRule, allSwitchStates);
-                    }
-                }
-                device.setDeviceInfo(mergeJson);
-                //todo 将开关状态存influxdb
-                RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
-                InfluxSwitch influxSwitch = new InfluxSwitch();
-                influxSwitch.setDeviceCode(device.getDeviceCode());
-                influxSwitch.setRoomId(String.valueOf(device.getDeviceRoom()));
-                influxSwitch.setSwitchState(allSwitchStates.toString());
-                influxDBClient.getWriteApiBlocking().writeMeasurement(
-                        influxProperties.getBucket(),
-                        influxProperties.getOrg(),
-                        WritePrecision.MS,
-                        influxSwitch
-                );
+            }
+            device.setDeviceInfo(mergeJson);
+            //todo 将开关状态存influxdb
+            RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
+            InfluxSwitch influxSwitch = new InfluxSwitch();
+            influxSwitch.setDeviceCode(device.getDeviceCode());
+            influxSwitch.setRoomId(String.valueOf(device.getDeviceRoom()));
+            influxSwitch.setSwitchState(allSwitchStates.toString());
+            influxDBClient.getWriteApiBlocking().writeMeasurement(
+                    influxProperties.getBucket(),
+                    influxProperties.getOrg(),
+                    WritePrecision.MS,
+                    influxSwitch
+            );
 //                log.info("开关状态{}", influxSwitch);
 //                redisTemplate.opsForHash().put(RedisConstants.Device.DEVICE, device.getDeviceCode(), device);
             deviceStatusManager.updateDeviceOnlineStatus(device.getDeviceCode(), device);
