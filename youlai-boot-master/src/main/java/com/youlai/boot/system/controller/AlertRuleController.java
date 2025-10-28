@@ -1,5 +1,7 @@
 package com.youlai.boot.system.controller;
 
+import com.youlai.boot.common.annotation.Log;
+import com.youlai.boot.common.enums.LogModuleEnum;
 import com.youlai.boot.system.service.AlertRuleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -43,6 +45,7 @@ public class AlertRuleController {
     @Operation(summary = "新增报警配置")
     @PostMapping
     @PreAuthorize("@ss.hasPerm('system:alertRule:add')")
+    @Log(value = "新增报警配置",module = LogModuleEnum.ALERT_RULE)
     public Result<Void> saveAlertRule(@RequestBody @Valid AlertRuleForm formData) {
         boolean result = alertRuleService.saveAlertRule(formData);
         return Result.judge(result);
@@ -61,6 +64,7 @@ public class AlertRuleController {
     @Operation(summary = "修改报警配置")
     @PutMapping(value = "/{id}")
     @PreAuthorize("@ss.hasPerm('system:alertRule:edit')")
+    @Log(value = "修改报警配置",module = LogModuleEnum.ALERT_RULE)
     public Result<Void> updateAlertRule(
             @Parameter(description = "报警配置ID") @PathVariable Long id,
             @RequestBody @Validated AlertRuleForm formData
@@ -72,6 +76,7 @@ public class AlertRuleController {
     @Operation(summary = "删除报警配置")
     @DeleteMapping("/{ids}")
     @PreAuthorize("@ss.hasPerm('system:alertRule:delete')")
+    @Log(value = "删除报警配置",module = LogModuleEnum.ALERT_RULE)
     public Result<Void> deleteAlertRules(
             @Parameter(description = "报警配置ID，多个以英文逗号(,)分割") @PathVariable String ids
     ) {

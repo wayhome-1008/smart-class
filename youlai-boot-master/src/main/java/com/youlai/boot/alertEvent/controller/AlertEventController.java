@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.youlai.boot.alertEvent.model.query.AlertEventQuery;
 import com.youlai.boot.alertEvent.model.vo.AlertEventVO;
 import com.youlai.boot.alertEvent.service.AlertEventService;
+import com.youlai.boot.common.annotation.Log;
+import com.youlai.boot.common.enums.LogModuleEnum;
 import com.youlai.boot.common.result.PageResult;
 import com.youlai.boot.common.result.Result;
 import io.swagger.v3.oas.annotations.Operation;
@@ -37,6 +39,7 @@ public class AlertEventController {
     @Operation(summary = "批量修改报警记录状态")
     @PostMapping("/status")
     @PreAuthorize("@ss.hasPerm('alertEvent:alertEvent:edit')")
+    @Log(value = "批量修改报警记录状态", module = LogModuleEnum.ALERT_EVENT)
     public Result<Void> updateStatus(
             @RequestParam String ids,
             @RequestParam Integer status) {

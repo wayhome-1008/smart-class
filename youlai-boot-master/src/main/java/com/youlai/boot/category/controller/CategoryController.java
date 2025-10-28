@@ -2,6 +2,8 @@ package com.youlai.boot.category.controller;
 
 import com.youlai.boot.category.model.form.BindingForm;
 import com.youlai.boot.category.service.CategoryService;
+import com.youlai.boot.common.annotation.Log;
+import com.youlai.boot.common.enums.LogModuleEnum;
 import com.youlai.boot.common.model.Option;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -47,6 +49,7 @@ public class CategoryController {
     @Operation(summary = "新增分类管理")
     @PostMapping
     @PreAuthorize("@ss.hasPerm('category:category:add')")
+    @Log(value = "新增分类管理", module = LogModuleEnum.CATEGORY)
     public Result<Void> saveCategory(@RequestBody @Valid CategoryForm formData) {
         boolean result = categoryService.saveCategory(formData);
         return Result.judge(result);
@@ -65,6 +68,7 @@ public class CategoryController {
     @Operation(summary = "修改分类管理")
     @PutMapping(value = "/{id}")
     @PreAuthorize("@ss.hasPerm('category:category:edit')")
+    @Log(value = "修改分类管理", module = LogModuleEnum.CATEGORY)
     public Result<Void> updateCategory(
             @Parameter(description = "分类管理ID") @PathVariable Long id,
             @RequestBody @Validated CategoryForm formData
@@ -83,7 +87,8 @@ public class CategoryController {
     @Operation(summary = "删除分类管理")
     @DeleteMapping("/{ids}")
     @PreAuthorize("@ss.hasPerm('category:category:delete')")
-    public Result<Void> deleteCategorys(
+    @Log(value = "删除分类管理", module = LogModuleEnum.CATEGORY)
+    public Result<Void> deleteCategories(
             @Parameter(description = "分类管理ID，多个以英文逗号(,)分割") @PathVariable String ids
     ) {
         boolean result = categoryService.deleteCategorys(ids);
@@ -93,6 +98,7 @@ public class CategoryController {
     @Operation(summary = "设备绑定")
     @PostMapping("/bind")
     @PreAuthorize("@ss.hasPerm('category:category:bind')")
+    @Log(value = "设备分类绑定", module = LogModuleEnum.CATEGORY)
     public Result<Void> bindCategory(
             @RequestBody @Validated BindingForm formData) {
         //一个分类可以绑定多个设备

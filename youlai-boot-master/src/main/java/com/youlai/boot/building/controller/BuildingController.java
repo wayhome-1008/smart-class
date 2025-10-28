@@ -1,26 +1,24 @@
 package com.youlai.boot.building.controller;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.youlai.boot.building.model.form.BuildingForm;
+import com.youlai.boot.building.model.query.BuildingQuery;
+import com.youlai.boot.building.model.vo.BuildingVO;
 import com.youlai.boot.building.service.BuildingService;
 import com.youlai.boot.common.annotation.Log;
 import com.youlai.boot.common.enums.LogModuleEnum;
 import com.youlai.boot.common.model.Option;
-import com.youlai.boot.device.service.DeviceService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import com.youlai.boot.building.model.form.BuildingForm;
-import com.youlai.boot.building.model.query.BuildingQuery;
-import com.youlai.boot.building.model.vo.BuildingVO;
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.youlai.boot.common.result.PageResult;
 import com.youlai.boot.common.result.Result;
+import com.youlai.boot.device.service.DeviceService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import jakarta.validation.Valid;
 
 import java.util.List;
 

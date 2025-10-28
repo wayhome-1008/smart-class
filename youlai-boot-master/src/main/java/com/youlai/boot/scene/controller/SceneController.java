@@ -1,5 +1,7 @@
 package com.youlai.boot.scene.controller;
 
+import com.youlai.boot.common.annotation.Log;
+import com.youlai.boot.common.enums.LogModuleEnum;
 import com.youlai.boot.scene.service.SceneService;
 import lombok.RequiredArgsConstructor;
 import org.quartz.SchedulerException;
@@ -46,6 +48,7 @@ public class SceneController  {
     @Operation(summary = "新增场景交互")
     @PostMapping
     @PreAuthorize("@ss.hasPerm('scene:scene:add')")
+    @Log(value = "新增场景交互", module = LogModuleEnum.SCENE)
     public Result<Void> saveScene(@RequestBody @Valid SceneForm formData ) throws SchedulerException {
         boolean result = sceneService.saveScene(formData);
         return Result.judge(result);
@@ -64,6 +67,7 @@ public class SceneController  {
     @Operation(summary = "修改场景交互")
     @PutMapping(value = "/{id}")
     @PreAuthorize("@ss.hasPerm('scene:scene:edit')")
+    @Log(value = "修改场景交互", module = LogModuleEnum.SCENE)
     public Result<Void> updateScene(
             @Parameter(description = "场景交互ID") @PathVariable Long id,
             @RequestBody @Validated SceneForm formData
@@ -75,6 +79,7 @@ public class SceneController  {
     @Operation(summary = "删除场景交互")
     @DeleteMapping("/{ids}")
     @PreAuthorize("@ss.hasPerm('scene:scene:delete')")
+    @Log(value = "删除场景交互", module = LogModuleEnum.SCENE)
     public Result<Void> deleteScenes(
         @Parameter(description = "场景交互ID，多个以英文逗号(,)分割") @PathVariable String ids
     ) throws SchedulerException {

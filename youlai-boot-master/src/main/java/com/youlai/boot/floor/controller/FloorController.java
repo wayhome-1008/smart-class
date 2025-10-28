@@ -1,6 +1,8 @@
 package com.youlai.boot.floor.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.youlai.boot.common.annotation.Log;
+import com.youlai.boot.common.enums.LogModuleEnum;
 import com.youlai.boot.common.model.Option;
 import com.youlai.boot.common.result.PageResult;
 import com.youlai.boot.common.result.Result;
@@ -172,6 +174,7 @@ public class FloorController {
     @Operation(summary = "新增楼层管理")
     @PostMapping
     @PreAuthorize("@ss.hasPerm('floor:floor:add')")
+    @Log(value = "新增楼层", module = LogModuleEnum.FLOOR)
     public Result<Void> saveFloor(@RequestBody @Valid FloorForm formData) {
         boolean result = floorService.saveFloor(formData);
         return Result.judge(result);
@@ -199,6 +202,7 @@ public class FloorController {
     @Operation(summary = "修改楼层管理")
     @PutMapping(value = "/{id}")
     @PreAuthorize("@ss.hasPerm('floor:floor:edit')")
+    @Log(value = "修改楼层", module = LogModuleEnum.FLOOR)
     public Result<Void> updateFloor(
             @Parameter(description = "楼层管理ID") @PathVariable Long id,
             @RequestBody @Validated FloorForm formData
@@ -210,6 +214,7 @@ public class FloorController {
     @Operation(summary = "删除楼层管理")
     @DeleteMapping("/{ids}")
     @PreAuthorize("@ss.hasPerm('floor:floor:delete')")
+    @Log(value = "删除楼层", module = LogModuleEnum.FLOOR)
     public Result<Void> deleteFloors(
             @Parameter(description = "楼层管理ID，多个以英文逗号(,)分割") @PathVariable String ids
     ) {

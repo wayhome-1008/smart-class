@@ -12,6 +12,8 @@ import com.youlai.boot.building.model.entity.Building;
 import com.youlai.boot.building.service.BuildingService;
 import com.youlai.boot.category.model.entity.Category;
 import com.youlai.boot.category.service.CategoryService;
+import com.youlai.boot.common.annotation.Log;
+import com.youlai.boot.common.enums.LogModuleEnum;
 import com.youlai.boot.common.model.Option;
 import com.youlai.boot.common.result.PageResult;
 import com.youlai.boot.common.result.Result;
@@ -363,6 +365,7 @@ public class DeviceDataController {
 
     @Operation(summary = "4.楼宇电量汇总导出")
     @GetMapping("/export/room/electricity")
+    @Log(value = "楼宇电量汇总导出", module = LogModuleEnum.Export)
     public void exportRoomElectricity(@Parameter(description = "页码，默认为1")
                                       @RequestParam(defaultValue = "1") Integer pageNum,
 
@@ -553,6 +556,7 @@ public class DeviceDataController {
 
     @Operation(summary = "5.部门电量汇总导出")
     @GetMapping("/export/department/electricity")
+    @Log(value = "部门电量汇总导出", module = LogModuleEnum.Export)
     public void exportDepartmentElectricity(@Parameter(description = "页码，默认为1")
                                             @RequestParam(defaultValue = "1") Integer pageNum,
 
@@ -1119,6 +1123,7 @@ public class DeviceDataController {
 
     @Operation(summary = "6.楼宇排名导出")
     @GetMapping("/export/room/rank")
+    @Log(value = "导出楼宇排名", module = LogModuleEnum.Export)
     public void exportRoomRanking(
             @Parameter(description = "页码，默认为1")
             @RequestParam(defaultValue = "1") Integer pageNum,
@@ -1315,6 +1320,7 @@ public class DeviceDataController {
 
     @Operation(summary = "9.部门排名导出")
     @GetMapping("/export/department/rank")
+    @Log(value = "部门排名导出", module = LogModuleEnum.Export)
     public void exportDepartmentRanking(
             @Parameter(description = "页码，默认为1")
             @RequestParam(defaultValue = "1") Integer pageNum,

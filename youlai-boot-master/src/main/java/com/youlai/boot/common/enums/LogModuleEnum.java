@@ -28,7 +28,14 @@ public enum LogModuleEnum {
     FLOOR("楼层"),
     ROOM("房间"),
     OPERATION("操作"),
+    ALERT_EVENT("告警事件"),
+    CATEGORY("设备分类"),
+    Export("导出数据"),
+    Job("定时任务"),
+    SCENE("场景"),
+    ALERT_RULE("告警配置"),
     WARNING("告警");
+
     @JsonValue
     private final String moduleName;
 

@@ -193,6 +193,7 @@ public class RoomController {
     @Operation(summary = "新增房间管理")
     @PostMapping
     @PreAuthorize("@ss.hasPerm('room:room:add')")
+    @Log(value = "新增房间", module = LogModuleEnum.ROOM)
     public Result<Void> saveRoom(@RequestBody @Valid RoomForm formData) {
         boolean result = roomService.saveRoom(formData);
         return Result.judge(result);
@@ -209,6 +210,7 @@ public class RoomController {
     @Operation(summary = "修改房间管理")
     @PutMapping(value = "/{id}")
     @PreAuthorize("@ss.hasPerm('room:room:edit')")
+    @Log(value = "修改房间", module = LogModuleEnum.ROOM)
     public Result<Void> updateRoom(@Parameter(description = "房间管理ID") @PathVariable Long id, @RequestBody @Validated RoomForm formData) {
         boolean result = roomService.updateRoom(id, formData);
         return Result.judge(result);
@@ -217,6 +219,7 @@ public class RoomController {
     @Operation(summary = "删除房间管理")
     @DeleteMapping("/{ids}")
     @PreAuthorize("@ss.hasPerm('room:room:delete')")
+    @Log(value = "删除房间", module = LogModuleEnum.ROOM)
     public Result<Void> deleteRooms(@Parameter(description = "房间管理ID，多个以英文逗号(,)分割") @PathVariable String ids) {
         Long devicesCount = deviceService.listDevicesCount("room", ids);
         if (devicesCount != 0) {

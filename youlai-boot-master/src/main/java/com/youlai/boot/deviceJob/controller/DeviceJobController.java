@@ -1,6 +1,8 @@
 package com.youlai.boot.deviceJob.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.youlai.boot.common.annotation.Log;
+import com.youlai.boot.common.enums.LogModuleEnum;
 import com.youlai.boot.common.result.PageResult;
 import com.youlai.boot.common.result.Result;
 import com.youlai.boot.device.model.entity.Device;
@@ -48,6 +50,7 @@ public class DeviceJobController {
     @Operation(summary = "新增任务管理")
     @PostMapping
     @PreAuthorize("@ss.hasPerm('deviceJob:deviceJob:add')")
+    @Log(value = "新增任务管理", module = LogModuleEnum.Job)
     public Result<Void> saveDeviceJob(@RequestBody @Valid DeviceJobForm formData) throws SchedulerException {
         if (!CronUtils.isValid(formData.getCron())) {
             return Result.failed("新增任务失败，Cron表达式不正确");
@@ -79,6 +82,7 @@ public class DeviceJobController {
     @Operation(summary = "修改任务管理")
     @PutMapping(value = "/{id}")
     @PreAuthorize("@ss.hasPerm('deviceJob:deviceJob:edit')")
+    @Log(value = "修改任务管理", module = LogModuleEnum.Job)
     public Result<Void> updateDeviceJob(
             @Parameter(description = "任务管理ID") @PathVariable Long id,
             @RequestBody @Validated DeviceJobForm formData
@@ -98,6 +102,7 @@ public class DeviceJobController {
     @Operation(summary = "删除任务管理")
     @DeleteMapping("/{ids}")
     @PreAuthorize("@ss.hasPerm('deviceJob:deviceJob:delete')")
+    @Log(value = "删除任务管理", module = LogModuleEnum.Job)
     public Result<Void> deleteDeviceJobs(
             @Parameter(description = "任务管理ID，多个以英文逗号(,)分割") @PathVariable String ids
     ) throws SchedulerException {
@@ -107,6 +112,8 @@ public class DeviceJobController {
 
     @Operation(summary = "定时任务状态修改")
     @PostMapping("/changeStatus")
+    @PreAuthorize("@ss.hasPerm('deviceJob:deviceJob:edit')")
+    @Log(value = "定时任务状态修改", module = LogModuleEnum.Job)
     public Result<Void> changeStatus(@RequestBody @Validated DeviceJobForm formData) throws SchedulerException {
         DeviceJob newJob = deviceJobService.getById(formData.getId());
         newJob.setStatus(formData.getStatus());
@@ -116,6 +123,8 @@ public class DeviceJobController {
 
     @Operation(summary = "立即执行任务")
     @PostMapping("/run")
+    @PreAuthorize("@ss.hasPerm('deviceJob:deviceJob:edit')")
+    @Log(value = "立即执行任务", module = LogModuleEnum.Job)
     public Result<Void> run(@RequestBody @Validated DeviceJobForm formData) throws SchedulerException {
         deviceJobService.run(formData);
         return Result.success();
