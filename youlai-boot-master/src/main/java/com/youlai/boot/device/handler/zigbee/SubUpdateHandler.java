@@ -251,7 +251,6 @@ public class SubUpdateHandler implements MsgHandler {
                 }
             }
             device.setDeviceInfo(mergeJson);
-            //todo 将开关状态存influxdb
             RspMqtt(topic, mqttClient, device.getDeviceCode(), sequence);
             InfluxSwitch influxSwitch = new InfluxSwitch();
             influxSwitch.setDeviceCode(device.getDeviceCode());
