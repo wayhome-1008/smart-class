@@ -110,7 +110,6 @@ public class AlertRuleEngine {
         return result;
     }
 
-
     private boolean checkTimeWindow(AlertRule rule, String currentValue) {
         // 如果没有设置时间窗口，直接返回true
         if (rule.getTimeWindow() == null || rule.getTimeWindow() <= 0) {

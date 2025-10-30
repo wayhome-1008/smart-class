@@ -209,7 +209,6 @@ public class SubUpdateHandler implements MsgHandler {
             //获取params
             JsonNode params = jsonNode.get("params");
             JsonNode switchesArray = params.get("switches");
-            log.info("========================================================设备{},数据{}", device.getDeviceCode(), params);
             // 1. 准备存储所有开关状态的对象
             ObjectNode allSwitchStates = JsonNodeFactory.instance.objectNode();
             // 2. 遍历switches数组
