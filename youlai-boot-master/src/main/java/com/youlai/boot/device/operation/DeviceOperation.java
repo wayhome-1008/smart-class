@@ -54,7 +54,7 @@ public class DeviceOperation {
         }
         if (device.getIsLock() == 1) return;
         JsonNode deviceInfo = device.getDeviceInfo();
-        if (ObjectUtils.isEmpty(deviceInfo)) {
+        if (deviceInfo.isEmpty()) {
             log.warn("[场景执行]设备信息为空: deviceCode={}", deviceCode);
             return;
         }
@@ -66,7 +66,7 @@ public class DeviceOperation {
         }
 
         JsonNode wayNode = deviceInfo.get("switch" + way);
-        if (wayNode == null) {
+        if (wayNode.isEmpty()) {
             log.warn("[场景执行]设备路数信息不存在: deviceCode={}, way={}", deviceCode, way);
             return;
         }
@@ -119,7 +119,7 @@ public class DeviceOperation {
         Device deviceCache = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
         assert deviceCache != null;
         JsonNode deviceInfo = deviceCache.getDeviceInfo();
-        if (ObjectUtils.isEmpty(deviceInfo)) {
+        if (deviceInfo.isEmpty()) {
             log.warn("[任务执行]设备信息为空: deviceCode={}", deviceCode);
             return;
         }
@@ -131,7 +131,7 @@ public class DeviceOperation {
         }
 
         JsonNode wayNode = deviceInfo.get("switch" + way);
-        if (wayNode == null) {
+        if (wayNode.isEmpty()) {
             log.warn("[任务执行]设备路数信息不存在: deviceCode={}, way={}", deviceCode, way);
             return;
         }
@@ -182,7 +182,7 @@ public class DeviceOperation {
         String deviceCode = device.getDeviceCode();
         Device deviceCache = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
         JsonNode deviceInfo = deviceCache.getDeviceInfo();
-        if (ObjectUtils.isEmpty(deviceInfo)) {
+        if (deviceInfo.isEmpty()) {
             log.warn("[接口执行]设备信息为空: deviceCode={}", deviceCode);
             return Result.failed("设备信息为空");
         }
@@ -194,7 +194,7 @@ public class DeviceOperation {
 
         if (!way.equals("-1")) {
             JsonNode wayNode = deviceInfo.get("switch" + way);
-            if (wayNode == null) {
+            if (wayNode.isEmpty()) {
                 log.warn("[接口执行]设备路数信息不存在: deviceCode={}, way={}", deviceCode, way);
                 return Result.failed("设备路数信息不存在");
             }
