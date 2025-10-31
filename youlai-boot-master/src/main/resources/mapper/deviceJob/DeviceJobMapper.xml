@@ -24,6 +24,9 @@
                 AND status = #{queryParams.status}
             </if>
         </where>
+        ORDER BY
+        CASE WHEN status = 1 THEN 0 ELSE 1 END,
+        update_time DESC
     </select>
 
 </mapper>
