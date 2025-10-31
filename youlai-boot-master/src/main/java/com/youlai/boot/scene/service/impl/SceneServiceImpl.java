@@ -367,6 +367,7 @@ public class SceneServiceImpl extends ServiceImpl<SceneMapper, Scene> implements
         return result;
 
     }
+
     private void saveOrUpdate(SceneForm formData, Scene scene) throws SchedulerException {
         List<DeviceJob> jobs = new ArrayList<>();
         HashMap<Long, Device> deviceMap = new HashMap<>();
@@ -473,78 +474,6 @@ public class SceneServiceImpl extends ServiceImpl<SceneMapper, Scene> implements
 
         return needSaveJobs;
     }
-
-//    private void saveOrUpdate(SceneForm formData, Scene scene) throws SchedulerException {
-//        List<DeviceJob> jobs = new ArrayList<>();
-//        List<String> deviceCodes;
-//        HashMap<Long, Device> deviceMap = new HashMap<>();
-//        // 保存关联的触发器
-//        if (scene.getTriggers() != null) {
-//            for (Trigger trigger : scene.getTriggers()) {
-//                trigger.setSceneId(scene.getId());
-//                triggerMapper.insert(trigger);
-//                //放心这里定时触发只有一个
-//                if (trigger.getType().equals("TIMER_TRIGGER")) {
-//                    deviceCodes = Arrays.stream(trigger.getDeviceCodes().split(",")).toList();
-//                    List<Device> devices = new ArrayList<>();
-//                    for (String deviceCode : deviceCodes) {
-//                        Device device = (Device) redisTemplate.opsForHash().get(RedisConstants.Device.DEVICE, deviceCode);
-//                        if (device != null) {
-//                            devices.add(device);
-//                            deviceMap.put(device.getId(), device);
-//                        }
-//                    }
-//                    if (ObjectUtils.isNotEmpty(devices)) {
-//                        for (Device device : devices) {
-//                            DeviceJob job = new DeviceJob();
-//                            job.setDeviceId(device.getId());
-//                            job.setSceneId(scene.getId());
-//                            job.setDeviceName(device.getDeviceName());
-//                            job.setConcurrent(formData.getExecuteMode().equals("SERIAL") ? 0 : 1);
-//                            job.setConcurrent(0);
-//                            job.setJobName(scene.getSceneName() + "定时执行");
-//                            job.setJobType(2L);
-//                            job.setCron(trigger.getCron());
-//                            job.setStatus(1);
-//                            job.setJobGroup("DEFAULT");
-//                            job.setIsAdvance(trigger.getIsAdvance());
-//                            jobs.add(job);
-//
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//        List<DeviceJob> needSaveJobs = new ArrayList<>();
-//        HashMap<String, Action> actionMap = new HashMap<>();
-//        // 保存关联的动作
-//        if (scene.getActions() != null) {
-//            for (Action action : scene.getActions()) {
-//                action.setSceneId(scene.getId());
-//                actionMapper.insert(action);
-//                if (action.getType().equals("DEVICE_EXECUTE")) {
-//                    actionMap.put(action.getDeviceCodes(), action);
-//                }
-//            }
-//            if (ObjectUtils.isNotEmpty(jobs)) {
-//                for (DeviceJob job : jobs) {
-//                    DeviceJob addJob = new DeviceJob();
-//                    BeanUtils.copyProperties(job, addJob);
-//                    addJob.setActions(actionMap.get(deviceMap.get(job.getDeviceId()).getDeviceCode()).getParameters());
-//                    addJob.setStatus(scene.getEnable());
-//                    needSaveJobs.add(addJob);
-//                }
-//            }
-//        }
-//        if (ObjectUtils.isNotEmpty(needSaveJobs)) {
-//            //当禁用时 任务也禁用
-//            for (DeviceJob deviceJob : needSaveJobs) {
-//                if (scene.getEnable() != 0) {
-//                    deviceJobService.saveDeviceJobForScene(deviceJob);
-//                }
-//            }
-//        }
-//    }
 
     /**
      * 更新场景交互
