@@ -545,16 +545,6 @@ public class ElectricityCalculationService {
         return resultList;
     }
 
-    // 辅助方法
-    public double calculateDifference(Double next, Double current) {
-        if (next == null || current == null) {
-            return 0.0; // 任何一个值为null，用电量设为0
-        }
-
-        Double difference = MathUtils.formatDouble(next - current);
-        return difference != null ? Math.max(0, difference) : 0.0;
-    }
-
     /**
      * 通用用电量计算方法 - 处理可能包含null值的数据点
      * @param results 查询结果列表
