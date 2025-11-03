@@ -18,7 +18,7 @@
         device_job
         <where>
             <if test="queryParams.typeId != null">
-                AND type_id = #{queryParams.typeId}
+                AND job_type = #{queryParams.typeId}
             </if>
             <if test="queryParams.status != null">
                 AND status = #{queryParams.status}
