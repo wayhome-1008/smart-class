@@ -380,7 +380,7 @@ public class SubUpdateHandler implements MsgHandler {
         influxPlug.setCategoryId(device.getCategoryId().toString());
         //tag为设备编号
         influxPlug.setDeviceCode(device.getDeviceCode());
-        if (params.has("switches")) {
+        if (isSwitch) {
             influxPlug.setSwitchState(switchState);
         }
         //tag为房间id

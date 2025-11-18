@@ -790,6 +790,7 @@ public class DeviceDataController {
                     .limit(1)
                     .range(startTime, endTime);
             String onFluxQuery = onBuilder.build();
+            log.info("查询设备 {} 的开de 时间：{}", deviceCode, onFluxQuery);
             List<InfluxMqttPlug> onResults = influxDBClient.getQueryApi()
                     .query(onFluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
             Instant earliestOnTime = null;
@@ -808,6 +809,7 @@ public class DeviceDataController {
                     .limit(1)
                     .range(startTime, endTime);
             String offFluxQuery = offBuilder.build();
+            log.info("查询设备 {} 的关de 时间：{}", deviceCode, offFluxQuery);
             List<InfluxMqttPlug> offResults = influxDBClient.getQueryApi()
                     .query(offFluxQuery, influxDBProperties.getOrg(), InfluxMqttPlug.class);
             Instant latestOffTime = null;
