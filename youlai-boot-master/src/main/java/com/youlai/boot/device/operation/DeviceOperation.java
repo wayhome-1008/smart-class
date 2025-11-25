@@ -78,10 +78,10 @@ public class DeviceOperation {
             return;
         }
 
-        if (Objects.equals(wayStatus, operate)) {
-            log.info("[场景执行]设备状态一致，无需操作: deviceCode={}, way={}, status={}", deviceCode, way, operate);
-            return;
-        }
+//        if (Objects.equals(wayStatus, operate)) {
+//            log.info("[场景执行]设备状态一致，无需操作: deviceCode={}, way={}, status={}", deviceCode, way, operate);
+//            return;
+//        }
 
         if (isUnSupportedDeviceType(device.getDeviceTypeId())) {
             log.warn("[场景执行]不支持的设备类型: deviceTypeId={}", device.getDeviceTypeId());
@@ -143,10 +143,10 @@ public class DeviceOperation {
             return;
         }
 
-        if (Objects.equals(wayStatus, operate)) {
-            log.info("[任务执行]设备状态一致，无需操作: deviceCode={}, way={}, status={}", deviceCode, way, operate);
-            return;
-        }
+//        if (Objects.equals(wayStatus, operate)) {
+//            log.info("[任务执行]设备状态一致，无需操作: deviceCode={}, way={}, status={}", deviceCode, way, operate);
+//            return;
+//        }
 
         if (isUnSupportedDeviceType(device.getDeviceTypeId())) {
             log.warn("[任务执行]不支持的设备类型: deviceTypeId={}", device.getDeviceTypeId());
@@ -206,10 +206,10 @@ public class DeviceOperation {
                 return Result.failed("操作指令为空");
             }
 
-            if (Objects.equals(wayStatus, operate)) {
-                log.info("[接口执行]设备状态一致，无需操作: deviceCode={}, way={}, status={}", deviceCode, way, operate);
-                return Result.failed("设备状态一致，无需操作");
-            }
+//            if (Objects.equals(wayStatus, operate)) {
+//                log.info("[接口执行]设备状态一致，无需操作: deviceCode={}, way={}, status={}", deviceCode, way, operate);
+//                return Result.failed("设备状态一致，无需操作");
+//            }
         }
 
         if (isUnSupportedDeviceType(device.getDeviceTypeId())) {
